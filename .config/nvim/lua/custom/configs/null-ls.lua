@@ -1,10 +1,10 @@
-local null_ls = require("null_ls")
+local null_ls = require("null-ls")
 local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 local opts = {
   sources = {
-    null_ls.builtins.formating.gofumpt,
-    null_ls.builtins.formating.goimports_reviser,
-    null_ls.builtins.formating.golines,
+    null_ls.builtins.formatting.gofumpt,
+    null_ls.builtins.formatting.goimports_reviser,
+    null_ls.builtins.formatting.golines,
   },
   on_attach = function (client, bufrn)
     if client.supports_method("textDocuments/formatting") then
