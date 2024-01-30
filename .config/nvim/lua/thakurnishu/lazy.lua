@@ -74,4 +74,7 @@ require("lazy").setup({
             })
         end
     },
+    {
+        'akinsho/toggleterm.nvim'
+    },
 }, {})

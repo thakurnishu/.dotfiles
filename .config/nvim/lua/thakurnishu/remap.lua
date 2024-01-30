@@ -1,6 +1,15 @@
 vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
 
+-- Open Four Facing Terminal
+vim.keymap.set("n", "<C-t>", function()
+  vim.cmd(":tabnew term://zsh")
+  vim.cmd("vsplit term://zsh")
+  vim.cmd("split term://zsh")
+  vim.cmd(':wincmd l', 'n', true)
+  vim.cmd("split term://zsh")
+end)
+
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 

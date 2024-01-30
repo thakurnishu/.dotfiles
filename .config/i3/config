@@ -9,7 +9,7 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
-set $mod Mod1
+set $mod Mod4
 
 bindsym Ctrl+d nop
 
@@ -132,12 +132,11 @@ bindsym $mod+1 workspace number $ws1
 bindsym $mod+2 workspace number $ws2
 bindsym $mod+bracketleft workspace number $ws3
 bindsym $mod+bracketright workspace number $ws4
-bindsym $mod+backslash workspace number $ws5
-bindsym $mod+semicolon workspace number $ws6
-bindsym $mod+apostrophe workspace number $ws7
-bindsym $mod+8 workspace number $ws8
-bindsym $mod+9 workspace number $ws9
-bindsym $mod+0 workspace number $ws10
+bindsym $mod+semicolon workspace number $ws5
+bindsym $mod+apostrophe workspace number $ws6
+bindsym $mod+8 workspace number $ws7
+bindsym $mod+9 workspace number $ws8
+bindsym $mod+0 workspace number $ws9
 
 # move focused container to workspace
 bindsym $mod+Shift+1 move container to workspace number $ws1
