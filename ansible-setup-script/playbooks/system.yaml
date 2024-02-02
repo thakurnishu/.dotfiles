@@ -41,6 +41,32 @@
       shell: |
         su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
  
+- name: Install Kitty 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing Kitty 
+      dnf:
+        name: kitty
+        state: present
+
+- name: Install tmux 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing tmux 
+      dnf:
+        name: tmux
+        state: present
+
+- name: Install neovim 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing neovim 
+      dnf:
+        name: neovim
+        state: present
 
 - name: Install i3 Window Manager 
   hosts: localhost
