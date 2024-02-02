@@ -23,6 +23,10 @@
       dnf:
         name: tree
         state: present
+    - name: Install Snapd
+      dnf:
+        name: snapd
+        state: present
 
 - name: Setting Up Zsh Env
   hosts: localhost
@@ -89,3 +93,11 @@
       dnf:
         name: brave-browser 
         state: present
+
+- name: Install Authy
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Installing Authy
+      shell: |
+        snap install authy
