@@ -1,0 +1,45 @@
+- name: Install Kind K8S dev Cluster
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/kind
+    - name: Installing Latest Kind 
+      shell: |
+        latestVersion=$(curl -s https://api.github.com/repos/kubernetes-sigs/kind/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+        [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/$latestVersion/kind-linux-amd64
+        [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/$latestVersion/kind-linux-arm64
+        chmod +x ./kind
+        mv ./kind /usr/local/bin/kind
+
+- name: Install Kubectl Client
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/kubectl
+    - name: Installing Latest Kubectl
+      shell: |
+        [ $(uname -m) = x86_64 ] && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"  
+        [ $(uname -m) = aarch64 ] && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/arm64/kubectl"
+        chmod +x kubectl
+        mv ./kubectl /usr/local/bin/kubectl
+
+- name: Install KubeBuilder
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/kubebuilder
+    - name: Installing Latest KubeBuilder
+      shell: |
+        latestVersion=$(curl -s https://api.github.com/repos/kubernetes-sigs/kubebuilder/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+        wget https://github.com/kubernetes-sigs/kubebuilder/releases/download/$latestVersion/kubebuilder_linux_amd64
+        chmod +x kubebuilder_linux_amd64  
+        mv kubebuilder_linux_amd64 /usr/local/bin/kubebuilder

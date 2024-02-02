@@ -1,0 +1,15 @@
+- name: Install GO 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/go
+    - name: Installing Latest GO 
+      shell: |
+        latestVersion=$(curl https://go.dev/VERSION\?m\=text | grep go)
+        wget https://go.dev/dl/$latestVersion.linux-amd64.tar.gz
+        tar xzf $latestVersion.linux-amd64.tar.gz
+        rm -rf $latestVersion.linux-amd64.tar.gz
+        mv ./go /usr/local/go

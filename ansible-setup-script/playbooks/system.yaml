@@ -1,0 +1,65 @@
+- name: Installing dnf core plugins
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Install dnf-plugins-core package
+      dnf:
+        name: dnf-plugins-core
+        state: present
+
+- name: Installing Regular tools
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Install Git 
+      dnf:
+        name: git
+        state: present
+    - name: Install unzip 
+      dnf:
+        name: unzip
+        state: present
+    - name: Install Tree
+      dnf:
+        name: tree
+        state: present
+
+- name: Setting Up Zsh Env
+  hosts: localhost
+  become: true
+  vars:
+    user_to_configure: "{{ current_user }}"
+  tasks:
+    - name: Install ZSH
+      shell: |
+        command -v apt &> /dev/null && apt install zsh -y 
+        command -v dnf &> /dev/null && dnf install zsh -y 
+    - name: Install oh-my-zsh
+      shell: |
+        su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
+    - name: Install zsh autosuggestion
+      shell: |
+        su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
+ 
+
+- name: Install i3 Window Manager 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing i3 
+      dnf:
+        name: i3
+        state: present
+
+- name: Install Brave Browser
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Add Brave Repo
+      shell: |
+        dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+    - name: Install brave 
+      dnf:
+        name: brave-browser 
+        state: present
