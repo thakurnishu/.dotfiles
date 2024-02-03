@@ -31,6 +31,14 @@
       dnf:
         name: light
         state: present
+    - name: Install maim 
+      dnf:
+        name: maim
+        state: present
+    - name: Install xclip
+      dnf:
+        name: xclip
+        state: present
 
 - name: Setting Up Zsh Env
   hosts: localhost
