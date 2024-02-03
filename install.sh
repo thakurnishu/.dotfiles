@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
+## This Script should be run as sudo
+
 user=$1
 dest_dir=$1/test
-## This Script should be run as sudo
+
 printf 'Checking if Git is installed\n'
-echo $user
-echo $dest_dir
 
 if command -v git &> /dev/null; then
     printf 'git is present\n\n'
@@ -38,5 +38,10 @@ printf 'Getting Git Repo for .dotfiles\n'
 sleep 1
 git clone https://github.com/thakurnishu/.dotfiles.git /home/$dest_dir
 chown -R $user:$user /home/$dest_dir
-printf '\nGit repo is cloned in ~/.dotfiles\n'
+printf '\nGit repo is cloned in ~/.dotfiles\n\n'
 
+printf 'Runnning Ansible Playbook...'
+sleep 1
+cd /home/$dest_dir
+cd ansible-setup-script
+ansible-playbook master_playbook.yaml -e "current_user=$user"
