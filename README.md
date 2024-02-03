@@ -3,7 +3,9 @@ My personal dot files
 
 #### Install
 ```bash
-sh -c $(curl -fsSL https://raw.githubusercontent.com/thakurnishu/.dotfiles/main/install.sh)
+curl -fsSL https://raw.githubusercontent.com/thakurnishu/.dotfiles/main/install.sh > install.sh
+chmod +x install.sh
+sudo ./install.sh $(whoami)
 ```
 
 #### Run Ansible Script
