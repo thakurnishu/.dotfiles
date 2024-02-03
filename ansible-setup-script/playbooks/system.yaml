@@ -27,6 +27,10 @@
       dnf:
         name: snapd
         state: present
+    - name: Install light
+      dnf:
+        name: light
+        state: present
 
 - name: Setting Up Zsh Env
   hosts: localhost

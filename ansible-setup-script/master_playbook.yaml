@@ -11,3 +11,5 @@
 
 - name: Install DevOps Tools 
   import_playbook: playbooks/devops.yaml
+  vars:
+    current_user: "mahakal"

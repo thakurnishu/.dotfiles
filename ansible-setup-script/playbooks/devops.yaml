@@ -24,6 +24,8 @@
 - name: Install Docker 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
+  vars:
+    user_to_configure: "{{ current_user }}"
   tasks:
     - name: Removing Old Docker
       ignore_errors: true
@@ -44,6 +46,7 @@
     - name: Installing Docker 
       shell: |
         dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+        sudo usermod -aG docker {{ user_to_configure }}  
     - name: Starting and Enabling Docker
       systemd:
         name: docker
