@@ -68,6 +68,17 @@
         ./get_helm.sh
         rm -rf get_helm.sh
 
+- name: Install Terraform 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Adding Terraform repo
+      shell: |
+        dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+    - name: Installing AzureCLI
+      shell: |
+        dnf -y install terraform
+
 - name: Install AzureCLI 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
