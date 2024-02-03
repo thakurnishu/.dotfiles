@@ -3,7 +3,7 @@
 ## This Script should be run as sudo
 
 user=$1
-dest_dir=$1/test
+dest_dir=$1/.dotfiles
 
 printf 'Checking if Git is installed\n'
 
@@ -34,14 +34,17 @@ else
 fi
 
 
-printf 'Getting Git Repo for .dotfiles\n'
+printf 'Getting Git Repo for .dotfiles\n\n'
 sleep 1
 git clone https://github.com/thakurnishu/.dotfiles.git /home/$dest_dir
 chown -R $user:$user /home/$dest_dir
 printf '\nGit repo is cloned in ~/.dotfiles\n\n'
 
-printf 'Runnning Ansible Playbook...'
+printf 'Runnning Ansible Playbook...\n\n'
 sleep 1
 cd /home/$dest_dir
 cd ansible-setup-script
 ansible-playbook master_playbook.yaml -e "current_user=$user"
+
+printf '\nAll System required pkg is Installed\n'
+printf '\nRUN: cd ~/.dotfiles/scripts && ./linkAllFile.sh\n'
