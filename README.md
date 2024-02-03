@@ -1,4 +1,4 @@
-# dotfiles
+# Dotfile Automation
 This is my personal .dotfiles automation repo
 
 #### Install whole setup
