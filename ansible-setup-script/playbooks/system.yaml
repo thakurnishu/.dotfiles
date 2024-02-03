@@ -28,22 +28,22 @@
         name: snapd
         state: present
 
-#- name: Setting Up Zsh Env
-# hosts: localhost
-# become: true
-# vars:
-#   user_to_configure: "{{ current_user }}"
-# tasks:
-#   - name: Install ZSH
-#     shell: |
-#       command -v apt &> /dev/null && apt install zsh -y 
-#       command -v dnf &> /dev/null && dnf install zsh -y 
-#   - name: Install oh-my-zsh
-#     shell: |
-#       su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
-#   - name: Install zsh autosuggestion
-#     shell: |
-#       su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
+- name: Setting Up Zsh Env
+  hosts: localhost
+  become: true
+  vars:
+    user_to_configure: "{{ current_user }}"
+  tasks:
+    - name: Install ZSH
+      shell: |
+        command -v apt &> /dev/null && apt install zsh -y 
+        command -v dnf &> /dev/null && dnf install zsh -y 
+    - name: Install oh-my-zsh
+      shell: |
+        su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
+    - name: Install zsh autosuggestion
+      shell: |
+        su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
  
 - name: Install Kitty 
   hosts: localhost
