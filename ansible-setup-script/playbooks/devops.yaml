@@ -89,6 +89,11 @@
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
+    - name: Removing Old Postman
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/bin/postman
+        rm -rf /opt/Postman/Postman
     - name: Installing Postman
       shell: |
         wget https://dl.pstmn.io/download/latest/linux64 -O postman-linux-x64.tar.gz
