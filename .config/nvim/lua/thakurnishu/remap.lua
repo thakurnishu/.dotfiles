@@ -11,7 +11,7 @@ vim.keymap.set("n", "<C-t>", function()
 end)
 
 -- Open Four Facing Terminal
-vim.keymap.set("n", "<C-t>", function()
+vim.keymap.set("n", "<leader>t", function()
   vim.cmd(":tabnew term://zsh")
   vim.cmd("vsplit term://zsh")
   vim.cmd("split term://zsh")
