@@ -114,6 +114,7 @@ PATH=$PATH:/usr/local/nvim/bin
 # GO stuff
 GOPATH=$HOME/go
 PATH=$PATH:/usr/local/go/bin
+PATH=$PATH:$GOPATH/bin
 
 ## automatic tmux 
 if [ -z "$TMUX" ]; then
