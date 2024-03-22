@@ -111,6 +111,9 @@ alias vim="nvim"
 # NeoVim stuff
 PATH=$PATH:/usr/local/nvim/bin
 
+# Default Editor
+export EDITOR="/usr/bin/nvim"
+
 # GO stuff
 GOPATH=$HOME/go
 PATH=$PATH:/usr/local/go/bin
