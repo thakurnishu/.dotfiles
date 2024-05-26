@@ -118,6 +118,7 @@ export EDITOR="/usr/bin/nvim"
 GOPATH=$HOME/go
 PATH=$PATH:/usr/local/go/bin
 PATH=$PATH:$GOPATH/bin
+PATH=$PATH:/usr/local/jmeter/bin
 
 ## automatic tmux 
 if [ -z "$TMUX" ]; then
