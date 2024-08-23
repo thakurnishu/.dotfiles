@@ -232,6 +232,7 @@ bar {
 ## notifications and is often used to ensure that the network manager applet
 ## is running when you start your graphical environment.
 exec --no-startup-id nm-applet
+exec --no-startup-id picom
 
 ## Increase/Decrease/Mute Audio
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume 0 +5% #increase sound volume
