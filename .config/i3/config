@@ -11,12 +11,10 @@
 set $gigabyte_m HDMI-1
 set $gigabyte_refresh_rate 165.10
 set $gigabyte_resolution 1920x1080
-
 set $default_m eDP-1
 
 set $mod Mod4
 set $mod1 Mod1
-
 
 # SET Monitor Direction
 bindsym $mod+Shift+s exec xrandr --output $default_m --auto --output $gigabyte_m --left-of $default_m && xrandr --output $gigabyte_m --mode $gigabyte_resolution --rate $gigabyte_refresh_rate
