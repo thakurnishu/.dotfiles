@@ -125,6 +125,7 @@ if [ -z "$TMUX" ]; then
     exec tmux new-session -A -s $HOST 
 fi
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
+compdef __start_kubectl k
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
