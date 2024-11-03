@@ -99,7 +99,7 @@
   tasks:
     - name: Add Brave Repo
       shell: |
-        dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        dnf-3 config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
         rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
     - name: Install brave 
       dnf:
