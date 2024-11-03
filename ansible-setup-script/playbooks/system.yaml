@@ -105,11 +105,3 @@
       dnf:
         name: brave-browser 
         state: present
-
-- name: Install Authy
-  hosts: localhost
-  become: true
-  tasks:
-    - name: Installing Authy
-      shell: |
-        snap install authy
