@@ -7,20 +7,6 @@
         name: nginx
         state: present
 
-- name: Install MySQL 
-  hosts: localhost
-  become: true  # Run tasks with elevated privileges (sudo)
-  tasks:
-    - name: Install MySQL
-      dnf:
-        name: mariadb  
-        state: present
-    - name: Starting and Enabling
-      systemd:
-        name: mariadb
-        state: started
-
-
 - name: Install Docker 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
