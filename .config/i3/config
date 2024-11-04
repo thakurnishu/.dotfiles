@@ -20,7 +20,7 @@ set $mod1 Mod1
 bindsym $mod+Shift+s exec xrandr --output $default_m --auto --output $gigabyte_m --left-of $default_m && xrandr --output $gigabyte_m --mode $gigabyte_resolution --rate $gigabyte_refresh_rate
 
 # OPEN SETTINGS
-bindsym $mod1+s exec --no-startup-id gnome-control-center
+bindsym $mod1+s exec --no-startup-id env XDG_CURRENT_DESKTOP=GNOME gnome-control-center
 
 # OPEN FILE
 bindsym $mod1+f exec --no-startup-id nautilus
@@ -233,6 +233,7 @@ bar {
 ## is running when you start your graphical environment.
 exec --no-startup-id nm-applet
 exec --no-startup-id picom
+bindsym $mod+Shift+a exec pavucontrol
 
 ## Increase/Decrease/Mute Audio
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume 0 +5% #increase sound volume

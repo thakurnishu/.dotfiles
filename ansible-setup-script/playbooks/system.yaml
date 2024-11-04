@@ -39,6 +39,14 @@
       dnf:
         name: xclip
         state: present
+    - name: Install pavucontrol
+      dnf:
+        name: pavucontrol
+        state: present
+    - name: Install volumeicon
+      dnf:
+        name: volumeicon
+        state: present
 
 - name: Setting Up Zsh Env
   hosts: localhost
