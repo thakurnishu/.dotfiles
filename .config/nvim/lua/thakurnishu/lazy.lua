@@ -69,6 +69,7 @@ require("lazy").setup({
                     "terraformls",
                     "yamlls",
                     "html",
+                    "htmx",
                 }
             })
         end

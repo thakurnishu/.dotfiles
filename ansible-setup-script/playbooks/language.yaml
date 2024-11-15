@@ -13,3 +13,7 @@
         tar xzf $latestVersion.linux-amd64.tar.gz
         rm -rf $latestVersion.linux-amd64.tar.gz
         mv ./go /usr/local/go
+    - name: Install cargo
+      dnf:
+        name: cargo
+        state: present
