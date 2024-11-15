@@ -47,6 +47,15 @@
       dnf:
         name: volumeicon
         state: present
+    - name: Install fzf
+      dnf:
+        name: fzf
+        state: present
+    - name: Install picom
+      dnf:
+        name: picom
+        state: present
+
 
 - name: Setting Up Zsh Env
   hosts: localhost

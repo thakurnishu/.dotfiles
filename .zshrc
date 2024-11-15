@@ -119,6 +119,7 @@ GOPATH=$HOME/go
 PATH=$PATH:/usr/local/go/bin
 PATH=$PATH:$GOPATH/bin
 PATH=$PATH:/usr/local/jmeter/bin
+PATH="$HOME/.local/bin:$PATH"
 
 ## automatic tmux 
 if [ -z "$TMUX" ]; then

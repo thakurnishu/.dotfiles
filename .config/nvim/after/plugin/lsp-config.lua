@@ -14,6 +14,12 @@ require('lspconfig').sqls.setup({})
 require('lspconfig').terraformls.setup({})
 require('lspconfig').yamlls.setup({})
 require('lspconfig').gopls.setup({})
+require('lspconfig').htmx.setup({})
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities.textDocument.completion.completionItem.snippetSupport = true
+require'lspconfig'.html.setup {
+  capabilities = capabilities,
+}
 
 
 --- cmp_mappings['<Tab>'] = nil (tab) to disable
