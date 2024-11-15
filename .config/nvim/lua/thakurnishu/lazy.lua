@@ -26,7 +26,7 @@ require("lazy").setup({
     },
     {
         'nvim-treesitter/nvim-treesitter',
-        build = ':TSUpdate'
+        build = ':TSUpdate',
     },
     {	-- harpoon to add file to buffer
         'ThePrimeagen/harpoon',
@@ -60,16 +60,15 @@ require("lazy").setup({
                     "bashls",
                     "clangd",
                     "dockerls",
-                    "dotls",
                     "gopls",
                     "groovyls",
                     "helm_ls",
                     "jsonls",
                     "lua_ls",
-                    "marksman",
                     "sqls",
                     "terraformls",
                     "yamlls",
+                    "html",
                 }
             })
         end

@@ -4,21 +4,17 @@ require('lspconfig').azure_pipelines_ls.setup({})
 require('lspconfig').bashls.setup({})
 require('lspconfig').clangd.setup({})
 require('lspconfig').dockerls.setup({})
-require('lspconfig').dotls.setup({})
 require('lspconfig').groovyls.setup({})
 require('lspconfig').helm_ls.setup({})
 require('lspconfig').jsonls.setup({})
 require('lspconfig').lua_ls.setup({})
-require('lspconfig').marksman.setup({})
 require('lspconfig').sqls.setup({})
 require('lspconfig').terraformls.setup({})
 require('lspconfig').yamlls.setup({})
 require('lspconfig').gopls.setup({})
-require('lspconfig').htmx.setup({})
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities.textDocument.completion.completionItem.snippetSupport = true
+
 require'lspconfig'.html.setup {
-  capabilities = capabilities,
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
 }
 
 
@@ -40,16 +36,15 @@ cmp.setup({
         {name = 'nvim_lsp'},
     }
 })
-
-lsp_zero.set_preferences({
-    suggest_lsp_servers = false,
-    sign_icons = {
-        error = 'E',
-        warn = 'W',
-        hint = 'H',
-        info = 'I'
-    }
-})
+--lsp_zero.set_preferences({
+--    suggest_lsp_servers = false,
+--    sign_icons = {
+--        error = 'E',
+--        warn = 'W',
+--        hint = 'H',
+--        info = 'I'
+--    }
+--})
 
 lsp_zero.on_attach(function(client, bufnr)
     local opts = {buffer = bufnr, remap = false}
