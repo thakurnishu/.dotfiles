@@ -70,6 +70,7 @@ require("lazy").setup({
                     "yamlls",
                     "html",
                     "htmx",
+                    "tailwindcss",
                 }
             })
         end

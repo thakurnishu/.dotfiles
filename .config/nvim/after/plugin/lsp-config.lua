@@ -13,6 +13,7 @@ require('lspconfig').terraformls.setup({})
 require('lspconfig').yamlls.setup({})
 require('lspconfig').gopls.setup({})
 require('lspconfig').htmx.setup({})
+require('lspconfig').tailwindcss.setup({})
 
 require'lspconfig'.html.setup {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
