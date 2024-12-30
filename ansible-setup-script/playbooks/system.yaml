@@ -55,6 +55,10 @@
       dnf:
         name: picom
         state: present
+    - name: Install Blueman
+      dnf:
+        name: bluename
+        state: present
 
 - name: Setting Up Zsh Env
   hosts: localhost

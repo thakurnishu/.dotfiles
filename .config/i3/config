@@ -25,6 +25,9 @@ bindsym $mod1+s exec --no-startup-id env XDG_CURRENT_DESKTOP=GNOME gnome-control
 # OPEN FILE
 bindsym $mod1+f exec --no-startup-id nautilus
 
+# OPEN BLUETOOTH
+bindsym $mod+b exec --no-startup-id blueman-manager
+
 # FOR DEFAULT DISPLAY
 workspace 1 output $default_m
 workspace 2 output $default_m
