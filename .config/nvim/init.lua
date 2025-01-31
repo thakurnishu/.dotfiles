@@ -1,1 +1,1 @@
-require("thakurnishu")
+require("config")

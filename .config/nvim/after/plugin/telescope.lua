@@ -1,18 +1,17 @@
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
-vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
-vim.keymap.set('n', '<leader>pf', builtin.find_files, {})
-vim.keymap.set('n', '<leader>ps', function()
-    builtin.grep_string({ search = vim.fn.input("Grep > ") });
-end)
+local builtin = require("telescope.builtin")
+local keymap = vim.keymap.set
 
--- telescope ui
-require("telescope").setup {
-    extensions = {
-        ["ui-select"] = {
-            require("telescope.themes").get_dropdown {
-            }
-        }
+-- Keybindings for telescope
+keymap("n", "<C-f>", builtin.find_files, {})
+keymap("n", "<leader>ps", builtin.grep_string, {})
+-- Telescope setup with UI select extension
+require("telescope").setup({
+  extensions = {
+    ["ui-select"] = {
+      require("telescope.themes").get_dropdown({})
     }
-}
+  }
+})
+
+-- Load the ui-select extension
 require("telescope").load_extension("ui-select")
