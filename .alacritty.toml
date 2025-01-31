@@ -1,0 +1,13 @@
+[font]
+size = 16
+
+[window]
+decorations = "none"
+
+[general]
+# themes from https://github.com/alacritty/alacritty-theme
+import = ["~/.config/alacritty/themes/gruvbox_dark.toml"]
+
+[terminal]
+[terminal.shell]
+program = "tmux"
