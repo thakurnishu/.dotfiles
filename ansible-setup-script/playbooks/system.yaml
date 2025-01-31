@@ -57,7 +57,7 @@
         state: present
     - name: Install Blueman
       dnf:
-        name: bluename
+        name: blueman
         state: present
 
 - name: Setting Up Zsh Env
