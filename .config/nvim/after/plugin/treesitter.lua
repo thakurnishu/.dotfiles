@@ -12,6 +12,7 @@ require'nvim-treesitter.configs'.setup({
     "javascript",
     "markdown",
     "markdown_inline",
+    "terraform",
   },
 
   sync_install = false,

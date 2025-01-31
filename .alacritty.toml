@@ -6,7 +6,7 @@ decorations = "none"
 
 [general]
 # themes from https://github.com/alacritty/alacritty-theme
-import = ["~/.config/alacritty/themes/gruvbox_dark.toml"]
+import = [" ~/.config/alacritty/themes/themes/gruvbox_dark.toml"]
 
 [terminal]
 [terminal.shell]

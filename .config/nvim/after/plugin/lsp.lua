@@ -1,7 +1,12 @@
 local ls_servers = {
   "lua_ls",
   "gopls",
-  "terraformls"
+  "terraformls",
+  "dockerls",
+  "ansiblels",
+  "jsonls",
+  "yamlls",
+  "taplo",
 }
 
 require("mason").setup()
