@@ -59,32 +59,51 @@
       dnf:
         name: blueman
         state: present
+    - name: Install RipGrep
+      dnf:
+        name: ripgrep
+        state: present
 
-- name: Setting Up Zsh Env
+# - name: Setting Up Zsh Env
+#   hosts: localhost
+#   become: true
+#   vars:
+#     user_to_configure: "{{ current_user }}"
+#   tasks:
+#     - name: Install ZSH
+#       shell: |
+#         command -v apt &> /dev/null && apt install zsh -y 
+#         command -v dnf &> /dev/null && dnf install zsh -y 
+#     - name: Install oh-my-zsh
+#       shell: |
+#         su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
+#     - name: Install zsh autosuggestion
+#       shell: |
+#         su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
+ 
+# - name: Install Kitty 
+#   hosts: localhost
+#   become: true  # Run tasks with elevated privileges (sudo)
+#   tasks:
+#     - name: Installing Kitty 
+#       dnf:
+#         name: kitty
+#         state: present
+
+- name: Install Alacritty
   hosts: localhost
-  become: true
+  become: true  # Run tasks with elevated privileges (sudo)
   vars:
     user_to_configure: "{{ current_user }}"
   tasks:
-    - name: Install ZSH
-      shell: |
-        command -v apt &> /dev/null && apt install zsh -y 
-        command -v dnf &> /dev/null && dnf install zsh -y 
-    - name: Install oh-my-zsh
-      shell: |
-        su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
-    - name: Install zsh autosuggestion
-      shell: |
-        su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
- 
-- name: Install Kitty 
-  hosts: localhost
-  become: true  # Run tasks with elevated privileges (sudo)
-  tasks:
-    - name: Installing Kitty 
+    - name: Installing Alacritty
       dnf:
-        name: kitty
+        name: alacritty
         state: present
+    - name: Setup Themes
+      shell: |
+        su - {{ user_to_configure }} -c 'mkdir -p ~/.config/alacritty/themes | sh'
+        su - {{ user_to_configure }} -c 'git clone https://github.com/alacritty/alacritty-theme ~/.config/alacritty/themes | sh'
 
 - name: Install tmux 
   hosts: localhost

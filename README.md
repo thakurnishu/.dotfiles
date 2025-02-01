@@ -7,3 +7,4 @@ curl -fsSL https://raw.githubusercontent.com/thakurnishu/.dotfiles/main/install.
 chmod +x install.sh
 sudo ./install.sh $(whoami)
 ```
+
