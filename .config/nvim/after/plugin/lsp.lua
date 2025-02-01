@@ -8,7 +8,7 @@ local ls_servers = {
   "jsonls",
   "yamlls",
   "taplo",
-  --"marksman"
+  "marksman"
 }
 
 require("mason").setup()

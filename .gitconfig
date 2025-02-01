@@ -3,3 +3,7 @@
 	name = thakurnishu
 [init]
 	defaultBranch = main
+[http]
+	postBuffer = 524288000
+[core]
+	compression = 1

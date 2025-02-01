@@ -24,12 +24,52 @@ vim.g.maplocalleader = "\\"
 -- Setup lazy.nvim
 require("lazy").setup({
   spec = {
-    -- color
+    -- lualine
+    { 'nvim-lualine/lualine.nvim' }, -- Fancier statusline
+
+    -- comments
+    { 'numToStr/Comment.nvim' },
+
+    -- noice
+    {
+      "folke/noice.nvim",
+      event = "VeryLazy",
+      opts = {},
+    },
+
+    -- mini.nvim
+    { 'echasnovski/mini.nvim', version = false },
+
+    -- markdown render
+    {
+      'MeanderingProgrammer/markdown.nvim',
+      main = "render-markdown",
+      opts = {},
+      name = 'render-markdown',
+      dependencies = {
+        "nvim-treesitter/nvim-treesitter",
+        "nvim-tree/nvim-web-devicons",
+      },
+    },
+
+    -- colors
     {
       'ellisonleao/gruvbox.nvim',
       lazy = false,
       priority = 1000,
     },
+    {
+      "catppuccin/nvim",
+      name = "catppuccin",
+      lazy = false,
+      priority = 1001
+    },
+
+    -- treesitter
+    { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+
+    -- toggleterm
+    { 'akinsho/toggleterm.nvim' },
 
     -- completion
     {
@@ -55,8 +95,6 @@ require("lazy").setup({
       ft = "lua", -- only load on lua files
       opts = {
         library = {
-          -- See the configuration section for more details
-          -- Load luvit types when the `vim.uv` word is found
           { path = "${3rd}/luv/library", words = { "vim%.uv" } },
         },
       },
@@ -67,20 +105,7 @@ require("lazy").setup({
       "nvim-telescope/telescope.nvim", tag = "0.1.8",
       dependencies = { "nvim-lua/plenary.nvim" },
     },
-    {
-      'nvim-telescope/telescope-ui-select.nvim',
-    },
-
-    -- treesitter
-    {
-      'nvim-treesitter/nvim-treesitter',
-      build = ':TSUpdate',
-    },
-
-    -- toggleterm
-    {
-      'akinsho/toggleterm.nvim'
-    },
+    { 'nvim-telescope/telescope-ui-select.nvim' },
 
     -- no neck pain
     {
@@ -90,18 +115,25 @@ require("lazy").setup({
       opts = {},
     },
 
-    -- markdown
---     {
---       'MeanderingProgrammer/render-markdown.nvim',
---       name = "render-markdown",
---       dependencies = { 'nvim-treesitter/nvim-treesitter', 'echasnovski/mini.nvim' },
---       config = function()
---         require('render-markdown').setup({
---           render_modes = true,
---           heading = { border = true },
---         })
---       end,
---       ft = "markdown",
---     },
+    -- dap ui
+    {
+      "rcarriga/nvim-dap-ui",
+      dependencies = {
+        "mfussenegger/nvim-dap",
+        "nvim-neotest/nvim-nio"
+      }
+    },
+
+    -- obsidian
+    {
+      "epwalsh/obsidian.nvim",
+      version = "*",  -- recommended, use latest release instead of latest commit
+      lazy = true,
+      ft = "markdown",
+      dependencies = {
+        -- Required.
+        "nvim-lua/plenary.nvim",
+      },
+    },
   },
 })
