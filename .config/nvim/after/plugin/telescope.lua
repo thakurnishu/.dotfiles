@@ -2,7 +2,7 @@ local builtin = require("telescope.builtin")
 local keymap = vim.keymap.set
 
 -- Keybindings for telescope
-keymap("n", "<C-f>", builtin.find_files, {})
+keymap("n", "<leader>ff", builtin.find_files, {})
 keymap("n", "<leader>ps", builtin.grep_string, {})
 -- Telescope setup with UI select extension
 require("telescope").setup({
