@@ -6,11 +6,13 @@
   "lazydev.nvim": { "branch": "main", "commit": "a1b78b2ac6f978c72e76ea90ae92a94edf380cfc" },
   "mason-lspconfig.nvim": { "branch": "main", "commit": "e942edf5c85b6a2ab74059ea566cac5b3e1514a4" },
   "mason.nvim": { "branch": "main", "commit": "e2f7f9044ec30067bc11800a9e266664b88cda22" },
+  "mini.icons": { "branch": "main", "commit": "ec61af6e606fc89ee3b1d8f2f20166a3ca917a36" },
   "no-neck-pain.nvim": { "branch": "main", "commit": "860462dd8b3d36861a81724a7b473db279f673f2" },
   "nvim-cmp": { "branch": "main", "commit": "12509903a5723a876abd65953109f926f4634c30" },
   "nvim-lspconfig": { "branch": "master", "commit": "bf81bef7d75a0f4a0cf61462b318ea00b3c97cc8" },
   "nvim-treesitter": { "branch": "master", "commit": "019e8cb7b39f40dc26745344e7fa9ea43fe60d1d" },
   "plenary.nvim": { "branch": "master", "commit": "3707cdb1e43f5cea73afb6037e6494e7ce847a66" },
+  "render-markdown.nvim": { "branch": "main", "commit": "1ba6fb7998985736ca3480366c9792be05b93ad7" },
   "telescope-ui-select.nvim": { "branch": "master", "commit": "6e51d7da30bd139a6950adf2a47fda6df9fa06d2" },
   "telescope.nvim": { "branch": "master", "commit": "a0bbec21143c7bc5f8bb02e0005fa0b982edc026" },
   "toggleterm.nvim": { "branch": "main", "commit": "e76134e682c1a866e3dfcdaeb691eb7b01068668" }

@@ -15,3 +15,7 @@ vim.keymap.set("n", "<leader><leader>", function()
   vim.cmd("so")
 end)
 
+-- comment code
+vim.keymap.set("v", "<leader>e", [[:s/^/]])
+-- uncomment code [current supported '#', '//', '--']
+vim.keymap.set("v", "<leader>r", [[:s/^\(\-\-\|#\|\/\/\)//<CR>]])
