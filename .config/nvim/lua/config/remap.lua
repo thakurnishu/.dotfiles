@@ -16,8 +16,8 @@ vim.keymap.set("n", "<leader><leader>", function()
 end)
 
 -- buffers
-vim.keymap.set("n", "tk", ":blast<CR>")
-vim.keymap.set("n", "tj", ":bfirst<CR>")
-vim.keymap.set("n", "th", ":bprev<CR>")
-vim.keymap.set("n", "tl", ":bnext<CR>")
-vim.keymap.set("n", "td", ":bdelete<CR>")
+vim.keymap.set("n", "tk", ":blast<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "tj", ":bfirst<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "th", ":bprev<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "tl", ":bnext<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "td", ":bdelete<CR>", {silent = true, noremap = true})
