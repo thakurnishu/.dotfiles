@@ -4,9 +4,6 @@ vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
 -- Vim
 vim.keymap.set("n", "<c-e>", ":!")
 
--- Git
-vim.keymap.set('n', "<leader>G", ":Git ")
-
 -- Copy to Clipboard
 vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
 
