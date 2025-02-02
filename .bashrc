@@ -28,6 +28,8 @@ unset rc
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PS1='[\W]\$ '
+NOTES_DIR='/home/mahakal/Desktop/src/obsidian/mahakal_vault/MainNotes'
+DOTFILE_DIR='/home/mahakal/.dotfiles'
 
 # Set to superior editing mode
 set -o vi
@@ -50,6 +52,10 @@ PATH=$PATH:$GOPATH/bin
 PATH="$HOME/.local/bin:$PATH"
 
 #~~~~~~~~ Alias ~~~~~~~~~~~~~~~
+
+# Change Dir
+alias sb='cd ${NOTES_DIR}'
+alias df='cd ${DOTFILE_DIR}'
 
 alias v="nvim"
 

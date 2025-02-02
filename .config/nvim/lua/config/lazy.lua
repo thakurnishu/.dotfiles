@@ -24,6 +24,12 @@ vim.g.maplocalleader = "\\"
 -- Setup lazy.nvim
 require("lazy").setup({
   spec = {
+    -- git-fugitive
+    {
+      "tpope/vim-fugitive",
+      lazy = false,  -- Ensures it loads immediately
+    },
+
     -- lualine
     { 'nvim-lualine/lualine.nvim' }, -- Fancier statusline
 
@@ -42,14 +48,14 @@ require("lazy").setup({
 
     -- markdown render
     {
-      'MeanderingProgrammer/markdown.nvim',
-      main = "render-markdown",
-      opts = {},
-      name = 'render-markdown',
+      'MeanderingProgrammer/render-markdown.nvim',
       dependencies = {
-        "nvim-treesitter/nvim-treesitter",
-        "nvim-tree/nvim-web-devicons",
-      },
+        'nvim-treesitter/nvim-treesitter',
+        'nvim-tree/nvim-web-devicons'
+      }, -- if you prefer nvim-web-devicons
+      ---@module 'render-markdown'
+      ---@type render.md.UserConfig
+      opts = {},
     },
 
     -- colors

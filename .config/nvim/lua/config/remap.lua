@@ -1,6 +1,12 @@
 vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
 
+-- Vim
+vim.keymap.set("n", "WW", ":w<CR>", {silent = true, noremap = true})
+
+-- Git
+vim.keymap.set('n', "<leader>g", ":Git ")
+
 -- Copy to Clipboard
 vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
 
