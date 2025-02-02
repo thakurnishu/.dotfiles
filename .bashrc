@@ -27,7 +27,10 @@ unset rc
 
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-PS1='[\W]\$ '
+
+#PS1='[\W]\$ '
+# Blue Color
+PS1="\[\e[1;34m\][\W]\[\e[0m\]$ "
 NOTES_DIR='/home/mahakal/Desktop/src/obsidian/mahakal_vault/MainNotes'
 DOTFILE_DIR='/home/mahakal/.dotfiles'
 
