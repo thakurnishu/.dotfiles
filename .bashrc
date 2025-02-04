@@ -28,9 +28,25 @@ unset rc
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#PS1='[\W]\$ '
-# Blue Color
-PS1="\[\e[1;34m\][\W]\[\e[0m\]$ "
+
+# Function to get the current git branch dynamically
+parse_git_branch() {
+    # Check if inside a Git repository
+    local branch=""
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        branch=$(git branch --show-current 2>/dev/null)
+        if [[ -n "$branch" ]]; then
+            # Check for changes in the repository
+            if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+                echo " \[\e[1;34m\]git(\[\e[1;31m\]$branch\[\e[1;34m\]) \[\e[1;33m\]✗"
+            else
+                echo " \[\e[1;34m\]git(\[\e[1;31m\]$branch\[\e[1;34m\])"
+            fi
+        fi
+    fi
+}
+PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0m\] "'
+
 NOTES_DIR='/home/mahakal/Desktop/src/obsidian/mahakal_vault/MainNotes'
 DOTFILE_DIR='/home/mahakal/.dotfiles'
 
