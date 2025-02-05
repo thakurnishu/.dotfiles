@@ -51,10 +51,10 @@ cd ansible-setup-script
 ansible-playbook master_playbook.yaml -e "current_user=$user"
 
 
-cd ../alacritty
+cd /home/$user/alacritty
 sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
 sudo cp target/release/alacritty /usr/local/bin # or anywhere else in $PATH
-sudo ocp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
+sudo cp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
 sudo desktop-file-install extra/linux/Alacritty.desktop
 sudo update-desktop-database
 
