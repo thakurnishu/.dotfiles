@@ -14,7 +14,7 @@ else
     printf 'git is not present\n'
     printf 'Installing Git...\n'
     sleep 1
-    dnf install git -y
+    apt install git -y
     printf 'Git is Installed\n\n'
     sleep 1
 fi
@@ -28,7 +28,7 @@ else
     printf 'ansible is not present\n'
     printf 'Installing Ansible...\n'
     sleep 1
-    dnf install ansible -y
+    apt install ansible -y
     printf 'Git is Installed\n\n'
     sleep 1
 fi

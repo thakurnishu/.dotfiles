@@ -1,116 +1,106 @@
-- name: Installing dnf core plugins
-  hosts: localhost
-  become: true  # Run tasks with elevated privileges (sudo)
-  tasks:
-    - name: Install dnf-plugins-core package
-      dnf:
-        name: dnf-plugins-core
-        state: present
-
 - name: Installing Regular tools
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
+  become_user: "{{ current_user }}"
   tasks:
+    - name: Install Curl
+      apt:
+        name: curl
+        state: present
+    - name: Install Rust
+      shell: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        rustup override set stable
+        rustup update stable
     - name: Install Git 
-      dnf:
+      apt:
         name: git
         state: present
     - name: Install unzip 
-      dnf:
+      apt:
         name: unzip
         state: present
     - name: Install Tree
-      dnf:
+      apt:
         name: tree
         state: present
     - name: Install Snapd
-      dnf:
+      apt:
         name: snapd
         state: present
     - name: Install light
-      dnf:
+      apt:
         name: light
         state: present
     - name: Install maim 
-      dnf:
+      apt:
         name: maim
         state: present
     - name: Install xclip
-      dnf:
+      apt:
         name: xclip
         state: present
     - name: Install pavucontrol
-      dnf:
+      apt:
         name: pavucontrol
         state: present
     - name: Install volumeicon
-      dnf:
+      apt:
         name: volumeicon
         state: present
     - name: Install fzf
-      dnf:
+      apt:
         name: fzf
         state: present
     - name: Install picom
-      dnf:
+      apt:
         name: picom
         state: present
     - name: Install Blueman
-      dnf:
+      apt:
         name: blueman
         state: present
     - name: Install RipGrep
-      dnf:
+      apt:
         name: ripgrep
         state: present
-
-# - name: Setting Up Zsh Env
-#   hosts: localhost
-#   become: true
-#   vars:
-#     user_to_configure: "{{ current_user }}"
-#   tasks:
-#     - name: Install ZSH
-#       shell: |
-#         command -v apt &> /dev/null && apt install zsh -y 
-#         command -v dnf &> /dev/null && dnf install zsh -y 
-#     - name: Install oh-my-zsh
-#       shell: |
-#         su - {{ user_to_configure }} -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'
-#     - name: Install zsh autosuggestion
-#       shell: |
-#         su - {{ user_to_configure }} -c 'git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions | sh'
- 
-# - name: Install Kitty 
-#   hosts: localhost
-#   become: true  # Run tasks with elevated privileges (sudo)
-#   tasks:
-#     - name: Installing Kitty 
-#       dnf:
-#         name: kitty
-#         state: present
 
 - name: Install Alacritty
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
-  vars:
-    user_to_configure: "{{ current_user }}"
+  become_user: "{{ current_user }}"
   tasks:
-    - name: Installing Alacritty
-      dnf:
-        name: alacritty
+    - name: Install required packages
+      apt:
+        name:
+          - cmake
+          - g++
+          - pkg-config
+          - libfreetype6-dev
+          - libfontconfig1-dev
+          - libxcb-xfixes0-dev
+          - libxkbcommon-dev
+          - python3
         state: present
+        update_cache: yes
+    - name: Download Alacritty Repo
+      shell: |
+        git clone https://github.com/alacritty/alacritty.git ~/alacritty
+    - name: Installing Alacritty using cargo
+      shell: |
+        cd alacritty
+        cargo build --release
     - name: Setup Themes
       shell: |
-        su - {{ user_to_configure }} -c 'mkdir -p ~/.config/alacritty/themes | sh'
-        su - {{ user_to_configure }} -c 'git clone https://github.com/alacritty/alacritty-theme ~/.config/alacritty/themes | sh'
+        mkdir -p ~/.config/alacritty/themes
+        git clone https://github.com/alacritty/alacritty-theme ~/.config/alacritty/themes
 
 - name: Install tmux 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
     - name: Installing tmux 
-      dnf:
+      apt:
         name: tmux
         state: present
 
@@ -119,7 +109,7 @@
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
     - name: Installing neovim 
-      dnf:
+      apt:
         name: neovim
         state: present
 
@@ -128,19 +118,19 @@
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
     - name: Installing i3 
-      dnf:
+      apt:
         name: i3
         state: present
 
-- name: Install Brave Browser
-  hosts: localhost
-  become: true  # Run tasks with elevated privileges (sudo)
-  tasks:
-    - name: Add Brave Repo
-      shell: |
-        dnf-3 config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-        rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-    - name: Install brave 
-      dnf:
-        name: brave-browser 
-        state: present
+# - name: Install Brave Browser
+#   hosts: localhost
+#   become: true  # Run tasks with elevated privileges (sudo)
+#   tasks:
+#     - name: Add Brave Repo
+#       shell: |
+#         dnf-3 config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+#         rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+#     - name: Install brave 
+#       dnf:
+#         name: brave-browser 
+#         state: present
