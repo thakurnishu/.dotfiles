@@ -1,82 +1,21 @@
 - name: Installing Regular tools
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
-  become_user: "{{ current_user }}"
-  tasks:
-    - name: Install Curl
-      apt:
-        name: curl
-        state: present
-    - name: Install Rust
-      shell: |
-        curl https://sh.rustup.rs -sSf | sh -s -- -y
-    - name: Setup Rust
-      ignore_errors: true
-      shell: |
-        export PATH="$HOME/.cargo/bin:$PATH"  # Make sure rustup is in PATH
-        rustup override set stable
-        rustup update stable
-    - name: Install Git 
-      apt:
-        name: git
-        state: present
-    - name: Install unzip 
-      apt:
-        name: unzip
-        state: present
-    - name: Install Tree
-      apt:
-        name: tree
-        state: present
-    - name: Install Snapd
-      apt:
-        name: snapd
-        state: present
-    - name: Install light
-      apt:
-        name: light
-        state: present
-    - name: Install maim 
-      apt:
-        name: maim
-        state: present
-    - name: Install xclip
-      apt:
-        name: xclip
-        state: present
-    - name: Install pavucontrol
-      apt:
-        name: pavucontrol
-        state: present
-    - name: Install volumeicon
-      apt:
-        name: volumeicon
-        state: present
-    - name: Install fzf
-      apt:
-        name: fzf
-        state: present
-    - name: Install picom
-      apt:
-        name: picom
-        state: present
-    - name: Install Blueman
-      apt:
-        name: blueman
-        state: present
-    - name: Install RipGrep
-      apt:
-        name: ripgrep
-        state: present
-
-- name: Install Alacritty
-  hosts: localhost
-  become: true  # Run tasks with elevated privileges (sudo)
-  become_user: "{{ current_user }}"
   tasks:
     - name: Install required packages
       apt:
         name:
+          - unzip
+          - tree
+          - snapd
+          - light
+          - pavucontrol
+          - maim
+          - xclip
+          - fzf
+          - picom
+          - blueman
+          - ripgrep
           - cmake
           - g++
           - pkg-config
@@ -86,7 +25,27 @@
           - libxkbcommon-dev
           - python3
         state: present
-        update_cache: yes
+
+- name: Installing Rust
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  become_user: "{{ current_user }}"
+  tasks:
+    - name: Install Rust
+      shell: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Setup Rust
+      ignore_errors: true
+      shell: |
+        export PATH="$HOME/.cargo/bin:$PATH"  # Make sure rustup is in PATH
+        rustup override set stable
+        rustup update stable
+
+- name: Install Alacritty
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  become_user: "{{ current_user }}"
+  tasks:
     - name: Download Alacritty Repo
       shell: |
         git clone https://github.com/alacritty/alacritty.git ~/alacritty
