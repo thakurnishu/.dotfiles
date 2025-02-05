@@ -78,7 +78,7 @@ alias ls='ls --color=auto'
 
 # Change Dir
 alias sb='cd ${NOTES_DIR} && nvim .'
-alias df='cd ${DOTFILE_DIR} && nvim .'
+alias dof='cd ${DOTFILE_DIR} && nvim .'
 
 alias v="nvim"
 
