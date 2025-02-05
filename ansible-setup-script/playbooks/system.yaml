@@ -10,6 +10,10 @@
     - name: Install Rust
       shell: |
         curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Source Bashrc
+      ignore_errors: true
+      shell: |
+        source ~/.bashrc
     - name: Setup Rust
       shell: |
         rustup override set stable
