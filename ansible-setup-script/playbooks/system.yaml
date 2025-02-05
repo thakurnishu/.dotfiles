@@ -51,7 +51,8 @@
         git clone https://github.com/alacritty/alacritty.git ~/alacritty
     - name: Installing Alacritty using cargo
       shell: |
-        cd alacritty
+        export PATH="$HOME/.cargo/bin:$PATH"  # Make sure cargo is in the PATH
+        cd ~/alacritty
         cargo build --release
     - name: Setup Themes
       shell: |
