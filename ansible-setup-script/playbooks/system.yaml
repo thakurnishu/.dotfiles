@@ -11,8 +11,8 @@
       shell: |
         curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: Setup Rust
-      shell: |
       ignore_errors: true
+      shell: |
         export PATH="$HOME/.cargo/bin:$PATH"  # Make sure rustup is in PATH
         rustup override set stable
         rustup update stable
