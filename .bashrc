@@ -105,5 +105,3 @@ export NVM_DIR="$HOME/.nvm"
 # Rust
 . "$HOME/.cargo/env"
 
-# Bash Completion
-echo "source /etc/profile.d/bash_completion.sh" >> ~/.bashrc
