@@ -50,5 +50,14 @@ cd /home/$dest_dir
 cd ansible-setup-script
 ansible-playbook master_playbook.yaml -e "current_user=$user"
 
+
+cd ../alacritty
+sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
+sudo cp target/release/alacritty /usr/local/bin # or anywhere else in $PATH
+sudo ocp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
+sudo desktop-file-install extra/linux/Alacritty.desktop
+sudo update-desktop-database
+
+
 printf '\nAll System required pkg is Installed\n'
 printf '\nRUN: cd ~/.dotfiles/scripts && ./linkAllFile.sh\n'

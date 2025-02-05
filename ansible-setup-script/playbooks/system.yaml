@@ -54,14 +54,6 @@
         export PATH="$HOME/.cargo/bin:$PATH"  # Make sure cargo is in the PATH
         cd ~/alacritty
         cargo build --release
-    - name: Install Alacritty Deskstop
-      shell: |
-        cd ~/alacritty
-        tic -xe alacritty,alacritty-direct extra/alacritty.info
-        cp target/release/alacritty /usr/local/bin # or anywhere else in $PATH
-        cp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
-        desktop-file-install extra/linux/Alacritty.desktop
-        update-desktop-database
     - name: Setup Themes
       shell: |
         mkdir -p ~/.config/alacritty/themes
