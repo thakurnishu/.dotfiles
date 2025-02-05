@@ -13,7 +13,7 @@
     - name: Source Bashrc
       ignore_errors: true
       shell: |
-        source ~/.bashrc
+        . ~/.bashrc
     - name: Setup Rust
       shell: |
         rustup override set stable
