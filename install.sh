@@ -39,6 +39,7 @@ sleep 1
 git clone https://github.com/thakurnishu/.dotfiles.git /home/$dest_dir
 chown -R $user:$user /home/$dest_dir
 cd /home/$dest_dir
+git checkout ubuntu-config
 git remote set-url origin git@github.com:thakurnishu/.dotfiles.git
 printf '\nGit repo is cloned in ~/.dotfiles\n\n'
 
