@@ -5,6 +5,7 @@
     - name: Install required packages
       apt:
         name:
+          - bash-completion
           - unzip
           - tree
           - snapd

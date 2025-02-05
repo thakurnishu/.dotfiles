@@ -73,6 +73,9 @@ PATH="$HOME/.local/bin:$PATH"
 
 #~~~~~~~~ Alias ~~~~~~~~~~~~~~~
 
+# color shell
+alias ls='ls --color=auto'
+
 # Change Dir
 alias sb='cd ${NOTES_DIR} && nvim .'
 alias df='cd ${DOTFILE_DIR} && nvim .'
@@ -101,3 +104,6 @@ export NVM_DIR="$HOME/.nvm"
 
 # Rust
 . "$HOME/.cargo/env"
+
+# Bash Completion
+echo "source /etc/profile.d/bash_completion.sh" >> ~/.bashrc
