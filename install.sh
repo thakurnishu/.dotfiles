@@ -6,6 +6,7 @@ user=$1
 dest_dir=$1/.dotfiles
 
 printf 'Checking if Git is installed\n'
+apt update
 
 if command -v git &> /dev/null; then
     printf 'git is present\n\n'
