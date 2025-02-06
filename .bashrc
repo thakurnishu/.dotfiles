@@ -96,6 +96,9 @@ alias tf="terraform"
 # dnf
 alias dnf='sudo dnf install -y'
 alias dnfu='sudo dnf update -y'
+# apt 
+alias apt='sudo apt install -y'
+alias aptu='sudo apt update -y'
 
 # nvm
 export NVM_DIR="$HOME/.nvm"

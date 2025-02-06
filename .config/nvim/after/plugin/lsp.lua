@@ -1,7 +1,7 @@
 local ls_servers = {
   "lua_ls",
   "gopls",
-  "pylsp",
+  -- "pylsp",
   "terraformls",
   "dockerls",
   "ansiblels",
