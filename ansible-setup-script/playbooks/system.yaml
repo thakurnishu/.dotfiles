@@ -59,6 +59,14 @@
       shell: |
         mkdir -p ~/.config/alacritty/themes
         git clone https://github.com/alacritty/alacritty-theme ~/.config/alacritty/themes
+    - name: Setup Jet Brains Fonts
+      shell: |
+        mkdir -p ~/.local/share/fonts
+        cd ~/.local/share/fonts
+        wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+        unzip JetBrainsMono.zip
+        rm JetBrainsMono.zip
+        fc-cache -fv
 
 - name: Install tmux 
   hosts: localhost
@@ -87,15 +95,10 @@
         name: i3
         state: present
 
-# - name: Install Brave Browser
-#   hosts: localhost
-#   become: true  # Run tasks with elevated privileges (sudo)
-#   tasks:
-#     - name: Add Brave Repo
-#       shell: |
-#         dnf-3 config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-#         rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-#     - name: Install brave 
-#       dnf:
-#         name: brave-browser 
-#         state: present
+- name: Install Brave Browser
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Install Brave
+      shell: |
+        curl -fsS https://dl.brave.com/install.sh | sh
