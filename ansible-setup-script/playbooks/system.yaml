@@ -82,9 +82,9 @@
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
     - name: Installing neovim 
-      apt:
-        name: neovim
-        state: present
+      community.general.snap:
+        name: nvim
+        classic: true
 
 - name: Install i3 Window Manager 
   hosts: localhost
