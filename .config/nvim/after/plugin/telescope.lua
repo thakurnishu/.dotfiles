@@ -4,14 +4,25 @@ local keymap = vim.keymap.set
 -- Keybindings for telescope
 keymap("n", "<C-f>", builtin.find_files, {})
 keymap("n", "<leader>ps", builtin.grep_string, {})
+keymap("n", "<leader>lg", builtin.live_grep, {})
+keymap("n", "<leader>nc", function ()
+  builtin.find_files {
+    cwd = vim.fn.stdpath("config")
+  }
+end)
+
 -- Telescope setup with UI select extension
 require("telescope").setup({
   extensions = {
-    ["ui-select"] = {
-      require("telescope.themes").get_dropdown({})
+    fzf = {}
+  },
+  pickers = {
+    find_files = {
+      theme = "ivy"
     }
-  }
+  },
 })
 
--- Load the ui-select extension
-require("telescope").load_extension("ui-select")
+-- Load the extension
+require("telescope").load_extension("fzf")
+
