@@ -32,6 +32,8 @@
       shell: |
         sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
         usermod -aG docker {{ user_to_configure }}  
+        curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh -o install-scout.sh
+        sh install-scout.sh
     - name: Starting and Enabling Docker
       systemd:
         name: docker
