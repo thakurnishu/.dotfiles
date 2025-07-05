@@ -29,6 +29,21 @@
         chmod +x kubectl
         mv ./kubectl /usr/local/bin/kubectl
 
+- name: Install K9S
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/k9s
+    - name: Installing Latest K9S
+      shell: |
+        curl -LO https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz
+        tar -xvf k9s_Linux_amd64.tar.gz
+        rm -rf k9s_Linux_amd64.tar.gz LICENSE README.md
+        mv k9s /usr/local/bin/
+
 - name: Install KubeBuilder
   hosts: localhost
   become: true
