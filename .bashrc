@@ -69,7 +69,7 @@ bind -x '"\C-f":source ~/.local/bin/dir-selector.sh'
 # Default Editor
 export EDITOR=nvim
 export VISUAL=nvim
-export MANPAGER='nvim +Man!'
+#export MANPAGER='nvim +Man!'
 
 # NeoVim stuff
 PATH=$PATH:/usr/local/nvim/bin
