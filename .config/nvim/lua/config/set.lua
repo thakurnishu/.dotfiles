@@ -24,3 +24,5 @@ vim.opt.updatetime = 50
 
 -- obsidian recommended
 vim.opt_local.conceallevel = 2
+
+vim.opt.colorcolumn="130"
