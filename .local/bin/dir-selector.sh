@@ -6,7 +6,15 @@ current_dir=$(pwd)
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    selected=$(find ~/Desktop/src/obsidian ~/Desktop/src/github.com ~/Desktop/src/github.com/work ~/Desktop/src/github.com/personal ~/Desktop/Languages/* ~/Desktop/CloudProvider/*/* ~/Desktop/DevOpsTools/* ~/.config ~/. -mindepth 1 -maxdepth 1 -type d | fzf)
+    selected=$(find ~/Desktop/src/obsidian \
+                    ~/Desktop/src/github.com \
+                    ~/Desktop/src/github.com/work \
+                    ~/Desktop/src/github.com/personal \
+                    ~/Desktop/Languages/* \
+                    ~/Desktop/CloudProvider/*/* \
+                    ~/Desktop/DevOpsTools/* \
+                    ~/.config \
+                    ~/. -mindepth 1 -maxdepth 1 -type d | fzf)
 fi
 
 # If no directory was selected, return to the original directory
