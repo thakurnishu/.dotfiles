@@ -9,7 +9,8 @@ local ls_servers = {
   "taplo",
   "marksman",
   "pyright",
-  "tflint"
+  "tflint",
+  "ts_ls"
 }
 
 require("mason").setup()
