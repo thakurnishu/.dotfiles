@@ -118,3 +118,7 @@ export NVM_DIR="$HOME/.nvm"
 # Rust
 . "$HOME/.cargo/env"
 
+
+
+# Load Angular CLI autocompletion.
+source <(ng completion script)
