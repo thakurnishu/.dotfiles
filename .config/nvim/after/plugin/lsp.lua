@@ -10,6 +10,7 @@ local ls_servers = {
   "marksman",
   "pyright",
   "tflint",
+  "angularls",
   "ts_ls"
 }
 
