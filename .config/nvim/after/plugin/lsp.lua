@@ -11,7 +11,8 @@ local ls_servers = {
   "pyright",
   "tflint",
   "angularls",
-  "ts_ls"
+  "ts_ls",
+  "html"
 }
 
 require("mason").setup()
