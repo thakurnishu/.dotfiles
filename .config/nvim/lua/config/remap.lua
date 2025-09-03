@@ -25,6 +25,6 @@ vim.keymap.set("v", "<leader>u", [[:s/^]])
 -- buffers
 -- vim.keymap.set("n", "tk", ":blast<CR>", {silent = true, noremap = true})
 -- vim.keymap.set("n", "tj", ":bfirst<CR>", {silent = true, noremap = true})
--- vim.keymap.set("n", "th", ":bprev<CR>", {silent = true, noremap = true})
--- vim.keymap.set("n", "tl", ":bnext<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "<leader>bp", ":bprev<CR>", {silent = true, noremap = true})
+vim.keymap.set("n", "<leader>bf", ":bnext<CR>", {silent = true, noremap = true})
 -- vim.keymap.set("n", "td", ":bdelete<CR>", {silent = true, noremap = true})
