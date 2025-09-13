@@ -12,7 +12,8 @@ local ls_servers = {
   "tflint",
   "angularls",
   "ts_ls",
-  "html"
+  "html",
+  "phpactor"
 }
 
 require("mason").setup()
