@@ -80,6 +80,11 @@ PATH=$PATH:/usr/local/go/bin
 PATH=$PATH:$GOPATH/bin
 PATH="$HOME/.local/bin:$PATH"
 
+# PHP stuff
+# # Composer
+export PATH="$HOME/.config/composer/vendor/bin:$HOME/.composer/vendor/bin:$PATH"
+
+
 #~~~~~~~~ Alias ~~~~~~~~~~~~~~~
 
 # color shell
