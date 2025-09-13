@@ -13,3 +13,43 @@
         tar xzf $latestVersion.linux-amd64.tar.gz
         rm -rf $latestVersion.linux-amd64.tar.gz
         mv ./go /usr/local/go
+- name: Install Laravel Development Environment
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Update apt cache and upgrade
+      apt:
+        update_cache: yes
+        upgrade: yes
+    - name: Install PHP and required extensions
+      apt:
+        name:
+          - php-cli
+          - php-mbstring
+          - php-xml
+          - php-bcmath
+          - php-curl
+          - unzip
+          - git
+        state: present
+    - name: Install Composer (if not installed via apt)
+      shell: |
+        EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig)
+        php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+        ACTUAL_SIGNATURE=$(php -r "echo hash_file('sha384', 'composer-setup.php');")
+        if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
+            >&2 echo 'ERROR: Invalid installer signature'
+            rm composer-setup.php
+            exit 1
+        fi
+        php composer-setup.php --quiet
+        rm composer-setup.php
+        mv composer.phar /usr/local/bin/composer
+      args:
+        creates: /usr/local/bin/composer
+    - name: Install Laravel Installer globally
+      shell: composer global require laravel/installer
+      environment:
+        COMPOSER_ALLOW_SUPERUSER: "1"
+      args:
+        creates: "{{ ansible_env.HOME }}/.config/composer/vendor/bin/laravel"
