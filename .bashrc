@@ -58,6 +58,7 @@ PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0
 NOTES_DIR='/home/mahakal/Desktop/src/obsidian/mahakal_vault/MainNotes'
 DOTFILE_DIR='/home/mahakal/.dotfiles'
 HOMELAB_DIR='/home/mahakal/Desktop/src/github.com/personal/homelab'
+BLOG_DIR='/home/mahakal/Desktop/src/github.com/personal/blog/content'
 
 # Set to superior editing mode
 set -o vi
@@ -94,6 +95,7 @@ alias ls='ls --color=auto'
 alias sb='cd ${NOTES_DIR} && nvim .'
 alias dof='cd ${DOTFILE_DIR} && nvim .'
 alias homelab='cd ${HOMELAB_DIR} && nvim .'
+alias blog='cd ${BLOG_DIR} && nvim .'
 
 alias v="nvim"
 
