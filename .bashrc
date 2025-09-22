@@ -55,7 +55,7 @@ parse_git_branch() {
 PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0m\] "'
 
 
-NOTES_DIR='/home/mahakal/Desktop/src/obsidian/mahakal_vault/MainNotes'
+NOTES_DIR='/home/mahakal/Desktop/src/github.com/personal/second_brain'
 DOTFILE_DIR='/home/mahakal/.dotfiles'
 HOMELAB_DIR='/home/mahakal/Desktop/src/github.com/personal/homelab'
 BLOG_DIR='/home/mahakal/Desktop/src/github.com/personal/blog/content'
