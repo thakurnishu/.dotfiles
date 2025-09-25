@@ -55,10 +55,10 @@ parse_git_branch() {
 PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0m\] "'
 
 
-NOTES_DIR='/home/mahakal/Desktop/src/github.com/personal/second_brain'
-DOTFILE_DIR='/home/mahakal/.dotfiles'
-HOMELAB_DIR='/home/mahakal/Desktop/src/github.com/personal/homelab'
-BLOG_DIR='/home/mahakal/Desktop/src/github.com/personal/blog/content'
+SB_DIR=$HOME/Desktop/src/github.com/personal/second_brain
+DOTFILE_DIR=$HOME/.dotfiles
+HOMELAB_DIR=$HOME/Desktop/src/github.com/personal/homelab
+BLOG_DIR=$HOME/Desktop/src/github.com/personal/blog/content
 
 # Set to superior editing mode
 set -o vi
@@ -71,6 +71,11 @@ bind -x '"\C-f":source ~/.local/bin/dir-selector.sh'
 export EDITOR=nvim
 export VISUAL=nvim
 #export MANPAGER='nvim +Man!'
+
+## ZK
+export SB_PATH="$HOME/src/github.com/personal/second_brain"
+export PORTFOLIO_PATH="$HOME/src/github.com/personal/blog/content"
+
 
 # NeoVim stuff
 PATH=$PATH:/usr/local/nvim/bin
@@ -92,7 +97,7 @@ export PATH="$HOME/.config/composer/vendor/bin:$HOME/.composer/vendor/bin:$PATH"
 alias ls='ls --color=auto'
 
 # Change Dir
-alias sb='cd ${NOTES_DIR} && nvim .'
+alias sb='cd ${SB_DIR} && nvim .'
 alias dof='cd ${DOTFILE_DIR} && nvim .'
 alias homelab='cd ${HOMELAB_DIR} && nvim .'
 alias blog='cd ${BLOG_DIR} && nvim .'
