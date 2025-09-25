@@ -73,8 +73,8 @@ export VISUAL=nvim
 #export MANPAGER='nvim +Man!'
 
 ## ZK
-export SB_PATH="$HOME/src/github.com/personal/second_brain"
-export PORTFOLIO_PATH="$HOME/src/github.com/personal/blog/content"
+export SB_PATH="$HOME/Desktop/src/github.com/personal/second_brain"
+export PORTFOLIO_PATH="$HOME/Desktop/src/github.com/personal/blog/content"
 
 
 # NeoVim stuff
