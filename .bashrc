@@ -74,7 +74,7 @@ export VISUAL=nvim
 
 ## ZK
 export SB_PATH="$HOME/Desktop/src/github.com/personal/second_brain"
-export PORTFOLIO_PATH="$HOME/Desktop/src/github.com/personal/nishantlabs.cloud/app/content/posts"
+export BLOG_PATH="$HOME/Desktop/src/github.com/personal/nishantlabs.cloud/app/content/posts"
 
 
 # NeoVim stuff
