@@ -116,6 +116,7 @@ complete -F __start_kubectl k
 # Autocompletes
 source <(flux completion bash)
 source <(zk completion bash)
+source <(talosctl completion bash)
 
 alias tf="terraform"
 
