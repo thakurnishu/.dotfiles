@@ -113,6 +113,10 @@ alias k="kubectl"
 source <(kubectl completion bash)
 complete -F __start_kubectl k
 
+# Autocompletes
+source <(flux completion bash)
+source <(zk completion bash)
+
 alias tf="terraform"
 
 # dnf
