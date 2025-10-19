@@ -10,6 +10,8 @@ else
                     ~/Desktop/src/github.com \
                     ~/Desktop/src/github.com/work \
                     ~/Desktop/src/github.com/personal \
+                    ~/Desktop/src/github.com/personal/learning \
+                    ~/Desktop/src/github.com/personal/projects \
                     ~/Desktop/src/github.com/teejoa \
                     ~/Desktop/Languages/* \
                     ~/Desktop/CloudProvider/*/* \
