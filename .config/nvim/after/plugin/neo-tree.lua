@@ -4,6 +4,9 @@ require("neo-tree").setup({
   popup_border_style = "rounded",
   enable_git_status = true,
   enable_diagnostics = true,
+  clipboard = {
+    sync = "global", -- or "global"/"universal" to share a clipboard for each/all Neovim instance(s), respectively
+  },
 
   filesystem = {
     filtered_items = {
@@ -13,6 +16,7 @@ require("neo-tree").setup({
     },
     follow_current_file = { enabled = true },
     hijack_netrw_behavior = "open_default",
+    use_libuv_file_watcher = true,
   },
 
   window = {
