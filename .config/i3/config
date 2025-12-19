@@ -248,8 +248,8 @@ bindsym XF86MonBrightnessUp exec light -A 5
 bindsym XF86MonBrightnessDown exec light -U 5 
 
 ## Screenshot
-bindsym $mod1+Shift+p exec --no-startup-id maim --select "/home/$USER/Pictures/Screenshots/$(date).png"
-bindsym $mod+Shift+p exec --no-startup-id maim "/home/$USER/Pictures/Screenshots/$(date).png"
+bindsym $mod1+Shift+p exec --no-startup-id maim --select "/home/$USER/Pictures/Screenshots/$(date "+d%Y%m%d-t%H%M%S").png"
+bindsym $mod+Shift+p exec --no-startup-id maim "/home/$USER/Pictures/Screenshots/$(date "+d%Y%m%d-t%H%M%S").png"
 
 
 bindsym $mod+Shift+BackSpace exec systemctl suspend
