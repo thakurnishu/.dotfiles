@@ -51,8 +51,19 @@ parse_git_branch() {
     fi
 }
 
+# Function to show active Python virtual environment (with emoji)
+parse_python_env() {
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+        local env_name
+        env_name=$(basename "$VIRTUAL_ENV")
+        echo " \[\e[1;35m\]🐍 py(\[\e[1;36m\]$env_name\[\e[1;35m\])"
+    fi
+}
+
 # Set the prompt to include the dynamic git branch status
-PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0m\] "'
+#PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_git_branch)\[\e[0m\] "'
+PROMPT_COMMAND='PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_python_env)$(parse_git_branch)\[\e[0m\] "'
+
 
 
 SB_DIR=$HOME/Desktop/src/github.com/personal/second_brain
