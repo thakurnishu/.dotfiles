@@ -128,6 +128,7 @@ complete -F __start_kubectl k
 source <(flux completion bash)
 source <(zk completion bash)
 source <(talosctl completion bash)
+complete -C '$(which aws_completer)' aws
 
 alias tf="terraform"
 
