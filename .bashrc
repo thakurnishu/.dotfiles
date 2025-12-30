@@ -32,7 +32,7 @@ unset rc
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Function
-set_aws_profile() {
+set-aws-profile() {
   local profiles selection
 
   mapfile -t profiles < <(aws configure list-profiles)
