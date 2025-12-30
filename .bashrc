@@ -29,8 +29,36 @@ if [ -d ~/.bashrc.d ]; then
 fi
 unset rc
 
-
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Function
+set_aws_profile() {
+  local profiles selection
+
+  mapfile -t profiles < <(aws configure list-profiles)
+
+  if [[ ${#profiles[@]} -eq 0 ]]; then
+    echo "No AWS profiles found."
+    return 1
+  fi
+
+  echo "Available AWS profiles:"
+  for i in "${!profiles[@]}"; do
+    printf "%d) %s\n" "$((i + 1))" "${profiles[$i]}"
+  done
+
+  echo
+  read -rp "Select a profile (1-${#profiles[@]}): " selection
+
+  if ! [[ "$selection" =~ ^[0-9]+$ ]] || (( selection < 1 || selection > ${#profiles[@]} )); then
+    echo "Invalid selection."
+    return 1
+  fi
+
+  export AWS_PROFILE="${profiles[$((selection - 1))]}"
+  echo "AWS profile set to: $AWS_PROFILE"
+}
+
 
 # Function to get the current git branch dynamically and indicate changes including new files
 parse_git_branch() {
@@ -146,8 +174,6 @@ export NVM_DIR="$HOME/.nvm"
 
 # Rust
 . "$HOME/.cargo/env"
-
-
 
 # Load Angular CLI autocompletion.
 source <(ng completion script)
