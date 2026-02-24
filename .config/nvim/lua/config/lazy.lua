@@ -165,5 +165,10 @@ require("lazy").setup({
     {
       "github/copilot.vim",
     },
+
+    -- helm-template
+    {
+      "towolf/vim-helm"
+    },
   },
 })
