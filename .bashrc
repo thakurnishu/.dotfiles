@@ -156,6 +156,9 @@ complete -F __start_kubectl k
 export PATH="/home/mahakal/.terragrunt/bin:$PATH"
 alias tg='terragrunt'
 
+# mise
+eval "$($HOME/.local/bin/mise activate bash)"
+
 # Autocompletes
 source <(flux completion bash)
 source <(zk completion bash)

@@ -64,6 +64,14 @@
       shell: |
         curl -sL https://docs.terragrunt.com/install | bash
 
+- name: Install Mise
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Adding Mise repo
+      shell: |
+        curl https://mise.run | sh
+
 - name: Install Terraform 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
