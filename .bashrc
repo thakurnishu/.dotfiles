@@ -152,6 +152,10 @@ alias k="kubectl"
 source <(kubectl completion bash)
 complete -F __start_kubectl k
 
+# terragrunt
+export PATH="/home/mahakal/.terragrunt/bin:$PATH"
+alias tg='terragrunt'
+
 # Autocompletes
 source <(flux completion bash)
 source <(zk completion bash)

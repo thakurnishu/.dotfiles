@@ -56,6 +56,14 @@
         rm -rf get_helm.sh
         helm plugin install https://github.com/databus23/helm-diff
 
+- name: Install Terragrunt
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Adding Terragrunt repo
+      shell: |
+        curl -sL https://docs.terragrunt.com/install | bash
+
 - name: Install Terraform 
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
