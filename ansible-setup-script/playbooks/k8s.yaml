@@ -29,7 +29,7 @@
         chmod +x kubectl
         mv ./kubectl /usr/local/bin/kubectl
 
-- name: Install Kubectl Krew
+- name: Install Kubectl Krew and cnpg
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
@@ -48,6 +48,10 @@
           tar zxvf "${KREW}.tar.gz" &&
           ./"${KREW}" install krew
         )
+        source ~/.bashrc
+        kubectl krew update
+        kubectl krew install cnpg
+
 
 - name: Install KubeBuilder
   hosts: localhost
