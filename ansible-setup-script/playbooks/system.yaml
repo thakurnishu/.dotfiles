@@ -102,3 +102,13 @@
     - name: Install Brave
       shell: |
         curl -fsS https://dl.brave.com/install.sh | sh
+
+- name: Install ZK 
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing ZK
+      shell: |
+        wget https://github.com/thakurnishu/zk/raw/refs/heads/main/zk
+        chmod +x zk
+        mv zk /usr/local/bin/zk

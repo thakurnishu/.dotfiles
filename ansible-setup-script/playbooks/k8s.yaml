@@ -67,3 +67,27 @@
         wget https://github.com/kubernetes-sigs/kubebuilder/releases/download/$latestVersion/kubebuilder_linux_amd64
         chmod +x kubebuilder_linux_amd64  
         mv kubebuilder_linux_amd64 /usr/local/bin/kubebuilder
+
+- name: Install Flux
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/flux
+    - name: Installing Latest Flux
+      shell: |
+        curl -s https://fluxcd.io/install.sh | sudo bash
+
+- name: Install Talosctl
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Remove Old Version
+      ignore_errors: true
+      shell: |
+        rm -rf /usr/local/bin/talosctl
+    - name: Installing Latest Talosctl
+      shell: |
+        curl -sL https://talos.dev/install | sh
