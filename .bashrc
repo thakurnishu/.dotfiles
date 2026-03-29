@@ -159,7 +159,7 @@ export PATH="/home/mahakal/.terragrunt/bin:$PATH"
 alias tg='terragrunt'
 
 # mise
-eval "$($HOME/.local/bin/mise activate bash)"
+eval "$(/usr/local/bin/mise activate bash)"
 
 # Autocompletes
 source <(flux completion bash)
@@ -183,6 +183,3 @@ export NVM_DIR="$HOME/.nvm"
 
 # Rust
 . "$HOME/.cargo/env"
-
-# Load Angular CLI autocompletion.
-source <(ng completion script)

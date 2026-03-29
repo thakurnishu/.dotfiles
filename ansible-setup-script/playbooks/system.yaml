@@ -112,3 +112,20 @@
         wget https://github.com/thakurnishu/zk/raw/refs/heads/main/zk
         chmod +x zk
         mv zk /usr/local/bin/zk
+
+- name: Install IOS Screen Casting feature # TO RUN 'uxplay -p'
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing UXplay
+      apt:
+        name: uxplay
+        state: present
+    - name: Installing gstreamer1.0-plugins-bad
+      apt:
+        name: gstreamer1.0-plugins-bad
+        state: present
+    - name: Installing gstreamer1.0-libav
+      apt:
+        name: gstreamer1.0-libav
+        state: present

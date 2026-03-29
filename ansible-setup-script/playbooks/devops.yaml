@@ -70,6 +70,7 @@
   tasks:
     - name: Adding Mise repo
       shell: |
+        export MISE_INSTALL_PATH="/usr/local/bin/mise"
         curl https://mise.run | sh
 
 - name: Install Terraform 
