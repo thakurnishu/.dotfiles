@@ -75,7 +75,9 @@ require("lazy").setup({
       }, -- if you prefer nvim-web-devicons
       ---@module 'render-markdown'
       ---@type render.md.UserConfig
-      opts = {},
+      opts = {
+        injections = { enabled = false },
+      },
     },
 
     -- colors
@@ -91,8 +93,15 @@ require("lazy").setup({
       priority = 1001
     },
 
-    -- treesitter
-    { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+    -- treesitter (main branch rewrite - requires nvim 0.12+)
+    {
+      'nvim-treesitter/nvim-treesitter',
+      branch = 'main',
+      lazy = false,
+      build = function()
+        require('nvim-treesitter').update()
+      end,
+    },
 
     -- toggleterm
     { 'akinsho/toggleterm.nvim' },

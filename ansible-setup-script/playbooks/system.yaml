@@ -77,14 +77,19 @@
         name: tmux
         state: present
 
-- name: Install neovim 
+- name: Install neovim
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
   tasks:
-    - name: Installing neovim 
-      community.general.snap:
-        name: nvim
-        classic: true
+    - name: Download and install neovim from GitHub releases
+      tags: neovim
+      shell: |
+        curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o /tmp/nvim.tar.gz
+        tar -C /opt -xzf /tmp/nvim.tar.gz
+        ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+        rm /tmp/nvim.tar.gz
+      args:
+        creates: /usr/local/bin/nvim
 
 - name: Install i3 Window Manager 
   hosts: localhost
@@ -112,6 +117,30 @@
         wget https://github.com/thakurnishu/zk/raw/refs/heads/main/zk
         chmod +x zk
         mv zk /usr/local/bin/zk
+
+- name: Install tree-sitter-cli
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing tree-sitter-cli from GitHub
+      shell: |
+        curl -L https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-cli-linux-x64.zip -o /tmp/tree-sitter.zip
+        unzip -o /tmp/tree-sitter.zip -d /usr/local/bin/
+        chmod +x /usr/local/bin/tree-sitter
+        rm /tmp/tree-sitter.zip
+      args:
+        creates: /usr/local/bin/tree-sitter
+
+- name: Install Node.js LTS (20.x+)
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Add NodeSource LTS repo and install Node.js
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+        apt install -y nodejs
+      args:
+        creates: /usr/bin/node
 
 - name: Install IOS Screen Casting feature # TO RUN 'uxplay -p'
   hosts: localhost
