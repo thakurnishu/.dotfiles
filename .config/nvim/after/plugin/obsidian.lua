@@ -7,11 +7,14 @@ require("obsidian").setup({
     },
   },
   notes_subdir = "MainNotes",
-  disable_frontmatter = true,
+  legacy_commands = false,
   templates = {
     folder = "Templates",
     date_format = "%d-%m-%Y",
     time_format = "%H:%M",
+  },
+  frontmatter = {
+    enabled = false
   },
 })
 
