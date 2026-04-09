@@ -29,6 +29,6 @@ vim.api.nvim_create_autocmd('FileType', {
     if ok and stats and stats.size > max_filesize then
       return
     end
-    vim.treesitter.start(ev.buf)
+    pcall(vim.treesitter.start, ev.buf, ev.match)
   end,
 })
