@@ -59,6 +59,48 @@ set-aws-profile() {
   echo "AWS profile set to: $AWS_PROFILE"
 }
 
+docker-login-aws() {
+  local region
+
+  # Check if AWS_PROFILE is set
+  if [[ -z "$AWS_PROFILE" ]]; then
+    echo "AWS_PROFILE is not set. Please export AWS_PROFILE first."
+    return 1
+  fi
+
+  # Ask for region
+  read -rp "Enter AWS region (e.g., us-east-1): " region
+
+  if [[ -z "$region" ]]; then
+    echo "Region cannot be empty."
+    return 1
+  fi
+
+  # Get AWS account ID
+  local account_id
+  account_id=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+
+  if [[ -z "$account_id" ]]; then
+    echo "Failed to get AWS account ID. Check your AWS credentials."
+    return 1
+  fi
+
+  echo "Using AWS_PROFILE: $AWS_PROFILE"
+  echo "Logging into ECR for account: $account_id in region: $region"
+
+  # Login to ECR
+  aws ecr get-login-password --region "$region" \
+    | docker login --username AWS \
+      --password-stdin "$account_id.dkr.ecr.$region.amazonaws.com"
+
+  if [[ $? -eq 0 ]]; then
+    echo "ECR login successful."
+  else
+    echo "ECR login failed."
+    return 1
+  fi
+}
+
 
 # Function to get the current git branch dynamically and indicate changes including new files
 parse_git_branch() {
