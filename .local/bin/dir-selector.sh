@@ -26,7 +26,6 @@ else
         ~/Desktop/Languages/* \
         ~/Desktop/CloudProvider/*/* \
         ~/Desktop/DevOpsTools/* \
-        ~/.config \
         ~/.
     do
         [[ -d "$d" ]] && find_dirs+=("$d")
