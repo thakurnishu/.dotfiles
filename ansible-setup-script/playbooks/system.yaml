@@ -134,13 +134,28 @@
 - name: Install Node.js LTS (20.x+)
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
+  tags: nodejs
   tasks:
     - name: Add NodeSource LTS repo and install Node.js
+      tags: nodejs
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
         apt install -y nodejs
       args:
         creates: /usr/bin/node
+
+    - name: Set Global npm prefix to current user
+      tags: nodejs
+      become: yes
+      become_user: "{{ current_user }}"
+      shell: |
+        mkdir -p /home/{{ current_user }}/.npm-global
+        npm config set prefix '/home/{{ current_user }}/.npm-global'
+
+    - name: Fix npm directories ownership
+      tags: nodejs
+      shell: |
+        chown -R {{ current_user }}:{{ current_user }} /home/{{ current_user }}/.npm /home/{{ current_user }}/.npm-global 2>/dev/null || true
 
 - name: Install IOS Screen Casting feature # TO RUN 'uxplay -p'
   hosts: localhost
@@ -158,3 +173,18 @@
       apt:
         name: gstreamer1.0-libav
         state: present
+
+- name: Install AI Coding CLIs
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tags: ai-coding
+  become_user: "{{ current_user }}"
+  tasks:
+    - name: Install Claude code
+      tags: ai-coding
+      shell: |
+        curl -fsSL https://claude.ai/install.sh | bash
+    - name: Install Codex
+      tags: ai-coding
+      shell: |
+        npm i -g @openai/codex

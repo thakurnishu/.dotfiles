@@ -34,6 +34,7 @@
         usermod -aG docker {{ user_to_configure }}  
         curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh -o install-scout.sh
         sh install-scout.sh
+        rm -rf install-scout.sh
     - name: Starting and Enabling Docker
       systemd:
         name: docker
@@ -63,6 +64,32 @@
     - name: Adding Terragrunt repo
       shell: |
         curl -sL https://docs.terragrunt.com/install | bash
+
+- name: Install Cloud CLIS
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  become_user: "{{ current_user }}"
+  tags: cloud-cli
+  tasks:
+    - name: Install AWS CLI
+      tags: cloud-cli
+      shell: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+        rm -rf awscliv2.zip aws
+    - name: Install Azure CLI
+      tags: cloud-cli
+      shell: |
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+    - name: Install Google CLI
+      tags: cloud-cli
+      shell: |
+        curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+        tar -xf google-cloud-cli-linux-x86_64.tar.gz -C /home/{{ current_user }}/.local/bin
+        yes | /home/{{ current_user }}/.local/bin/google-cloud-sdk/install.sh
+        rm -rf google-cloud-cli-linux-x86_64.tar.gz
+
 
 - name: Install Mise
   hosts: localhost
