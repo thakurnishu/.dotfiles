@@ -25,6 +25,7 @@
           - libxcb-xfixes0-dev
           - libxkbcommon-dev
           - python3
+          - python3.12-venv
         state: present
 
 - name: Installing Rust
