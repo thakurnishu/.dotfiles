@@ -178,14 +178,14 @@
 - name: Install AI Coding CLIs
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
-  tags: ai-coding
+  tags: ai-coding-cli
   become_user: "{{ current_user }}"
   tasks:
     - name: Install Claude code
-      tags: ai-coding
+      tags: ai-coding-cli
       shell: |
         curl -fsSL https://claude.ai/install.sh | bash
     - name: Install Codex
-      tags: ai-coding
+      tags: ai-coding-cli
       shell: |
         npm i -g @openai/codex
