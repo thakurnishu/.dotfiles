@@ -4,39 +4,50 @@
 current_dir=$(pwd)
 
 # Paths to always create and include in search
-ensure_dirs=(
-    ~/Desktop/src/obsidian
+# Zero-level entries: path
+ensure_dirs_zero_level=(
+    ~/.
+)
+
+# One-level expansion: path/*
+ensure_dirs_one_level=(
+    ~/Pictures/screenshots
     ~/Desktop/src/github.com
-    ~/Desktop/src/github.com/work
     ~/Desktop/src/github.com/personal
     ~/Desktop/src/github.com/personal/learning
     ~/Desktop/src/github.com/personal/projects
-    ~/Desktop/src/github.com/teejoa
-    ~/Pictures/screenshots
 )
 
-mkdir -p "${ensure_dirs[@]}"
+# Two-level expansion: path/*/*
+ensure_dirs_two_level=(
+    ~/Desktop/src/github.com/work
+)
+
+mkdir -p "${ensure_dirs_zero_level[@]}" "${ensure_dirs_one_level[@]}" "${ensure_dirs_two_level[@]}"
 
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
     find_dirs=()
-    for d in \
-        "${ensure_dirs[@]}" \
-        ~/Desktop/Languages/* \
-        ~/Desktop/CloudProvider/*/* \
-        ~/Desktop/DevOpsTools/* \
-        ~/.
-    do
+    for d in "${ensure_dirs_zero_level[@]}"; do
         [[ -d "$d" ]] && find_dirs+=("$d")
     done
-    selected=$(find "${find_dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf)
+    for base in "${ensure_dirs_one_level[@]}"; do
+        for d in "$base"/*; do
+            [[ -d "$d" ]] && find_dirs+=("$d")
+        done
+    done
+    for base in "${ensure_dirs_two_level[@]}"; do
+        for d in "$base"/*/*; do
+            [[ -d "$d" ]] && find_dirs+=("$d")
+        done
+    done
+    selected=$(printf '%s\n' "${find_dirs[@]}" | fzf)
 fi
 
 # If no directory was selected, return to the original directory
 if [[ -z "$selected" ]]; then
     cd "$current_dir"
+else
+    cd "$selected" || exit
 fi
-
-cd $selected || exit
-
