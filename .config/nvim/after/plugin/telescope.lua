@@ -13,6 +13,11 @@ end)
 
 -- Telescope setup with UI select extension
 require("telescope").setup({
+  defaults = {
+    preview = {
+      treesitter = false,
+    },
+  },
   extensions = {
     fzf = {}
   },
@@ -25,4 +30,3 @@ require("telescope").setup({
 
 -- Load the extension
 require("telescope").load_extension("fzf")
-
