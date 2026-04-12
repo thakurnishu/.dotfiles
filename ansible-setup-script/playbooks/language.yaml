@@ -14,6 +14,14 @@
         rm -rf $latestVersion.linux-amd64.tar.gz
         mv ./go /usr/local/go
 
+- name: Install UV package manager for python
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing UV
+      shell: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+
 - name: Install Laravel Development Environment
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)

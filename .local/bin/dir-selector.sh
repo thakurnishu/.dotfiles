@@ -6,16 +6,17 @@ current_dir=$(pwd)
 # Paths to always create and include in search
 # Zero-level entries: path
 ensure_dirs_zero_level=(
-    ~/.
+    ~/Pictures/screenshots
 )
 
 # One-level expansion: path/*
 ensure_dirs_one_level=(
-    ~/Pictures/screenshots
+    ~/.
     ~/Desktop/src/github.com
     ~/Desktop/src/github.com/personal
     ~/Desktop/src/github.com/personal/learning
     ~/Desktop/src/github.com/personal/projects
+    ~/Desktop/src/github.com/work
 )
 
 # Two-level expansion: path/*/*
