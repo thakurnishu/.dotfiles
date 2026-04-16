@@ -234,3 +234,6 @@ if [ -f '/home/mahakal/.local/bin/google-cloud-sdk/path.bash.inc' ]; then . '/ho
 
 # The next line enables shell command completion for gcloud.
 if [ -f '/home/mahakal/.local/bin/google-cloud-sdk/completion.bash.inc' ]; then . '/home/mahakal/.local/bin/google-cloud-sdk/completion.bash.inc'; fi
+
+# opencode
+export PATH=/home/mahakal/.opencode/bin:$PATH

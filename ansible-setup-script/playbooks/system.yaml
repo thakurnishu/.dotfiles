@@ -189,3 +189,7 @@
       tags: ai-coding-cli
       shell: |
         npm i -g @openai/codex
+    - name: Install OpenCode
+      tags: ai-coding-cli
+      shell: |
+        curl -fsSL https://opencode.ai/install | bash
