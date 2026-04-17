@@ -23,7 +23,8 @@ require("neo-tree").setup({
     position = "right",  -- 👈 move sidebar to the RIGHT
     width = 32,
     mappings = {
-      ["."] = "toggle_hidden",  -- toggle hidden files manually
+      ["."] = "toggle_hidden", -- toggle hidden files manually
+      ["H"] = "toggle_hidden", -- toggle hidden files manually
       ["<space>"] = "toggle_node",
       ["<esc>"] = "cancel",     -- close preview or floating window
       -- ["l"] = "open",

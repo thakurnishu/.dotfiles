@@ -169,6 +169,16 @@ require("lazy").setup({
       lazy = false, -- neo-tree will lazily load itself
     },
 
+    {
+      "nickjvandyke/opencode.nvim",
+      version = "*",
+      lazy = false,  -- Must load on startup so keymaps in after/plugin/opencode.lua are registered
+      dependencies = {
+        { "folke/snacks.nvim", optional = true },
+      },
+    },
+
+
     -- copilot
     {
       "github/copilot.vim",
