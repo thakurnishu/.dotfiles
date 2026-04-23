@@ -178,6 +178,11 @@ require("lazy").setup({
       },
     },
 
+--    {
+--      "coder/claudecode.nvim",
+--      dependencies = { "folke/snacks.nvim" },
+--    },
+
 
     -- copilot
     {
