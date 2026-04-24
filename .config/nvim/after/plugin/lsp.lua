@@ -28,37 +28,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
     vim.keymap.set("n", "I", vim.lsp.buf.hover, opts)
     vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-    vim.keymap.set("n", "gD", function()
-      local cur_file = vim.api.nvim_buf_get_name(args.buf)
-      local params = vim.lsp.util.make_position_params()
-      local function get_enc()
-        local clients = (vim.lsp.get_clients or vim.lsp.get_active_clients)({ bufnr = args.buf })
-        return clients[1] and clients[1].offset_encoding or "utf-16"
-      end
-      local function best_loc(locs)
-        for _, loc in ipairs(locs) do
-          if not vim.uri_to_fname(loc.uri or loc.targetUri):match("%.pyi$") then
-            return loc
-          end
-        end
-        return locs[1]
-      end
-      vim.lsp.buf_request(args.buf, "textDocument/definition", params, function(_, result)
-        if not result or #result == 0 then return end
-        local first = result[1]
-        local first_file = vim.uri_to_fname(first.uri or first.targetUri)
-        if first_file == cur_file then
-          local range = first.range or first.targetSelectionRange
-          local hop2 = { textDocument = { uri = first.uri or first.targetUri }, position = range.start }
-          vim.lsp.buf_request(args.buf, "textDocument/definition", hop2, function(_, result2)
-            local target = (result2 and #result2 > 0) and best_loc(result2) or first
-            vim.lsp.util.jump_to_location(target, get_enc())
-          end)
-        else
-          vim.lsp.util.jump_to_location(best_loc(result), get_enc())
-        end
-      end)
-    end, opts)
     vim.keymap.set("n", "gy", vim.lsp.buf.type_definition, opts)
     vim.keymap.set("n", "<leader>vd", function()
       local ok, builtin = pcall(require, "telescope.builtin")
