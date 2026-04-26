@@ -5,11 +5,20 @@
     
 - name: Install Languages 
   import_playbook: playbooks/language.yaml
+  vars:
+    current_user: "mahakal"
 
 - name: Install K8S Stuff 
   import_playbook: playbooks/k8s.yaml
+  vars:
+    current_user: "mahakal"
 
 - name: Install DevOps Tools 
   import_playbook: playbooks/devops.yaml
+  vars:
+    current_user: "mahakal"
+
+- name: Install AI tools
+  import_playbook: playbooks/ai.yaml
   vars:
     current_user: "mahakal"
