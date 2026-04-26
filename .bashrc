@@ -237,3 +237,7 @@ if [ -f '/home/mahakal/.local/bin/google-cloud-sdk/completion.bash.inc' ]; then 
 
 # opencode
 export PATH=/home/mahakal/.opencode/bin:$PATH
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
