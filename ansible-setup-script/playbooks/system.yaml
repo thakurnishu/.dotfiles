@@ -28,6 +28,19 @@
           - python3.12-venv
         state: present
 
+- name: Installing LazyGit
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  become_user: "{{ current_user }}"
+  tasks:
+    - name: Install Rust
+      shell: |
+        LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | \grep -Po '"tag_name": *"v\K[^"]*')
+        LAZYGIT_ARCH=$(uname -m | sed -e 's/aarch64/arm64/')
+        curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz"
+        tar xf lazygit.tar.gz lazygit
+        sudo install lazygit -D -t /usr/local/bin/
+
 - name: Installing Rust
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
@@ -147,7 +160,7 @@
 
     - name: Set Global npm prefix to current user
       tags: nodejs
-      become: yes
+      become: true
       become_user: "{{ current_user }}"
       shell: |
         mkdir -p /home/{{ current_user }}/.npm-global

@@ -183,6 +183,12 @@ require("lazy").setup({
 --      dependencies = { "folke/snacks.nvim" },
 --    },
 
+    {
+      "kdheepak/lazygit.nvim",
+      dependencies = {
+          "nvim-lua/plenary.nvim",
+      },
+    },
 
     -- copilot
     {
