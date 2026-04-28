@@ -16,6 +16,9 @@ ln -s ~/.dotfiles/.local/bin/dir-selector.sh  ~/.local/bin/dir-selector.sh
 rm -rf ~/.config/i3
 ln -s ~/.dotfiles/.config/i3 ~/.config/i3
 
+rm -rf ~/.config/opencode/skills
+ln -s ~/.dotfiles/.config/opencode/skills ~/.config/opencode/skills
+
 rm -rf ~/.alacritty.toml
 ln -s ~/.dotfiles/.alacritty.toml ~/.alacritty.toml
 
