@@ -40,12 +40,6 @@ require("lazy").setup({
       },
     },
 
-    -- git-fugitive
-    {
-      "tpope/vim-fugitive",
-      lazy = false,  -- Ensures it loads immediately
-    },
-
     -- lualine
     { 'nvim-lualine/lualine.nvim' }, -- Fancier statusline
 
