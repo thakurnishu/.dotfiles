@@ -59,6 +59,10 @@ set-aws-profile() {
   echo "AWS profile set to: $AWS_PROFILE"
 }
 
+login-aws-profile() {
+  set-aws-profile && aws login --profile $AWS_PROFILE
+}
+
 docker-login-aws() {
   local region
 
