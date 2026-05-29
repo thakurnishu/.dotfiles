@@ -37,3 +37,10 @@ vim.opt.updatetime = 50
 vim.opt_local.conceallevel = 2
 
 vim.opt.colorcolumn="130"
+
+-- Code folding (VS Code-style: show first + last line of fold)
+vim.opt.foldmethod = 'expr'
+vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.opt.foldenable = true
+vim.opt.foldlevel = 99
+vim.opt.foldtext = "substitute(getline(v:foldstart), \"^\\\\s*\", \"\", \"\") . \" ... \" . substitute(getline(v:foldend), \"^\\\\s*\", \"\", \"\")"
