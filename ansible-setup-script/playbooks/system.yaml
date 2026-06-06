@@ -26,6 +26,8 @@
           - libxkbcommon-dev
           - python3
           - python3.12-venv
+          - gpg
+          - curl
         state: present
 
 - name: Installing LazyGit
@@ -33,7 +35,7 @@
   become: true  # Run tasks with elevated privileges (sudo)
   become_user: "{{ current_user }}"
   tasks:
-    - name: Install Rust
+    - name: Install LazyGit
       shell: |
         LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | \grep -Po '"tag_name": *"v\K[^"]*')
         LAZYGIT_ARCH=$(uname -m | sed -e 's/aarch64/arm64/')
@@ -55,6 +57,11 @@
         export PATH="$HOME/.cargo/bin:$PATH"  # Make sure rustup is in PATH
         rustup override set stable
         rustup update stable
+
+    - name: Installing additional tools
+      shell: |
+        cargo install stylua
+        cargo install websocat
 
 - name: Install Alacritty
   hosts: localhost
@@ -171,6 +178,10 @@
       shell: |
         chown -R {{ current_user }}:{{ current_user }} /home/{{ current_user }}/.npm /home/{{ current_user }}/.npm-global 2>/dev/null || true
 
+    - name: Install Additional Tools
+      shell: |
+        npm install -g @fsouza/prettierd
+
 - name: Install IOS Screen Casting feature # TO RUN 'uxplay -p'
   hosts: localhost
   become: true  # Run tasks with elevated privileges (sudo)
@@ -187,3 +198,16 @@
       apt:
         name: gstreamer1.0-libav
         state: present
+
+- name: Install Bruno API Client
+  hosts: localhost
+  become: true  # Run tasks with elevated privileges (sudo)
+  tasks:
+    - name: Installing Bruno API Client
+      shell: |
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" | gpg --dearmor | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+        sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+        sudo apt update && sudo apt install bruno -y
+

@@ -9,7 +9,7 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 set $dell_p2425e_m HDMI-1
-set $dell_p2425e_refresh_rate 100
+set $dell_p2425e_refresh_rate 59.95
 set $dell_p2425e_resolution 1920x1200
 set $default_m eDP-1
 
