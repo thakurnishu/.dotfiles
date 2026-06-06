@@ -8,16 +8,16 @@
 # i3 config file (v4)
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
-set $gigabyte_m HDMI-1
-set $gigabyte_refresh_rate 165.10
-set $gigabyte_resolution 1920x1080
+set $dell_p2425e_m HDMI-1
+set $dell_p2425e_refresh_rate 100
+set $dell_p2425e_resolution 1920x1200
 set $default_m eDP-1
 
 set $mod Mod4
 set $mod1 Mod1
 
 # SET Monitor Direction
-bindsym $mod+Shift+s exec xrandr --output $default_m --auto --output $gigabyte_m --left-of $default_m && xrandr --output $gigabyte_m --mode $gigabyte_resolution --rate $gigabyte_refresh_rate
+bindsym $mod+Shift+s exec xrandr --output $default_m --auto --output $dell_p2425e_m --left-of $default_m && xrandr --output $dell_p2425e_m --mode $dell_p2425e_resolution --rate $dell_p2425e_refresh_rate
 
 # OPEN SETTINGS
 bindsym $mod1+s exec --no-startup-id env XDG_CURRENT_DESKTOP=GNOME gnome-control-center
@@ -36,11 +36,11 @@ workspace 4 output $default_m
 workspace 5 output $default_m
 
 # FOR GIGABYTE DISPLAY
-workspace 6 output $gigabyte_m
-workspace 7 output $gigabyte_m
-workspace 8 output $gigabyte_m
-workspace 9 output $gigabyte_m
-workspace 10 output $gigabyte_m
+workspace 6 output $dell_p2425e_m
+workspace 7 output $dell_p2425e_m
+workspace 8 output $dell_p2425e_m
+workspace 9 output $dell_p2425e_m
+workspace 10 output $dell_p2425e_m
 
 # Define names for default workspaces for which we configure key bindings later on.
 # We use variables to avoid repeating the names in multiple places.
