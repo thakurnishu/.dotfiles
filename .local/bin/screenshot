@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# $1: optional flag "--select" for region selection
+FILE="$HOME/Pictures/screenshots/$(date +d%Y%m%d-t%H%M%S).png"
+mkdir -p "$HOME/Pictures/screenshots"
+if [[ "$1" == "--select" ]]; then
+    maim --select "$FILE"
+else
+    maim "$FILE"
+fi
+[[ -f "$FILE" ]] && xclip -selection clipboard -t image/png "$FILE"
