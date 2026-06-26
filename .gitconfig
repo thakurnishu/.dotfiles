@@ -10,5 +10,5 @@
 [core]
 	compression = 1
 
-[includeIf "gitdir:/home/mahakal/Desktop/src/github.com/work/solytics/"]
-    path = ~/.gitconfig-solytics-work
+[includeIf "gitdir:/home/mahakal/Desktop/src/github.com/work/"]
+    path = ~/.gitconfig-work
