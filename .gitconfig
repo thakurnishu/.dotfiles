@@ -9,3 +9,6 @@
 	lowSpeedTime = 999999
 [core]
 	compression = 1
+
+[includeIf "gitdir:/home/mahakal/Desktop/src/github.com/work/solytics/"]
+    path = ~/.gitconfig-solytics-work
