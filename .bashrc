@@ -68,8 +68,8 @@ docker-login-aws() {
 
   # Check if AWS_PROFILE is set
   if [[ -z "$AWS_PROFILE" ]]; then
-    echo "AWS_PROFILE is not set. Please export AWS_PROFILE first."
-    return 1
+    echo "AWS_PROFILE is not set. Running login-aws-profile..."
+    login-aws-profile
   fi
 
   # Ask for region
