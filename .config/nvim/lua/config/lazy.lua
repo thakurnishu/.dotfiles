@@ -178,6 +178,12 @@ require("lazy").setup({
 --    },
 
     {
+      "coder/claudecode.nvim",
+      dependencies = { "folke/snacks.nvim" },
+      lazy = false, -- Must load on startup so keymaps in after/plugin/claude.lua are registered
+    },
+
+    {
       "kdheepak/lazygit.nvim",
       dependencies = {
           "nvim-lua/plenary.nvim",

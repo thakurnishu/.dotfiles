@@ -1,146 +1,116 @@
--- local ok, claudecode = pcall(require, "claudecode")
--- if ok then
---   claudecode.setup({
---     terminal_cmd = "claude",
---   })
--- end
--- 
--- local function get_claude_win_name()
---   local cwd_basename = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
---   return cwd_basename .. "-claude"
--- end
--- 
--- local function tmux_toggle_claude()
---   if vim.trim(vim.fn.system("printenv TMUX")) == "" then
---     vim.notify("Not inside a tmux session", vim.log.levels.WARN)
---     return
---   end
--- 
---   local win_name = get_claude_win_name()
---   local escaped_name = vim.fn.shellescape(win_name)
---   local win_exists = tonumber(vim.fn.system(
---     "tmux list-windows -F '#{window_name}' | grep -Fx -c " .. escaped_name
---   )) or 0
--- 
---   if win_exists > 0 then
---     vim.fn.system("tmux select-window -t " .. escaped_name)
---   else
---     vim.fn.system("tmux new-window -n " .. escaped_name .. " " .. vim.fn.shellescape("claude"))
---   end
--- end
--- 
--- local function tmux_send_to_claude(text)
---   if vim.trim(vim.fn.system("printenv TMUX")) == "" then
---     vim.cmd("ClaudeCodeSend")
---     return
---   end
--- 
---   local win_name = get_claude_win_name()
---   local escaped_name = vim.fn.shellescape(win_name)
---   local win_exists = tonumber(vim.fn.system(
---     "tmux list-windows -F '#{window_name}' | grep -Fx -c " .. escaped_name
---   )) or 0
--- 
---   if win_exists == 0 then
---     tmux_toggle_claude()
---   end
--- 
---   local panes_output = vim.fn.system("tmux list-panes -t " .. escaped_name .. " -F '#{pane_id}'")
---   local target = nil
---   for line in panes_output:gmatch("[^\r\n]+") do
---     if line ~= "" then
---       target = line
---       break
---     end
---   end
--- 
---   if target == nil then
---     vim.notify("Could not find Claude tmux pane", vim.log.levels.ERROR)
---     return
---   end
--- 
---   vim.fn.system("tmux load-buffer -", text)
---   vim.fn.system("tmux paste-buffer -t " .. target)
---   vim.fn.system("tmux send-keys -t " .. target .. " Enter")
--- end
--- 
--- local function get_visual_selection_text()
---   local mode = vim.fn.mode()
---   local start_pos
---   local end_pos
--- 
---   if mode == "v" or mode == "V" or mode == "\22" then
---     start_pos = vim.fn.getpos("v")
---     end_pos = vim.fn.getcurpos()
---   else
---     start_pos = vim.fn.getpos("'<")
---     end_pos = vim.fn.getpos("'>")
---     mode = vim.fn.visualmode()
---   end
--- 
---   local srow, scol = start_pos[2], start_pos[3]
---   local erow, ecol = end_pos[2], end_pos[3]
--- 
---   if srow == 0 or erow == 0 then
---     return ""
---   end
--- 
---   if srow > erow or (srow == erow and scol > ecol) then
---     srow, erow = erow, srow
---     scol, ecol = ecol, scol
---   end
--- 
---   if mode == "V" then
---     return table.concat(vim.api.nvim_buf_get_lines(0, srow - 1, erow, false), "\n")
---   end
--- 
---   if mode == "\22" then
---     vim.notify("Blockwise visual send is not supported yet", vim.log.levels.WARN)
---     return ""
---   end
--- 
---   if ecol >= 2147483647 then
---     local end_line = vim.api.nvim_buf_get_lines(0, erow - 1, erow, false)[1] or ""
---     ecol = #end_line + 1
---   end
--- 
---   local lines = vim.api.nvim_buf_get_text(0, srow - 1, math.max(scol - 1, 0), erow - 1, math.max(ecol, 0), {})
---   return table.concat(lines, "\n")
--- end
--- 
--- local function send_visual_to_claude()
---   local text = get_visual_selection_text()
---   if text == "" then
---     vim.notify("No visual selection to send", vim.log.levels.WARN)
---     return
---   end
--- 
---   tmux_send_to_claude(text)
--- end
--- 
--- local wk_ok, wk = pcall(require, "which-key")
--- if wk_ok then
---   wk.add({ { "<leader>a", group = "AI/Claude Code" } })
--- end
--- 
--- -- vim.keymap.set("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "Toggle Claude" })
--- vim.keymap.set("n", "<leader>af", "<cmd>ClaudeCodeFocus<cr>", { desc = "Focus Claude" })
--- vim.keymap.set("n", "<leader>ar", "<cmd>ClaudeCode --resume<cr>", { desc = "Resume Claude" })
--- vim.keymap.set("n", "<leader>aC", "<cmd>ClaudeCode --continue<cr>", { desc = "Continue Claude" })
--- vim.keymap.set("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude model" })
--- vim.keymap.set("n", "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Add current buffer" })
--- vim.keymap.set("x", "<leader>as", send_visual_to_claude, { desc = "Send to Claude", silent = true })
--- vim.keymap.set("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
--- vim.keymap.set("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })
--- vim.keymap.set({ "n", "t" }, "<leader>at", tmux_toggle_claude, { desc = "Toggle Claude (tmux window)" })
--- 
--- local tree_filetypes = { "NvimTree", "neo-tree", "oil", "minifiles", "netrw" }
--- vim.api.nvim_create_autocmd("FileType", {
---   pattern = tree_filetypes,
---   callback = function(args)
---     vim.keymap.set("n", "<leader>as", "<cmd>ClaudeCodeTreeAdd<cr>", {
---       buffer = args.buf,
---       desc = "Add file",
---     })
---   end,
--- })
+local ok, claudecode = pcall(require, "claudecode")
+if not ok then
+  return
+end
+
+local function get_claude_win_name()
+  local cwd_basename = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+  return cwd_basename .. "-claude"
+end
+
+local function win_exists(win_name)
+  local count = tonumber(vim.fn.system(
+    "tmux list-windows -F '#{window_name}' | grep -c '^" .. win_name .. "$'"
+  )) or 0
+  return count > 0
+end
+
+local tmux_provider = {}
+
+function tmux_provider.setup(term_config)
+  tmux_provider.config = term_config or {}
+end
+
+function tmux_provider.open(cmd_string, env_table)
+  if vim.trim(vim.fn.system("printenv TMUX")) == "" then
+    vim.notify("Not inside a tmux session", vim.log.levels.WARN)
+    return
+  end
+
+  local win_name = get_claude_win_name()
+  if win_exists(win_name) then
+    vim.fn.system("tmux select-window -t " .. win_name)
+    return
+  end
+
+  local env_parts = {}
+  for k, v in pairs(env_table or {}) do
+    table.insert(env_parts, k .. "=" .. vim.fn.shellescape(tostring(v)))
+  end
+  local full_cmd = table.concat(env_parts, " ") .. " " .. cmd_string
+  vim.fn.system("tmux new-window -n " .. win_name .. " " .. vim.fn.shellescape(full_cmd))
+end
+
+function tmux_provider.close()
+  local win_name = get_claude_win_name()
+  if win_exists(win_name) then
+    vim.fn.system("tmux kill-window -t " .. win_name)
+  end
+end
+
+function tmux_provider.simple_toggle(cmd_string, env_table, _effective_config)
+  tmux_provider.open(cmd_string, env_table)
+end
+
+function tmux_provider.focus_toggle(cmd_string, env_table, _effective_config)
+  tmux_provider.open(cmd_string, env_table)
+end
+
+function tmux_provider.toggle(cmd_string, env_table, _effective_config)
+  tmux_provider.open(cmd_string, env_table)
+end
+
+function tmux_provider.get_active_bufnr()
+  -- Claude runs in a separate tmux window, not an in-editor buffer.
+  return nil
+end
+
+function tmux_provider.is_available()
+  return vim.trim(vim.fn.system("printenv TMUX")) ~= ""
+end
+
+claudecode.setup({
+  terminal = {
+    split_side = "left",
+    provider = tmux_provider,
+  },
+  diff_opts = {
+    layout = "unified", -- VS Code-style inline red/green diff instead of a plain split
+  },
+})
+
+-- Custom inline diff colors. Reapplied on ColorScheme since this file loads
+-- before after/plugin/color.lua and colorscheme changes would otherwise wipe them.
+local function set_inline_diff_colors()
+  vim.api.nvim_set_hl(0, "ClaudeCodeInlineDiffAdd", { bg = "#2a4a2a" })
+  vim.api.nvim_set_hl(0, "ClaudeCodeInlineDiffDelete", { bg = "#4a2a2a", strikethrough = true })
+end
+
+set_inline_diff_colors()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_inline_diff_colors })
+
+local wk_ok, wk = pcall(require, "which-key")
+if wk_ok then
+  wk.add({ { "<leader>a", group = "AI/Claude Code" } })
+end
+
+vim.keymap.set("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "Toggle Claude" })
+vim.keymap.set("n", "<leader>af", "<cmd>ClaudeCodeFocus<cr>", { desc = "Focus Claude" })
+vim.keymap.set("n", "<leader>ar", "<cmd>ClaudeCode --resume<cr>", { desc = "Resume Claude" })
+vim.keymap.set("n", "<leader>aC", "<cmd>ClaudeCode --continue<cr>", { desc = "Continue Claude" })
+vim.keymap.set("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude model" })
+vim.keymap.set("n", "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Add current buffer" })
+vim.keymap.set("x", "<leader>as", "<cmd>ClaudeCodeSend<cr>", { desc = "Send to Claude" })
+vim.keymap.set("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
+vim.keymap.set("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })
+
+local tree_filetypes = { "NvimTree", "neo-tree", "oil", "minifiles", "netrw", "snacks_picker_list" }
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = tree_filetypes,
+  callback = function(args)
+    vim.keymap.set("n", "<leader>as", "<cmd>ClaudeCodeTreeAdd<cr>", {
+      buffer = args.buf,
+      desc = "Add file",
+    })
+  end,
+})
