@@ -24,6 +24,7 @@ ln -s ~/.dotfiles/.config/claude/CLAUDE.md ~/.claude/CLAUDE.md
 
 rm -rf ~/.claude/statusline.sh
 ln -s ~/.dotfiles/.config/claude/statusline.sh ~/.claude/statusline.sh
+chmod +x ~/.dotfiles/.config/claude/statusline.sh
 
 rm -rf ~/.claude/settings.json
 ln -s ~/.dotfiles/.config/claude/settings.json ~/.claude/settings.json
