@@ -1,0 +1,16 @@
+{
+  "model": "sonnet",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
+  "enabledPlugins": {
+    "lua-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true
+  },
+  "effortLevel": "medium",
+  "tui": "fullscreen",
+  "theme": "dark"
+}

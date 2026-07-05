@@ -16,8 +16,17 @@ ln -s ~/.dotfiles/.local/bin/dir-selector.sh  ~/.local/bin/dir-selector.sh
 rm -rf ~/.config/i3
 ln -s ~/.dotfiles/.config/i3 ~/.config/i3
 
-rm -rf ~/.config/opencode/skills
+rm -rf ~/.config/opencode/skills/
 ln -s ~/.dotfiles/.config/opencode/skills ~/.config/opencode/skills
+
+rm -rf ~/.claude/CLAUDE.md
+ln -s ~/.dotfiles/.config/claude/CLAUDE.md ~/.claude/CLAUDE.md
+
+rm -rf ~/.claude/statusline.sh
+ln -s ~/.dotfiles/.config/claude/statusline.sh ~/.claude/statusline.sh
+
+rm -rf ~/.claude/settings.json
+ln -s ~/.dotfiles/.config/claude/settings.json ~/.claude/settings.json
 
 rm -rf ~/.alacritty.toml
 ln -s ~/.dotfiles/.alacritty.toml ~/.alacritty.toml

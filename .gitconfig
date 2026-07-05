@@ -12,3 +12,9 @@
 
 [includeIf "gitdir:/home/mahakal/Desktop/src/github.com/work/"]
     path = ~/.gitconfig-work
+[credential "https://github.com"]
+	helper = 
+	helper = !/home/mahakal/.local/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/home/mahakal/.local/bin/gh auth git-credential
