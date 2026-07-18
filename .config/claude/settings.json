@@ -1,5 +1,4 @@
 {
-  "model": "sonnet",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
@@ -12,5 +11,8 @@
   },
   "effortLevel": "medium",
   "tui": "fullscreen",
-  "theme": "dark"
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
 }

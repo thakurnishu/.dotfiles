@@ -23,6 +23,8 @@ Whenever you query a graph.json, explicitly tell the user the full path you used
 
 **Note:** Each graph should only be queried for code questions about its corresponding source path.
 
+**Worktrees:** Code under a git worktree (path contains `.claude/worktrees/<name>/...`) maps to the same graph as the main checkout. Ignore the `.claude/worktrees/<name>/` prefix and match on the trailing source path (e.g. `.../.claude/worktrees/feature-x/fcc-monorepo/apps/tms-backend` → `graphify-out-fcc-monorepo-tms-backend/graph.json`). Do not build a separate graph per worktree — always query the existing graph.json for the corresponding source path.
+
 | Graph | Source path |
 |---|---|
 | `graphify-out-fcc-monorepo-tms-backend` | `fcc-monorepo/apps/tms-backend` |
