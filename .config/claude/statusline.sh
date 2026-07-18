@@ -32,13 +32,41 @@ BAR=""
 [ "$FILLED" -gt 0 ] && printf -v FILL "%${FILLED}s" && BAR="${FILL// /▓}"
 [ "$EMPTY" -gt 0 ] && printf -v PAD "%${EMPTY}s" && BAR="${BAR}${PAD// /░}"
 
+# Format a reset time (epoch or ISO) as a compact countdown (e.g. 2h13m, 3d4h, 45m)
+NOW=$(date +%s)
+countdown() {
+  local target=$1
+  case "$target" in
+    ''|*[!0-9]*) target=$(date -d "$target" +%s 2>/dev/null) || return ;;
+  esac
+  [ -n "$target" ] || return
+  local secs=$((target - NOW))
+  [ "$secs" -le 0 ] && { echo "now"; return; }
+  local d=$((secs / 86400))
+  local h=$(((secs % 86400) / 3600))
+  local m=$(((secs % 3600) / 60))
+  if [ "$d" -gt 0 ]; then echo "${d}d${h}h"
+  elif [ "$h" -gt 0 ]; then echo "${h}h${m}m"
+  else echo "${m}m"; fi
+}
+
 # Plan usage limits (Pro/Max only; appear after first API response, each may be absent)
 FIVE_H=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
+FIVE_H_RESET=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 WEEK=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+WEEK_RESET=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
 LIMITS=""
-[ -n "$FIVE_H" ] && LIMITS="Session $(printf '%.0f' "$FIVE_H")%"
-[ -n "$WEEK" ] && LIMITS="${LIMITS:+$LIMITS · }Week $(printf '%.0f' "$WEEK")%"
+if [ -n "$FIVE_H" ]; then
+  LIMITS="Session $(printf '%.0f' "$FIVE_H")%"
+  LEFT=$(countdown "$FIVE_H_RESET")
+  [ -n "$LEFT" ] && LIMITS="$LIMITS ·$LEFT"
+fi
+if [ -n "$WEEK" ]; then
+  LIMITS="${LIMITS:+$LIMITS · }Week $(printf '%.0f' "$WEEK")%"
+  LEFT=$(countdown "$WEEK_RESET")
+  [ -n "$LEFT" ] && LIMITS="$LIMITS ·$LEFT"
+fi
 
 LINE="[$MODEL] $BAR $PCT% | In:$TOKENS_IN_FMT Out:$TOKENS_OUT_FMT Total:$TOTAL_FMT"
 [ -n "$LIMITS" ] && LINE="$LINE | $LIMITS"
