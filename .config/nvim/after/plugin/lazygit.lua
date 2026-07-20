@@ -35,7 +35,8 @@ local function tmux_toggle_lazygit_config()
   if win_exists > 0 then
     vim.fn.system("tmux select-window -t " .. win_name)
   else
-    vim.fn.system("tmux new-window -n " .. win_name .. " 'lazygit git人间'")
+    local config_file = vim.trim(vim.fn.system("lazygit --print-config-dir")) .. "/config.yml"
+    vim.fn.system({ "tmux", "new-window", "-n", win_name, "${EDITOR:-nvim} " .. vim.fn.shellescape(config_file) })
   end
 end
 
