@@ -190,6 +190,21 @@ require("lazy").setup({
       },
     },
 
+    -- git blame
+    {
+      "f-person/git-blame.nvim",
+      event = "VeryLazy",
+      opts = {
+        enabled = true, -- toggle with <leader>gb
+        message_template = "  <author> • <date> • <summary>",
+        date_format = "%r",
+        message_when_not_committed = "  Not committed yet",
+        highlight_group = "Comment",
+        max_commit_summary_length = 60,
+        delay = 300,
+      },
+    },
+
     -- copilot
     {
       "github/copilot.vim",
