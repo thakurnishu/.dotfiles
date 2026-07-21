@@ -84,7 +84,32 @@ require("lazy").setup({
       "catppuccin/nvim",
       name = "catppuccin",
       lazy = false,
-      priority = 1001
+      priority = 1001,
+      -- Accents overridden to match the palette in
+      -- ~/.config/alacritty/themes/themes/catppuccin.toml so nvim and the
+      -- terminal agree. Base stays mocha's #1E1E2E.
+      opts = {
+        flavour = "mocha",
+        color_overrides = {
+          mocha = {
+            base   = "#262626", -- neutral grey, not mocha's blue-tinted #1E1E2E
+            mantle = "#1F1F1F", -- sidebars/floats, one step darker than base
+            crust  = "#181818",
+            text   = "#D6D6D6",
+            red    = "#E86671",
+            maroon = "#E86671",
+            green  = "#98C379",
+            yellow = "#E5C07B",
+            peach  = "#E5C07B",
+            blue   = "#61AFEF",
+            sapphire = "#61AFEF",
+            mauve  = "#C678DD",
+            pink   = "#C678DD",
+            teal   = "#54AFBC",
+            sky    = "#54AFBC",
+          },
+        },
+      },
     },
 
     -- treesitter (main branch rewrite - requires nvim 0.12+)
