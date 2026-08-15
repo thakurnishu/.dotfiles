@@ -70,13 +70,20 @@ Remaining: first activation needs sudo, run by you:
 sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake ~/.dotfiles#macbook
 ```
 
-### [ ] 2. macOS system defaults
-`modules/darwin/system.nix`. Candidates include Dock autohide, Finder
-extensions, key repeat rate, and `_HIHideMenuBar`.
+### [x] 2. macOS system defaults — BUILT (activation pending)
+`modules/darwin/system.nix`, 13 settings, all verified present in the
+evaluated config:
 
-**Questions:** which settings do you actually want declared? Anything you'd
-rather keep changing by hand? (Declared settings revert manual GUI changes on
-each rebuild — that's the tradeoff of this choice.)
+- **tiling**: `spaces.spans-displays=true` (was a manual step), `dock.mru-spaces=false`
+- **menu bar**: `_HIHideMenuBar=true` (auto-hide; reveals on hover, nothing removed)
+- **keyboard**: `KeyRepeat=2`, `InitialKeyRepeat=15`, `ApplePressAndHoldEnabled=false`
+- **dock**: `autohide=true`, `show-recents=false`
+- **finder**: extensions, path bar, status bar, `FXDefaultSearchScope="SCcf"`, folders first
+
+Left manual: `screencapture.location` (never decided; Cmd-Shift-3/4 still
+writes to Desktop).
+
+`spans-displays` needs a logout/login to take effect.
 
 ### [ ] 3. GUI apps (homebrew casks)
 `modules/darwin/homebrew.nix`. Already installed here: `aerospace`, `ghostty`,
