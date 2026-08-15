@@ -199,34 +199,31 @@ because they use absolute paths or /usr/bin tools, and display-sync exports
 `/opt/homebrew/bin` itself.
 
 ### [x] 8. Git + SSH — BUILT (activation pending)
-Unlike other phases there *was* something to port: a 9-host `~/.ssh/config`
-had been created since the earlier survey.
 
-**Split, because this repo is public:**
-- `dotfiles/ssh/config` (tracked) — `github.com` only, plus `Include`s
-- `~/.ssh/config.local` (untracked, 600) — the other 8 hosts: LAN
-  192.168.1.203-206, EC2 13.61.174.96, lab.arachnys.com, and the
-  jbbkj/solytics GitHub accounts
-- original backed up to `~/.ssh/config.backup-<ts>`
+**`~/.ssh/config` is deliberately NOT tracked or Nix-managed.** It stays a
+plain local file, exactly as it was: 9 hosts, single file, no `config.local`
+split. Reason: this repo is public and the config lists LAN addresses
+(192.168.1.203-206), an EC2 host, an employer GitLab and multiple accounts.
 
-**5 of 6 referenced keys are MISSING** — only `github_personal` exists.
-Entries left in place as chosen; SSH errors only on use.
+Consequence: SSH is not reproducible on a new Mac — you'd recreate
+`~/.ssh/config` by hand. Accepted tradeoff.
 
-No `Host *` defaults block, by choice. Noted in the file that without
-`IdentitiesOnly yes`, multiple loaded GitHub keys can authenticate as the
-wrong account.
+Note 5 of 6 keys it references are MISSING here; only `github_personal`
+exists. Those hosts error only when used.
 
-`.gitconfig`: `includeIf` repointed to `~/src/github.com/work/` (the Phase 7
-layout), gh credential helpers kept with an **absolute** Nix path — git can
-invoke helpers with a minimal PATH, same failure mode as Ghostty/tmux.
-`gh` added to packages.
+**Tracked:** `dotfiles/.gitconfig` only.
+- `includeIf` repointed to `~/src/github.com/work/` (Phase 7 layout);
+  trailing slash required or the rule never matches
+- gh credential helpers kept, with an **absolute** Nix path — git can invoke
+  helpers with a minimal PATH, same failure mode as Ghostty/tmux
+- `gh` added to packages
 
-Verified: no IPs, hostnames, account names or keys in tracked files;
-gitconfig parses with all 12 entries including the includeIf.
+Verified: gitconfig parses (12 entries incl. includeIf); after restoring the
+original ssh config, `ssh -T git@github.com` authenticates as thakurnishu.
 
 **Pre-existing leak (not from this phase):** `.config/claude/CLAUDE.md` is
-already tracked and public, and contains the employer name plus internal
-repo names (fcc-monorepo-tms-*, app-fcc-*). Address in Phase 12.
+already tracked and public on both branches, listing the employer name and
+internal repo names (fcc-monorepo-tms-*, app-fcc-*). Address in Phase 12.
 
 ### [x] 9. tmux — BUILT (done early, alongside Phase 6)
 `dotfiles/.tmux.conf`. Ported near-verbatim; no tpm/plugins to handle.

@@ -29,9 +29,9 @@
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
-  # Only the sanitised half is tracked; it Includes ~/.ssh/config.local,
-  # which stays local because this repo is public.
-  home.file.".ssh/config".source = ../../dotfiles/ssh/config;
+  # ~/.ssh/config is deliberately NOT managed here. It stays a plain local
+  # file: this repo is public and the config lists LAN addresses, an EC2
+  # host and an employer GitLab.
 
   # ---- Phase 7: window manager -------------------------------------------
   home.file.".aerospace.toml".source = ../../dotfiles/.aerospace.toml;
