@@ -1,58 +1,65 @@
 #!/usr/bin/env bash
-# cd to a project directory chosen with fzf. Bound to Ctrl-F in .zshrc
-# (sourced, not executed, so the cd affects the calling shell).
+# cd to a project directory chosen with fzf. Bound to Ctrl-F in .zshrc.
+#
+# IMPORTANT: this file is SOURCED, not executed — that's how the `cd` reaches
+# your interactive shell. Sourcing ignores the shebang, so on macOS it runs
+# under **zsh**, not bash. It must therefore be valid in both.
+#
+# That difference bit us once already: zsh's NOMATCH option makes an
+# unmatched glob a fatal error ("no matches found"), where bash leaves the
+# pattern literal. Any empty directory in the search list broke Ctrl-F. All
+# globbing is now done by `find`, which sidesteps shell glob semantics
+# entirely.
 #
 # macOS port: ~/Desktop/src/... -> ~/src/...
-# ~/Pictures/screenshots removed — the screenshot script is clipboard-only
-# now and writes no files.
 
 # Store the current directory
 current_dir=$(pwd)
 
-# One-level expansion: path/*
+# Searched one level deep: <path>/*
 ensure_dirs_one_level=(
-    ~/.
-    ~/src/github.com
-    ~/src/github.com/personal
-    ~/src/github.com/personal/learning
-    ~/src/github.com/personal/projects
-    ~/src/github.com/work
-    ~/src/gitlab.com
+    "$HOME"
+    "$HOME/src/github.com"
+    "$HOME/src/github.com/personal"
+    "$HOME/src/github.com/personal/learning"
+    "$HOME/src/github.com/personal/projects"
+    "$HOME/src/github.com/work"
+    "$HOME/src/gitlab.com"
 )
 
-# Two-level expansion: path/*/*
+# Searched two levels deep: <path>/*/*
 ensure_dirs_two_level=(
-    ~/src/github.com/work
+    "$HOME/src/github.com/work"
 )
 
-mkdir -p "${ensure_dirs_one_level[@]}" "${ensure_dirs_two_level[@]}"
+mkdir -p "${ensure_dirs_one_level[@]}" "${ensure_dirs_two_level[@]}" 2>/dev/null
 
-if [[ $# -eq 1 ]]; then
+if [ $# -eq 1 ]; then
     selected=$1
 else
-    find_dirs=()
-    for base in "${ensure_dirs_one_level[@]}"; do
-        for d in "$base"/*; do
-            [[ -d "$d" ]] && find_dirs+=("$d")
-        done
+    # Only pass roots that exist; find errors noisily on missing paths and
+    # that output would land in the fzf list.
+    _one=()
+    for _d in "${ensure_dirs_one_level[@]}"; do
+        [ -d "$_d" ] && _one+=("$_d")
     done
-    for base in "${ensure_dirs_two_level[@]}"; do
-        for d in "$base"/*/*; do
-            [[ -d "$d" ]] && find_dirs+=("$d")
-        done
+    _two=()
+    for _d in "${ensure_dirs_two_level[@]}"; do
+        [ -d "$_d" ] && _two+=("$_d")
     done
 
-    if [[ ${#find_dirs[@]} -eq 0 ]]; then
-        cd "$current_dir" || exit
-        return 0 2>/dev/null || exit 0
-    fi
-
-    selected=$(printf '%s\n' "${find_dirs[@]}" | sort -u | fzf)
+    selected=$(
+        {
+            [ ${#_one[@]} -gt 0 ] && find "${_one[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null
+            [ ${#_two[@]} -gt 0 ] && find "${_two[@]}" -mindepth 2 -maxdepth 2 -type d 2>/dev/null
+        } | sort -u | fzf
+    )
+    unset _one _two _d
 fi
 
-# If no directory was selected, return to the original directory
-if [[ -z "$selected" ]]; then
-    cd "$current_dir"
+# If nothing was selected, stay put.
+if [ -z "$selected" ]; then
+    cd "$current_dir" || return 2>/dev/null || exit
 else
-    cd "$selected" || exit
+    cd "$selected" || return 2>/dev/null || exit
 fi
