@@ -21,6 +21,14 @@ window-decoration = false
 # and jumps between them with `tmux switch-client`, and switch-client only
 # works from inside tmux. Each Ghostty window is a separate tmux client, so
 # switching one to a project session leaves the others where they are.
-command = tmux new-session -A -s main
+#
+# ABSOLUTE PATH REQUIRED. Ghostty launches via:
+#   /usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l <command>
+# `login` reseeds PATH from /etc/paths (no Nix entries), and --noprofile
+# --norc stops bash sourcing anything that would add them. Nix's PATH setup
+# lives in /etc/zshenv and the profile scripts, none of which run here — so a
+# bare `tmux` fails with "exec: tmux: not found" even though it is installed.
+# /run/current-system is a stable symlink maintained across generations.
+command = /run/current-system/sw/bin/tmux new-session -A -s main
 
 # Not set, matching .alacritty.toml: window padding (Alacritty defaults to 0).
