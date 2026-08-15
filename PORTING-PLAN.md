@@ -317,8 +317,29 @@ store symlink (read-only content).
 Verified statusline end-to-end on three input shapes — full rate limits
 (countdowns render), no rate limits, and `{}` — none crash.
 
-### [ ] 13. Cleanup
-Delete `.config/i3/`, `install.sh`, `ansible-setup-script/`, `.alacritty.toml`,
-`.bashrc`, `scripts/linkAllFile.sh`. Rewrite `README.md` for macOS.
+### [x] 13. Cleanup — DONE
+Removed the 10 files now duplicated under `dotfiles/`: `.bashrc`, `.zshrc`,
+`.tmux.conf`, `.gitconfig`, `.alacritty.toml`, `.config/i3/` (2),
+`.local/bin/` (3 originals).
 
-**Questions:** replace `install.sh` with a one-command bootstrap script?
+**Kept as reference** (your choice): `install.sh`, `ansible-setup-script/`
+(7 files), `scripts/linkAllFile.sh` — none runnable on macOS.
+
+Added `install-macos.sh`: idempotent bootstrap for Xcode CLT → Homebrew →
+Determinate Nix → clone → first activation, plus the manual steps that can't
+be scripted (logout, Accessibility grant, ssh keys, `:Lazy restore`).
+
+README rewritten for macOS: setup, rebuild commands, layout, the read-only
+vs out-of-store symlink distinction, and the full keybinding table.
+
+Verified: the build produced the **same store path** before and after the
+deletions, proving the removed files were unused by the flake.
+`nix flake check` passes both configurations. The only remaining
+`Desktop/src` / `mahakal` matches in tracked files are comments documenting
+the port.
+
+Branch not pushed — 16 commits, local only.
+
+## Port complete
+
+All 13 phases done. Not managed by Nix, by choice: `~/.ssh/config`.
