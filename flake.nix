@@ -39,6 +39,11 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
+              # If a real file already exists where home-manager wants to
+              # place one, rename it instead of aborting the whole switch.
+              # Claude Code writes ~/.claude/settings.json on first run, which
+              # would otherwise fail activation with "would be clobbered".
+              backupFileExtension = "hm-backup";
               extraSpecialArgs = { inherit username; };
               users.${username} = import ./modules/home;
             };
