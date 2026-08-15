@@ -26,4 +26,28 @@
 
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
+
+  # ---- Phase 7: window manager -------------------------------------------
+  home.file.".aerospace.toml".source = ../../dotfiles/.aerospace.toml;
+
+  # ---- Phase 10: scripts --------------------------------------------------
+  # AeroSpace binds absolute paths to display-sync and screenshot, so these
+  # must land at exactly ~/.local/bin/<name>. executable=true because store
+  # files are 0444 by default and these are run directly.
+  home.file.".local/bin/display-sync" = {
+    source = ../../dotfiles/.local/bin/display-sync;
+    executable = true;
+  };
+  home.file.".local/bin/screenshot" = {
+    source = ../../dotfiles/.local/bin/screenshot;
+    executable = true;
+  };
+  home.file.".local/bin/tmux-sessionizer" = {
+    source = ../../dotfiles/.local/bin/tmux-sessionizer;
+    executable = true;
+  };
+  home.file.".local/bin/dir-selector.sh" = {
+    source = ../../dotfiles/.local/bin/dir-selector.sh;
+    executable = true;
+  };
 }

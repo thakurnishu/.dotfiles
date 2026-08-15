@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Project session switcher. Pick a directory with fzf; create-or-switch to a
+# tmux session named after it.
+#
+# macOS port: the Linux version searched ~/Desktop/src/... — this Mac uses
+# ~/src/... instead. Roots are also filtered to those that exist before
+# calling find, which the Linux version didn't do: a missing directory made
+# find print an error into the fzf list.
+
+roots=(
+    "$HOME/src/github.com"
+    "$HOME/src/github.com/personal"
+    "$HOME/src/github.com/work"
+    "$HOME/src/gitlab.com"
+    "$HOME/go/src/github.com/thakurnishu"
+    "$HOME/go/src/k8s.io"
+    "$HOME/.config"
+    "$HOME/.dotfiles"
+)
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    existing=()
+    for r in "${roots[@]}"; do
+        [[ -d "$r" ]] && existing+=("$r")
+    done
+
+    if [[ ${#existing[@]} -eq 0 ]]; then
+        echo "tmux-sessionizer: none of the search roots exist yet." >&2
+        exit 1
+    fi
+
+    selected=$(find "${existing[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -u | fzf)
+fi
+
+if [[ -z $selected ]]; then
+    exit 0
+fi
+
+selected_name=$(basename "$selected" | tr . _)
+tmux_running=$(pgrep tmux)
+
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+    tmux new-session -s "$selected_name" -c "$selected"
+    exit 0
+fi
+
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+    tmux new-session -ds "$selected_name" -c "$selected"
+fi
+
+# Works from inside tmux. Ghostty starts tmux (see .config/ghostty/config),
+# so this is the normal case.
+if [[ -n $TMUX ]]; then
+    tmux switch-client -t "$selected_name"
+else
+    tmux attach-session -t "$selected_name"
+fi

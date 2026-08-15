@@ -1,0 +1,183 @@
+# AeroSpace config — port of ~/.config/i3/config from github.com/thakurnishu/.dotfiles
+#
+# MODIFIER MAPPING (read this first):
+#   i3 $mod  (Mod4 / Super) -> alt        (Option)
+#   i3 $mod1 (Mod1 / Alt)   -> ctrl-alt
+#
+# Why not Cmd for $mod? Cmd+Q/W/T/F/A/S/D/H/Space are core macOS shortcuts.
+# Binding them globally would break every app on the system. Alt is the
+# AeroSpace convention and stays out of the way.
+
+config-version = 2
+
+after-login-command = []
+after-startup-command = []
+start-at-login = true
+
+# No status bar. AeroSpace shows the current workspace in the macOS menu bar
+# on its own. If you ever want an i3bar-style indicator, SketchyBar is the
+# usual companion and hooks in here via exec-on-workspace-change.
+
+# Under config-version 2 these are no longer inferred from bindings.
+persistent-workspaces = ['1', '2', '3', '4', '5', '6']
+
+# i3 has no container normalization, and `split` is a no-op while
+# flatten-containers is on. Both off = true i3 tree behaviour + working
+# alt-t / alt-v splits.
+enable-normalization-flatten-containers = false
+enable-normalization-opposite-orientation-for-nested-containers = false
+
+accordion-padding = 30
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'auto'
+
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+automatically-unhide-macos-hidden-apps = true
+
+[key-mapping]
+preset = 'qwerty'
+
+# i3 config sets no gaps.
+[gaps]
+inner.horizontal = 0
+inner.vertical   = 0
+outer.left       = 0
+outer.bottom     = 0
+outer.top        = 0
+outer.right      = 0
+
+# --------------------------------------------------------------------------
+# MULTI-MONITOR
+# i3 had 10 workspaces (1-5 laptop / 6-10 Dell); trimmed to 6 here,
+# three per screen: 1-3 on main, 4-6 on secondary.
+# Patterns are case-insensitive regex substrings; first match wins, and an
+# assignment is ignored when that monitor isn't connected.
+# --------------------------------------------------------------------------
+[workspace-to-monitor-force-assignment]
+# 'main'      = whichever display holds the macOS menu bar (System Settings ->
+#               Displays -> "Use as" -> Main Display).
+# 'secondary' = the other one.
+# Following main/secondary rather than hardcoding names means alt always
+# drives your main screen, whichever physical display that happens to be.
+1 = 'main'
+2 = 'main'
+3 = 'main'
+4 = 'secondary'
+5 = 'secondary'
+6 = 'secondary'
+
+[mode.main.binding]
+
+# --- Launch / apps --------------------------------------------------------
+alt-enter        = 'exec-and-forget open -na Ghostty'   # i3: mod+Return -> alacritty
+alt-shift-q      = 'close'                              # i3: mod+Shift+q -> kill
+alt-b            = 'exec-and-forget open "x-apple.systempreferences:com.apple.Bluetooth"'
+# i3: mod+Shift+s -> xrandr, arrange the Dell left of the laptop
+alt-shift-s      = 'exec-and-forget /Users/nishantsingh/.local/bin/display-sync'
+ctrl-alt-s       = 'exec-and-forget open -a "System Settings"'   # i3: mod1+s -> gnome-control-center
+ctrl-alt-f       = 'exec-and-forget open -a Finder'              # i3: mod1+f -> nautilus
+alt-shift-a      = 'exec-and-forget open "x-apple.systempreferences:com.apple.Sound-Settings.extension"'
+
+# --- Focus ----------------------------------------------------------------
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+alt-left  = 'focus left'
+alt-down  = 'focus down'
+alt-up    = 'focus up'
+alt-right = 'focus right'
+
+# --- Move -----------------------------------------------------------------
+alt-shift-h = 'move left'
+alt-shift-j = 'move down'
+alt-shift-k = 'move up'
+alt-shift-l = 'move right'
+
+alt-shift-left  = 'move left'
+alt-shift-down  = 'move down'
+alt-shift-up    = 'move up'
+alt-shift-right = 'move right'
+
+# --- Split / layout -------------------------------------------------------
+alt-t = 'split horizontal'                     # i3: mod+t -> split h
+alt-v = 'split vertical'                       # i3: mod+v -> split v
+alt-f = 'fullscreen'                           # i3: mod+f
+alt-s = 'layout v_accordion'                   # i3: mod+s -> stacking
+alt-w = 'layout h_accordion'                   # i3: mod+w -> tabbed
+alt-e = 'layout tiles horizontal vertical'     # i3: mod+e -> toggle split
+alt-shift-space = 'layout floating tiling'     # i3: mod+Shift+space -> floating toggle
+
+# --- Workspaces 1-3 (main screen) — i3 $mod --------------------------------
+alt-1 = 'workspace 1'
+alt-2 = 'workspace 2'
+alt-3 = 'workspace 3'
+
+alt-shift-1 = 'move-node-to-workspace 1'
+alt-shift-2 = 'move-node-to-workspace 2'
+alt-shift-3 = 'move-node-to-workspace 3'
+
+# --- Workspaces 4-6 (secondary screen) — cmd, "Windows key" position -------
+# These take priority over app shortcuts system-wide: in Brave, cmd-1..3 no
+# longer jump to tabs and cmd-[ / cmd-] no longer go back/forward.
+# Deliberate choice — workspace switching wins over browser tabs.
+cmd-1 = 'workspace 4'
+cmd-2 = 'workspace 5'
+cmd-3 = 'workspace 6'
+
+cmd-shift-1 = 'move-node-to-workspace 4'
+cmd-shift-2 = 'move-node-to-workspace 5'
+cmd-shift-3 = 'move-node-to-workspace 6'
+
+# --- Monitor navigation (new — no i3 equivalent) --------------------------
+ctrl-alt-left        = 'focus-monitor --wrap-around left'
+ctrl-alt-right       = 'focus-monitor --wrap-around right'
+ctrl-alt-shift-left  = 'move-node-to-monitor --wrap-around --focus-follows-window left'
+ctrl-alt-shift-right = 'move-node-to-monitor --wrap-around --focus-follows-window right'
+
+# --- Screenshots ----------------------------------------------------------
+# Kept on the same PHYSICAL keys as Linux rather than following the
+# $mod -> alt remap: on i3 the selective shot was $mod1+Shift+p, which is
+# literally Alt+Shift+P under the fingers. Full-screen moves to ctrl-alt.
+alt-shift-p       = 'exec-and-forget /Users/nishantsingh/.local/bin/screenshot --select'
+ctrl-alt-shift-p  = 'exec-and-forget /Users/nishantsingh/.local/bin/screenshot'
+
+# --- Volume (i3 used XF86 keys + pactl) -----------------------------------
+alt-shift-equal = 'volume up'
+alt-shift-minus = 'volume down'
+alt-shift-m     = 'volume mute-toggle'
+
+# --- Session --------------------------------------------------------------
+alt-shift-c         = 'reload-config'              # i3: mod+Shift+c -> reload
+alt-shift-r         = 'flatten-workspace-tree'     # i3: mod+Shift+r -> restart in place
+alt-shift-backspace = 'exec-and-forget pmset sleepnow'
+alt-r               = 'mode resize'
+
+# i3's resize mode: h/j/k/l resize, Enter or Escape to leave.
+[mode.resize.binding]
+h = 'resize width -50'
+j = 'resize height +50'
+k = 'resize height -50'
+l = 'resize width +50'
+
+left  = 'resize width -50'
+down  = 'resize height +50'
+up    = 'resize height -50'
+right = 'resize width +50'
+
+enter = 'mode main'
+esc   = 'mode main'
+
+# --- Float rules for apps that tile badly ---------------------------------
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.ActivityMonitor'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.calculator'
+run = 'layout floating'

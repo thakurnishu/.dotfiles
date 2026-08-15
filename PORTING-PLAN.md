@@ -183,12 +183,20 @@ separate client, so switching one doesn't drag the others.
 
 Padding/extras deliberately omitted, matching Alacritty's defaults.
 
-### [ ] 7. Window manager — AeroSpace
-Move the working `~/.aerospace.toml` + `~/.local/bin/display-sync` into the
-repo under home-manager. Delete `.config/i3/`.
+### [x] 7. Window manager — AeroSpace BUILT (activation pending)
+`~/.aerospace.toml` moved into `dotfiles/.aerospace.toml`, deployed by
+home-manager. **The live file is now a read-only store symlink** — edit
+`~/.dotfiles/dotfiles/.aerospace.toml` and rebuild; `alt-shift-c` reloads
+whatever was last deployed.
 
-**Questions:** move-and-symlink, or copy and keep the live file standalone?
-(Was asked earlier, still unanswered.)
+`displayplacer` is now declared in `homebrew.brews`. It was only mentioned in
+a *comment* before — installed by hand, so a fresh Mac would have had
+`alt-shift-s` fail silently. Not in nixpkgs, so Homebrew is the only option.
+
+Checked: AeroSpace's exec environment has **no PATH** (only HOME, TMPDIR,
+SSH_AUTH_SOCK, XPC_SERVICE_NAME, OSLogRateLimit). All bindings survive it
+because they use absolute paths or /usr/bin tools, and display-sync exports
+`/opt/homebrew/bin` itself.
 
 ### [ ] 8. Git + SSH
 `.gitconfig`: strip the three `/home/mahakal/` paths, repoint the `includeIf`
@@ -216,12 +224,21 @@ Verified by starting a throwaway server (`tmux -L tmuxcheck -f <config>`):
 parsed OK, history-limit/mouse/status-position/base-index/default-terminal/
 mode-keys all applied, both copy-pipe bindings registered.
 
-### [ ] 10. `.local/bin` scripts
-`screenshot` (macOS version written + verified — clipboard-only),
-`display-sync` (new), `tmux-sessionizer`, `dir-selector.sh`.
+### [x] 10. `.local/bin` scripts — BUILT (done with Phase 7)
+All four now in `dotfiles/.local/bin/`, deployed with `executable = true`
+(store files are 0444 by default; verified the built paths are `-r-xr-xr-x`).
 
-**Questions:** do `tmux-sessionizer` / `dir-selector.sh` hardcode Linux paths
-or use `find` flags that differ on BSD? (Needs a read-through together.)
+Code layout decided: **`~/src/github.com/{personal,work}`, `~/src/gitlab.com`**
+— replaces the Linux `~/Desktop/src/...`. This also unblocks the Phase 5
+aliases and Phase 8 `includeIf`.
+
+- `display-sync`, `screenshot` — macOS-native, moved verbatim
+- `tmux-sessionizer` — paths remapped; **also fixed a latent bug**: it now
+  filters roots to those that exist before calling `find`, which previously
+  printed errors into the fzf list. Falls back to `attach-session` when run
+  outside tmux.
+- `dir-selector.sh` — paths remapped, `~/Pictures/screenshots` dropped
+  (screenshot is clipboard-only now). Verified it creates the tree.
 
 ### [ ] 11. Editor — nvim
 22 files, Lua. Expected portable; `lazy-lock.json` pins plugins.

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Re-apply the dual-display arrangement: DELL P2425E to the LEFT of the MacBook.
+#
+# macOS equivalent of the i3 binding:
+#   bindsym $mod+Shift+s exec xrandr --output eDP-1 --auto \
+#       --output HDMI-1 --left-of eDP-1 && xrandr --output HDMI-1 \
+#       --mode 1920x1200 --rate 59.95
+#
+# macOS has no xrandr; displayplacer is the equivalent.
+# Regenerate the id/mode strings below any time with: displayplacer list
+
+export PATH="/opt/homebrew/bin:$PATH"
+
+DELL='70B5D019-AC4B-4B00-85A0-64740E5540C5'
+BUILTIN='37D8832A-2D66-02CA-B9F7-8F30A301B230'
+
+notify() {
+  osascript -e "display notification \"$1\" with title \"display-sync\"" >/dev/null 2>&1
+}
+
+if ! command -v displayplacer >/dev/null 2>&1; then
+  notify 'displayplacer not installed'
+  exit 1
+fi
+
+# Nothing to arrange when the Dell isn't plugged in.
+if ! displayplacer list 2>/dev/null | grep -q "$DELL"; then
+  notify 'Dell not connected — nothing to do'
+  exit 0
+fi
+
+# Dell at origin (0,0) puts it left of the MacBook, which sits at x=1920.
+# The y=83 offset keeps the two screens visually top-aligned.
+if displayplacer \
+  "id:$DELL res:1920x1200 hz:100 color_depth:8 enabled:true scaling:off origin:(0,0) degree:0" \
+  "id:$BUILTIN res:1496x967 hz:120 color_depth:8 enabled:true scaling:on origin:(1920,83) degree:0" \
+  >/dev/null 2>&1
+then
+  notify 'Dell left of MacBook'
+else
+  notify 'failed — run `displayplacer list` to refresh screen ids'
+  exit 1
+fi

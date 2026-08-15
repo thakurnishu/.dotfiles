@@ -50,9 +50,12 @@
     ];
 
     # CLI tools live in modules/darwin/packages.nix (Nix), not here.
-    # displayplacer is the one exception to watch: it's currently a brew
-    # formula and will move to Nix in Phase 4.
-    brews = [ ];
+    # displayplacer is the exception: it is NOT in nixpkgs, so Homebrew is
+    # the only declarative option. ~/.local/bin/display-sync depends on it
+    # (bound to alt-shift-s in AeroSpace).
+    brews = [
+      "displayplacer"
+    ];
 
     masApps = { };
   };

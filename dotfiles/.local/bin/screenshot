@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Screenshot straight to the clipboard — nothing is written to disk.
+# $1: optional flag "--select" for region selection
+#
+# -c  clipboard only, no file
+# -i  interactive region select
+# -x  no camera shutter sound
+
+if [[ "$1" == "--select" ]]; then
+    screencapture -i -c -x
+else
+    screencapture -c -x
+fi
