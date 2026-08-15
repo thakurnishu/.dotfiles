@@ -85,14 +85,21 @@ writes to Desktop).
 
 `spans-displays` needs a logout/login to take effect.
 
-### [ ] 3. GUI apps (homebrew casks)
-`modules/darwin/homebrew.nix`. Already installed here: `aerospace`, `ghostty`,
-`displayplacer`, Brave. Decide the full cask list and whether nix-darwin should
-adopt/manage the existing Homebrew installation.
+### [x] 3. GUI apps (homebrew casks) — BUILT (activation pending)
+`modules/darwin/homebrew.nix`. All 8 cask names verified against `brew info`
+before writing; all present in the evaluated config.
 
-**Questions:** which GUI apps beyond what's installed? Should nix uninstall
-casks not listed (`onActivation.cleanup`)? Karabiner — still wanted, given it
-failed to install earlier?
+- brew-managed already: `aerospace`, `ghostty`, `claude-code`
+- new: `font-jetbrains-mono-nerd-font` (required by Phase 6)
+- adopted from manual installs: `brave-browser`, `whatsapp`,
+  `microsoft-teams`, `stats` — via `HOMEBREW_CASK_OPTS = "--adopt"`
+
+`cleanup = "none"`, `autoUpdate = false`, `upgrade = false`.
+
+Karabiner dropped: it was only needed to remap Brave's Ctrl keys, which
+became moot once workspaces moved to `cmd`.
+
+Note: `displayplacer` is still a brew *formula*; it moves to Nix in Phase 4.
 
 ### [ ] 4. CLI packages
 `modules/darwin/packages.nix`, derived from the ansible playbooks:
