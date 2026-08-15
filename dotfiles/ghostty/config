@@ -9,9 +9,11 @@
 font-family = JetBrainsMono Nerd Font Mono
 font-size = 16
 
-# Ghostty ships Catppuccin; the identifier is the display name with spaces.
-# ("catppuccin-mocha" is NOT valid — it fails with "theme not found".)
-theme = Catppuccin Mocha
+# Theme identifiers are the display name WITH spaces — "gruvbox-dark" fails
+# with "theme not found". Ghostty ships these built in, so there's no theme
+# file to vendor (unlike .alacritty.toml, which imported one).
+# Other variants available: Gruvbox Dark Hard, Gruvbox Material Dark.
+theme = Gruvbox Dark
 
 window-decoration = false
 
