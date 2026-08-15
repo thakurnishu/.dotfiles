@@ -20,4 +20,7 @@
   # ---- Phase 5: shell ----------------------------------------------------
   home.file.".zshrc".source = ../../dotfiles/.zshrc;
   xdg.configFile."starship.toml".source = ../../dotfiles/starship.toml;
+
+  # ---- Phase 6: terminal -------------------------------------------------
+  xdg.configFile."ghostty/config".source = ../../dotfiles/ghostty/config;
 }

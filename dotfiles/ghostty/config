@@ -1,0 +1,26 @@
+# Ghostty — macOS. Replaces .alacritty.toml.
+#
+# Alacritty equivalents:
+#   [font] size/family        -> font-family / font-size
+#   [window] decorations=none -> window-decoration = false
+#   import catppuccin.toml    -> theme (built in, no file to vendor)
+#   [terminal.shell] program  -> command
+
+font-family = JetBrainsMono Nerd Font Mono
+font-size = 16
+
+# Ghostty ships Catppuccin; the identifier is the display name with spaces.
+# ("catppuccin-mocha" is NOT valid — it fails with "theme not found".)
+theme = Catppuccin Mocha
+
+window-decoration = false
+
+# Alacritty ran plain `tmux`, which spawns a new numbered session per window.
+# `-A -s main` attaches to one stable base session instead, which is what
+# ~/.local/bin/tmux-sessionizer expects: it creates project-named sessions
+# and jumps between them with `tmux switch-client`, and switch-client only
+# works from inside tmux. Each Ghostty window is a separate tmux client, so
+# switching one to a project session leaves the others where they are.
+command = tmux new-session -A -s main
+
+# Not set, matching .alacritty.toml: window padding (Alacritty defaults to 0).

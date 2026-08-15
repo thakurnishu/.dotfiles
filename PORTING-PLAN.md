@@ -155,12 +155,33 @@ Verified: `zsh -n` clean; all 4 functions define; `set-aws-profile` picks
 the right profile (selecting 3 of 3 → `prod`, proving the index conversion);
 all 3 error paths return 1.
 
-### [ ] 6. Terminal — Ghostty
-New `dotfiles/ghostty/config` replacing `.alacritty.toml`: JetBrainsMono Nerd
-Font 16, `window-decoration = false`, catppuccin, `command = tmux`.
-Nerd Font must be added as a cask (none installed on this Mac).
+### [x] 6. Terminal — Ghostty BUILT (activation pending)
+`dotfiles/ghostty/config` replaces `.alacritty.toml`.
 
-**Questions:** which catppuccin flavour (mocha/macchiato/frappe/latte)?
+```
+font-family = JetBrainsMono Nerd Font Mono
+font-size = 16
+theme = Catppuccin Mocha
+window-decoration = false
+command = tmux new-session -A -s main
+```
+
+Two findings from validating against Ghostty itself:
+- the theme id is the **display name with spaces**; `catppuccin-mocha`
+  fails with "theme not found"
+- `+show-config` does NOT validate — `+validate-config` does. Both controls
+  (bad theme, bogus key) error correctly; the real config exits 0.
+
+Font: macOS reports 6 JetBrains families; `Nerd Font Mono` chosen as the
+strictly-monospace one (the only variant Ghostty itself lists).
+
+tmux: Alacritty ran plain `tmux` (new numbered session per window). Changed
+to `-A -s main` because `~/.local/bin/tmux-sessionizer` uses
+`tmux switch-client`, which only works from inside tmux, and numbered
+sessions would pollute its project-session list. Each Ghostty window is a
+separate client, so switching one doesn't drag the others.
+
+Padding/extras deliberately omitted, matching Alacritty's defaults.
 
 ### [ ] 7. Window manager — AeroSpace
 Move the working `~/.aerospace.toml` + `~/.local/bin/display-sync` into the
