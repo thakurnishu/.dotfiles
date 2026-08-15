@@ -2,22 +2,22 @@
 
 | Question / keywords | Graph to query |
 |---|---|---|
-| permissions, roles, alerts, cases, scenarios, kyc, teams, superadmin, serializers, exports, dashboard | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-backend/graph.json` |
-| ingestion, auth, token, webhook, rfi, postgres, encryption, schema, keyvault, screening | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-client-routes/graph.json` |
-| worker, ingestion, chunk, postgres, scenario, storage, provider, validation, upsert, batch | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-worker/graph.json` |
-| fcc-backend, django, migration, sqlglot, fcc api, fcc compliance backend | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-backend/graph.json` |
-| fcc-frontend, react, eslint, js, frontend, ui components, fcc ui | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-frontend/graph.json` |
-| fcc-worker, asyncio, celery, fcc worker, task queue, fcc background | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-worker/graph.json` |
-| sams, client facing, api, config bootstrap, sams apis, client routes sams | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-sams-client-facing-apis/graph.json` |
-| auth-adapter, django auth, api key, jwt, psycopg2, connection, credential | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-auth-adapter/graph.json` |
-| cloudvc, version control, provider, filesystem, blob, cloud storage, vcs | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-cloudvc/graph.json` |
-| config, environment, env var, settings, loader, keyvault, configuration | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-config-manager/graph.json` |
-| identity, access, secrets, django secrets, user identity, permissions adapter | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-identity-access/graph.json` |
-| prometheus, metrics, multiprocess, context, timer, gauge, counter | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-prometheus-metrics/graph.json` |
-| queue, adaptor, redis, sqs, backend, message broker, factory | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-queue-adaptor/graph.json` |
-| sams, aml, scoring, relevancy, trusted sources, algos, risk | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-sams-aml/graph.json` |
-| tms-core, rules, rule repository, core module, shared models, domain logic | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-core-module/graph.json` |
-| tms-logging, logging, bootstrap, logger, sink, context, structured log | `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-logging/graph.json` |
+| permissions, roles, alerts, cases, scenarios, kyc, teams, superadmin, serializers, exports, dashboard | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-backend/graph.json` |
+| ingestion, auth, token, webhook, rfi, postgres, encryption, schema, keyvault, screening | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-client-routes/graph.json` |
+| worker, ingestion, chunk, postgres, scenario, storage, provider, validation, upsert, batch | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-worker/graph.json` |
+| fcc-backend, django, migration, sqlglot, fcc api, fcc compliance backend | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-backend/graph.json` |
+| fcc-frontend, react, eslint, js, frontend, ui components, fcc ui | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-frontend/graph.json` |
+| fcc-worker, asyncio, celery, fcc worker, task queue, fcc background | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-worker/graph.json` |
+| sams, client facing, api, config bootstrap, sams apis, client routes sams | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-sams-client-facing-apis/graph.json` |
+| auth-adapter, django auth, api key, jwt, psycopg2, connection, credential | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-auth-adapter/graph.json` |
+| cloudvc, version control, provider, filesystem, blob, cloud storage, vcs | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-cloudvc/graph.json` |
+| config, environment, env var, settings, loader, keyvault, configuration | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-config-manager/graph.json` |
+| identity, access, secrets, django secrets, user identity, permissions adapter | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-identity-access/graph.json` |
+| prometheus, metrics, multiprocess, context, timer, gauge, counter | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-prometheus-metrics/graph.json` |
+| queue, adaptor, redis, sqs, backend, message broker, factory | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-queue-adaptor/graph.json` |
+| sams, aml, scoring, relevancy, trusted sources, algos, risk | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-sams-aml/graph.json` |
+| tms-core, rules, rule repository, core module, shared models, domain logic | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-core-module/graph.json` |
+| tms-logging, logging, bootstrap, logger, sink, context, structured log | `~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-logging/graph.json` |
 
 Whenever you query a graph.json, explicitly tell the user the full path you used, so they always know which graph was used.
 
@@ -44,7 +44,7 @@ Whenever you query a graph.json, explicitly tell the user the full path you used
 | `graphify-out-fcc-monorepo-pkg-tms-core-module` | `fcc-monorepo/packages/tms-core-module` |
 | `graphify-out-fcc-monorepo-pkg-tms-logging` | `fcc-monorepo/packages/tms-logging` |
 
-All graph.json files are under `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/`.
+All graph.json files are under `~/src/github.com/work/solytics/graphify-out-repos/`.
 
 ## Available Graphs
 
@@ -74,30 +74,30 @@ All graph.json files are under `/home/mahakal/Desktop/src/github.com/work/solyti
 
 ```bash
 rm -rf \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-backend/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-client-routes/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-worker/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-backend/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-frontend/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-worker/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-sams-client-facing-apis/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-auth-adapter/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-cloudvc/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-config-manager/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-identity-access/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-prometheus-metrics/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-queue-adaptor/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-sams-aml/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-core-module/cache \
-  /home/mahakal/Desktop/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-logging/cache
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-backend/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-client-routes/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-tms-worker/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-backend/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-frontend/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-fcc-worker/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-app-sams-client-facing-apis/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-auth-adapter/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-cloudvc/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-config-manager/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-identity-access/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-prometheus-metrics/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-queue-adaptor/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-sams-aml/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-core-module/cache \
+  ~/src/github.com/work/solytics/graphify-out-repos/graphify-out-fcc-monorepo-pkg-tms-logging/cache
 ```
 
 ## Incremental Updates (graphify-build)
 
-graphify-build is at `/home/mahakal/Desktop/src/github.com/work/solytics/graphify-build/`. Run all commands from `/home/mahakal/Desktop/src/github.com/work/solytics/` — works for any repo under solytics, not just tms.
+graphify-build is at `~/src/github.com/work/solytics/graphify-build/`. Run all commands from `~/src/github.com/work/solytics/` — works for any repo under solytics, not just tms.
 
 ```bash
-cd /home/mahakal/Desktop/src/github.com/work/solytics
+cd ~/src/github.com/work/solytics
 
 # TMS Apps
 ~/.local/share/uv/tools/graphifyy/bin/python graphify-build/cli.py update tms/fcc-monorepo/apps/tms-backend --name fcc-monorepo-tms-backend

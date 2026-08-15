@@ -288,11 +288,34 @@ Note: 37 plugins are already cloned into `~/.local/share/nvim/lazy`, but 11
 sit on newer commits than the lock. Run `:Lazy restore` to snap them to the
 pinned versions.
 
-### [ ] 12. Claude + opencode configs
-`.config/claude/{CLAUDE.md,settings.json,statusline.sh}`,
-`.config/opencode/skills/**` (4 skills).
+### [x] 12. Claude + opencode — BUILT (activation pending)
+`.config/claude` -> `dotfiles/claude`, `.config/opencode` -> `dotfiles/opencode`.
 
-**Questions:** does `settings.json` or `statusline.sh` reference Linux paths?
+**statusline.sh had a real macOS break:** `date -d` is GNU-only and fails
+with "illegal option -- d", so every rate-limit countdown was dead. Rewritten
+to BSD `date -j -u -f`, keeping a `gdate` branch in case Homebrew coreutils
+ever appears.
+
+**Rejected the coreutils approach** (originally chosen) after testing:
+- Nix's coreutils provides `date`, **not** `gdate` — the g-prefix is a
+  Homebrew convention, so it would not have fixed anything
+- putting GNU coreutils on PATH shadows BSD `ls`, and GNU `-G` means
+  `--no-group` where BSD `-G` means colorize — it would have silently
+  broken the `alias ls='ls -G'` from Phase 5
+
+`jq` declared (statusline.sh depends on it; macOS ships /usr/bin/jq but
+undeclared).
+
+CLAUDE.md kept, all 36 `/home/mahakal` lines remapped to `~/src/...`.
+Employer/repo names remain public — unchanged from ubuntu-config.
+No real secrets: the `sk-ant-...` is a placeholder.
+
+Deployment: the three `~/.claude/` files use `mkOutOfStoreSymlink` because
+Claude Code rewrites settings.json via /config. opencode skills are a normal
+store symlink (read-only content).
+
+Verified statusline end-to-end on three input shapes — full rate limits
+(countdowns render), no rate limits, and `{}` — none crash.
 
 ### [ ] 13. Cleanup
 Delete `.config/i3/`, `install.sh`, `ansible-setup-script/`, `.alacritty.toml`,

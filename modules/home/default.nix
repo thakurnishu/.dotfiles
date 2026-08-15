@@ -37,6 +37,24 @@
     config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/.dotfiles/dotfiles/nvim";
 
+  # ---- Phase 12: claude + opencode ---------------------------------------
+  # settings.json is out-of-store because Claude Code rewrites it when you
+  # change theme/model via /config — a read-only store path would make those
+  # saves fail. The other two go the same way for consistency and so
+  # statusline.sh keeps its executable bit from the repo.
+  home.file.".claude/settings.json".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.dotfiles/dotfiles/claude/settings.json";
+  home.file.".claude/statusline.sh".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.dotfiles/dotfiles/claude/statusline.sh";
+  home.file.".claude/CLAUDE.md".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.dotfiles/dotfiles/claude/CLAUDE.md";
+
+  # Skills are read-only content; a normal store symlink is fine.
+  xdg.configFile."opencode/skills".source = ../../dotfiles/opencode/skills;
+
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
   # ~/.ssh/config is deliberately NOT managed here. It stays a plain local

@@ -37,7 +37,18 @@ NOW=$(date +%s)
 countdown() {
   local target=$1
   case "$target" in
-    ''|*[!0-9]*) target=$(date -d "$target" +%s 2>/dev/null) || return ;;
+    # Non-numeric means an ISO timestamp. macOS `date` has no -d: it fails
+    # with "illegal option -- d". gdate is GNU date from coreutils (declared
+    # in modules/darwin/packages.nix); fall back to BSD syntax if absent so
+    # the status line degrades instead of breaking.
+    ''|*[!0-9]*)
+      if command -v gdate >/dev/null 2>&1; then
+        target=$(gdate -d "$target" +%s 2>/dev/null) || return
+      else
+        _t=${target%%.*}; _t=${_t%Z}
+        target=$(date -j -u -f "%Y-%m-%dT%H:%M:%S" "$_t" +%s 2>/dev/null) || return
+      fi
+      ;;
   esac
   [ -n "$target" ] || return
   local secs=$((target - NOW))

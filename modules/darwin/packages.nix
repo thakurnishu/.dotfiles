@@ -73,6 +73,15 @@
     # --- system CLI -------------------------------------------------------
     fzf
     ripgrep
+    jq # statusline.sh parses Claude Code's JSON input
+
+    # NOTE: coreutils deliberately NOT installed. Nix's coreutils provides
+    # `date`, not `gdate` (the g-prefix is a Homebrew convention), so it
+    # wouldn't fix statusline.sh anyway — and putting GNU coreutils on PATH
+    # shadows BSD `ls`, where -G means "colorize"; GNU -G means
+    # "--no-group". That would silently break `alias ls='ls -G'`.
+    # statusline.sh uses BSD `date -j -u -f` instead, with a gdate branch
+    # in case Homebrew coreutils is ever installed.
     tree
     unzip
     cmake
