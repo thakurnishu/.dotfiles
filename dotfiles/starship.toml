@@ -1,68 +1,55 @@
-# starship prompt — replaces the bash PROMPT_COMMAND/PS1 from .bashrc.
+# starship — faithful reproduction of the bash PROMPT_COMMAND/PS1 from
+# .bashrc on the ubuntu-config branch:
 #
-# The Linux prompt was:
-#   ➜  <dir> 🐍 py(<venv>) git(<branch>) ✗
-# This reproduces that and adds k8s context, AWS profile and terraform
-# workspace, which the bash version couldn't do.
+#   PS1="\[\e[1;32m\]➜  \[\e[38;5;80m\]\W$(parse_python_env)$(parse_git_branch)\[\e[0m\] "
+#
+#   ➜               bold green (1;32), followed by TWO spaces
+#   \W              basename of cwd, colour 80 (38;5;80)
+#   🐍 py(env)      "🐍 py(" and ")" bold magenta (1;35), env bold cyan (1;36)
+#   git(branch)     "git(" and ")" bold blue (1;34), branch bold red (1;31)
+#   ✗               bold yellow (1;33), preceded by a space; shown when the
+#                   tree is modified, staged, or has untracked files
 
-format = """
-$character\
-$directory\
-$python\
-$git_branch\
-$git_status\
-$kubernetes\
-$aws\
-$terraform\
-$cmd_duration\
-"""
+format = "$character$directory$python$git_branch${custom.git_dirty} "
 
 add_newline = false
 
 [character]
-# The green ➜ from the bash prompt, red when the last command failed.
-success_symbol = "[➜ ](bold green)"
-error_symbol = "[➜ ](bold red)"
-vimcmd_symbol = "[❮ ](bold yellow)"   # vi normal mode (bindkey -v)
+# The default format is "$symbol " — that trailing space would make three
+# spaces after the arrow instead of two.
+format = "$symbol"
+success_symbol = "[➜  ](bold green)"
+error_symbol = "[➜  ](bold green)" # the bash prompt was green unconditionally
+vimcmd_symbol = "[❮  ](bold yellow)"
 
 [directory]
-style = "fg:80"          # matches \e[38;5;80m from the bash PS1
-truncation_length = 3
-truncate_to_repo = true
-
-[git_branch]
-format = " [git\\($branch\\)](bold blue)"
-style = "bold red"
-
-[git_status]
-# The ✗ marker from parse_git_branch: shown when modified, staged or
-# untracked files exist.
-format = "[$all_status$ahead_behind](bold yellow)"
-conflicted = "✗"
-modified = "✗"
-staged = "✗"
-untracked = "✗"
-renamed = ""
-deleted = "✗"
-stashed = ""
-ahead = "⇡${count}"
-behind = "⇣${count}"
-diverged = "⇕"
+# Default format also has a trailing space; drop it so the spacing before
+# git( comes only from git_branch's own leading space.
+format = "[$path]($style)"
+style = "fg:80"
+# \W is the basename only, not a truncated path.
+truncation_length = 1
+truncate_to_repo = false
+truncation_symbol = ""
 
 [python]
-# parse_python_env equivalent
-format = " [🐍 py\\($virtualenv\\)](bold purple)"
+# parse_python_env — only rendered when a virtualenv is active.
+format = " [🐍 py\\(](bold purple)[$virtualenv](bold cyan)[\\)](bold purple)"
 
-[kubernetes]
-disabled = false
-format = " [☸ $context(\\($namespace\\))](bold cyan)"
+[git_branch]
+# parse_git_branch — parens blue, branch name red.
+format = " [git\\(](bold blue)[$branch](bold red)[\\)](bold blue)"
 
-[aws]
-format = " [☁ $profile(\\($region\\))](bold yellow)"
+# starship's git_status emits one symbol per change type, so a tree that is
+# both modified and untracked would render "✗✗". The bash function printed a
+# single ✗ for "any change", so its exact test is replicated below.
+[git_status]
+disabled = true
 
-[terraform]
-format = " [🏗 $workspace](bold 105)"
-
-[cmd_duration]
-min_time = 2000
-format = " [$duration](dimmed white)"
+[custom.git_dirty]
+description = "single ✗ when the working tree is dirty"
+# NOTE: do not set shell = ["sh", "-c"] — starship appends -c itself, so the
+# command becomes `sh -c -c '…'` and the module silently never renders.
+when = "! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [ -n \"$(git ls-files --others --exclude-standard 2>/dev/null)\" ]"
+command = "printf '✗'"
+format = " [$output](bold yellow)"
