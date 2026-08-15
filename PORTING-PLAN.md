@@ -101,20 +101,32 @@ became moot once workspaces moved to `cmd`.
 
 Note: `displayplacer` is still a brew *formula*; it moves to Nix in Phase 4.
 
-### [ ] 4. CLI packages
-`modules/darwin/packages.nix`, derived from the ansible playbooks:
+### [x] 4. CLI packages — BUILT (activation pending)
+`modules/darwin/packages.nix`, 40 packages. Every nixpkgs attribute name was
+verified to resolve *before* being written.
 
-- **ai**: claude-code, codex, opencode
-- **devops**: docker, helm, terragrunt, awscli, azure-cli, gcloud, mise, terraform
-- **k8s**: kind, kubectl, kubebuilder, flux, talosctl
-- **languages**: go, uv, bun, rust, php + composer + laravel
-- **system**: fzf, ripgrep, tree, unzip, cmake, pkg-config, gpg, curl, lazygit, python3
+- **languages**: go, bun, uv, nodejs, rustup (+ grpcurl, hugo)
+- **containers**: colima, docker, docker-compose (`colima start` first)
+- **k8s**: kubectl, kind, kubebuilder, fluxcd, talosctl, kubernetes-helm
+- **cloud/IaC**: terraform, terragrunt, awscli2, azure-cli, google-cloud-sdk
+- **ai**: claude-code, opencode, codex, graphify — were curl|bash / npm / uv
+- **editor**: neovim, tmux, tree-sitter, prettierd, zk, lazygit
+- **system**: fzf, ripgrep, tree, unzip, cmake, pkg-config, python3, gnupg,
+  curl, bash-completion
 
-Dropped as X11/Linux-only: `snapd`, `light`, `pavucontrol`, `maim`, `xclip`,
-`picom`, `blueman`, and the `lib*-dev` Alacritty build deps.
+`nixpkgs.config.allowUnfree = true` in hosts/macbook — needed by terraform
+(BUSL 1.1) and claude-code (proprietary).
 
-**Questions:** is this list still current — anything to add/drop? Docker on
-macOS means Docker Desktop (cask) or colima? Keep `mise` given Nix overlaps it?
+Excluded: mise (Nix owns toolchains), php/composer/laravel, opentofu,
+uxplay (macOS has AirPlay Receiver built in). `displayplacer` is not in
+nixpkgs and stays a brew formula. `gh` deferred to Phase 8.
+
+`claude-code` moved out of homebrew.nix into Nix; remove the stale cask once
+with `brew uninstall --cask claude-code`.
+
+Build → exit 0, 135 binaries in the system profile. First build pulled ~11GB
+(google-cloud-sdk 571MB, azure-cli 297MB, qemu 244MB via colima, terraform
+compiled from source); later rebuilds reuse the store and take seconds.
 
 ### [ ] 5. Shell — `.zshrc`
 Port 135 lines. Known fixes: `EDITOR=/usr/bin/nvim` → nix path;

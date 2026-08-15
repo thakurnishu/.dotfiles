@@ -33,7 +33,9 @@
       # --- already brew-managed -----------------------------------------
       "aerospace" # tiling WM, replaces i3
       "ghostty" # terminal, replaces alacritty
-      "claude-code"
+      # claude-code moved to Nix in Phase 4 (modules/darwin/packages.nix).
+      # If the old cask is still installed, remove it once with:
+      #   brew uninstall --cask claude-code
 
       # --- required by the Ghostty config (Phase 6) ---------------------
       # No Nerd Font is installed on this Mac; without this Ghostty would
