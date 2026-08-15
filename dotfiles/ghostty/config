@@ -17,12 +17,9 @@ theme = Gruvbox Dark
 
 window-decoration = false
 
-# Alacritty ran plain `tmux`, which spawns a new numbered session per window.
-# `-A -s main` attaches to one stable base session instead, which is what
-# ~/.local/bin/tmux-sessionizer expects: it creates project-named sessions
-# and jumps between them with `tmux switch-client`, and switch-client only
-# works from inside tmux. Each Ghostty window is a separate tmux client, so
-# switching one to a project session leaves the others where they are.
+# Plain `tmux`, matching .alacritty.toml's `[terminal.shell] program = "tmux"`.
+# Each window gets its own new session. (`-A -s main` was tried, attaching
+# every window to one shared session, but caused problems in practice.)
 #
 # ABSOLUTE PATH REQUIRED. Ghostty launches via:
 #   /usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l <command>
@@ -31,6 +28,6 @@ window-decoration = false
 # lives in /etc/zshenv and the profile scripts, none of which run here — so a
 # bare `tmux` fails with "exec: tmux: not found" even though it is installed.
 # /run/current-system is a stable symlink maintained across generations.
-command = /run/current-system/sw/bin/tmux new-session -A -s main
+command = /run/current-system/sw/bin/tmux
 
 # Not set, matching .alacritty.toml: window padding (Alacritty defaults to 0).
