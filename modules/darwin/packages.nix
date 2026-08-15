@@ -60,6 +60,10 @@
     zk
     lazygit
 
+    # --- shell ------------------------------------------------------------
+    # Replaces the bash PROMPT_COMMAND/PS1 and oh-my-zsh.
+    starship
+
     # --- system CLI -------------------------------------------------------
     fzf
     ripgrep

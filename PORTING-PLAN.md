@@ -128,12 +128,32 @@ Build → exit 0, 135 binaries in the system profile. First build pulled ~11GB
 (google-cloud-sdk 571MB, azure-cli 297MB, qemu 244MB via colima, terraform
 compiled from source); later rebuilds reuse the store and take seconds.
 
-### [ ] 5. Shell — `.zshrc`
-Port 135 lines. Known fixes: `EDITOR=/usr/bin/nvim` → nix path;
-`/home/mahakal/.nix-profile/…` line → macOS equivalent. Delete `.bashrc`.
+### [x] 5. Shell — `.zshrc` BUILT (activation pending)
+Ported from **`.bashrc`** (247 lines, the real config) into
+`dotfiles/.zshrc`, not from the old near-empty `.zshrc` stub.
 
-**Questions:** walk through the aliases together? Keep Oh-My-Zsh/plugins as-is
-or let home-manager own them?
+bash→zsh conversions made:
+- `set -o vi` → `bindkey -v` (+ `KEYTIMEOUT=1`)
+- `bind -x` Ctrl-L / Ctrl-F → `bindkey` + a `zle` widget
+- `mapfile` → `${(@f)...}`; `read -rp` → `read "var?prompt"`
+- **arrays re-indexed 1-based** (bash is 0-based) in `set-aws-profile`
+- `completion bash` → `completion zsh`; `complete -C` needs `bashcompinit`
+- custom `PS1`/`PROMPT_COMMAND` → **starship** (`dotfiles/starship.toml`)
+
+Dropped (Nix provides them): nvm, cargo env, gcloud `path.bash.inc`,
+opencode/bun/go PATH lines, mise, composer. Dropped as Linux-only:
+`dnf`/`apt` aliases, `ls --color=auto` → `ls -G` (BSD).
+Kept: krew PATH, GOPATH, `~/.local/bin`.
+
+Auto-tmux deliberately omitted — Ghostty launches tmux (Phase 6);
+duplicating it risks nested sessions.
+
+Deferred: `sb`/`dof`/`homelab`/`blog` aliases and zk `SB_PATH`/`BLOG_PATH`,
+pending a decision on the code layout for this Mac.
+
+Verified: `zsh -n` clean; all 4 functions define; `set-aws-profile` picks
+the right profile (selecting 3 of 3 → `prod`, proving the index conversion);
+all 3 error paths return 1.
 
 ### [ ] 6. Terminal — Ghostty
 New `dotfiles/ghostty/config` replacing `.alacritty.toml`: JetBrainsMono Nerd

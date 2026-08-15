@@ -1,0 +1,68 @@
+# starship prompt — replaces the bash PROMPT_COMMAND/PS1 from .bashrc.
+#
+# The Linux prompt was:
+#   ➜  <dir> 🐍 py(<venv>) git(<branch>) ✗
+# This reproduces that and adds k8s context, AWS profile and terraform
+# workspace, which the bash version couldn't do.
+
+format = """
+$character\
+$directory\
+$python\
+$git_branch\
+$git_status\
+$kubernetes\
+$aws\
+$terraform\
+$cmd_duration\
+"""
+
+add_newline = false
+
+[character]
+# The green ➜ from the bash prompt, red when the last command failed.
+success_symbol = "[➜ ](bold green)"
+error_symbol = "[➜ ](bold red)"
+vimcmd_symbol = "[❮ ](bold yellow)"   # vi normal mode (bindkey -v)
+
+[directory]
+style = "fg:80"          # matches \e[38;5;80m from the bash PS1
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = " [git\\($branch\\)](bold blue)"
+style = "bold red"
+
+[git_status]
+# The ✗ marker from parse_git_branch: shown when modified, staged or
+# untracked files exist.
+format = "[$all_status$ahead_behind](bold yellow)"
+conflicted = "✗"
+modified = "✗"
+staged = "✗"
+untracked = "✗"
+renamed = ""
+deleted = "✗"
+stashed = ""
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕"
+
+[python]
+# parse_python_env equivalent
+format = " [🐍 py\\($virtualenv\\)](bold purple)"
+
+[kubernetes]
+disabled = false
+format = " [☸ $context(\\($namespace\\))](bold cyan)"
+
+[aws]
+format = " [☁ $profile(\\($region\\))](bold yellow)"
+
+[terraform]
+format = " [🏗 $workspace](bold 105)"
+
+[cmd_duration]
+min_time = 2000
+format = " [$duration](dimmed white)"
