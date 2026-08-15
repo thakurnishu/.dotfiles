@@ -259,10 +259,34 @@ aliases and Phase 8 `includeIf`.
 - `dir-selector.sh` — paths remapped, `~/Pictures/screenshots` dropped
   (screenshot is clipboard-only now). Verified it creates the tree.
 
-### [ ] 11. Editor — nvim
-22 files, Lua. Expected portable; `lazy-lock.json` pins plugins.
+### [x] 11. Editor — nvim BUILT (activation pending)
+`.config/nvim/` -> `dotfiles/nvim/` (22 files). Remarkably portable: exactly
+**one** Linux path in the whole config — obsidian.nvim's workspace, remapped
+to `~/src/github.com/personal/second_brain`.
 
-**Questions:** carry `lazy-lock.json` over verbatim, or re-resolve on this Mac?
+`neovim 0.12.4` satisfies the treesitter `main` branch requirement (0.12+).
+
+**Deployed with `mkOutOfStoreSymlink`, not a store symlink.** lazy.nvim
+rewrites `lazy-lock.json` on `:Lazy update`, and store paths are read-only,
+so a normal home.file would make plugin updates fail. `~/.config/nvim` now
+points at the repo working tree, so the files stay writable and lock changes
+show up as a git diff. This is the one config deliberately not read-only.
+
+`gnumake` added to packages — telescope-fzf-native has `build = 'make'`,
+which previously relied on Xcode CLT being present.
+
+`lazy-lock.json` carried verbatim; verified 0 plugins differ from the
+ubuntu-config commit.
+
+Also restored in `.zshrc` (deferred from Phase 5, unblocked by the Phase 7
+layout): `SB_DIR`/`DOTFILE_DIR`/`HOMELAB_DIR`/`BLOG_DIR`, the
+`sb`/`dof`/`homelab`/`blog` aliases, and the zk `SB_PATH`/`BLOG_PATH`
+exports — all remapped to `~/src/...`. SB_PATH matches the obsidian
+workspace.
+
+Note: 37 plugins are already cloned into `~/.local/share/nvim/lazy`, but 11
+sit on newer commits than the lock. Run `:Lazy restore` to snap them to the
+pinned versions.
 
 ### [ ] 12. Claude + opencode configs
 `.config/claude/{CLAUDE.md,settings.json,statusline.sh}`,

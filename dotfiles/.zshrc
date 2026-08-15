@@ -147,6 +147,22 @@ docker-login-aws() {
   fi
 }
 
+# --------------------------------------------------- project shortcuts -----
+# From .bashrc, with ~/Desktop/src/... remapped to ~/src/... (Phase 7).
+SB_DIR="$HOME/src/github.com/personal/second_brain"
+DOTFILE_DIR="$HOME/.dotfiles"
+HOMELAB_DIR="$HOME/src/github.com/personal/homelab"
+BLOG_DIR="$HOME/src/github.com/personal/blog/content"
+
+alias sb='cd ${SB_DIR} && nvim .'
+alias dof='cd ${DOTFILE_DIR} && nvim .'
+alias homelab='cd ${HOMELAB_DIR} && nvim .'
+alias blog='cd ${BLOG_DIR} && nvim .'
+
+# zk. SB_PATH matches the obsidian.nvim workspace in nvim/after/plugin/.
+export SB_PATH="$HOME/src/github.com/personal/second_brain"
+export BLOG_PATH="$HOME/src/github.com/personal/nishantlabs.cloud/app/content/posts"
+
 # -------------------------------------------------------------- prompt -----
 # Replaces the bash PROMPT_COMMAND/PS1 pair (parse_git_branch +
 # parse_python_env). starship covers both, plus k8s context and AWS profile.

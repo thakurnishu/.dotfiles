@@ -76,6 +76,7 @@
     tree
     unzip
     cmake
+    gnumake # telescope-fzf-native has build = 'make'
     pkg-config
     python3
     gnupg

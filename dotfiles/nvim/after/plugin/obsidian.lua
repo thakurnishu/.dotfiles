@@ -3,7 +3,7 @@ require("obsidian").setup({
   workspaces = {
     {
       name = "Notes",
-      path = "~/Desktop/src/github.com/personal/second_brain",
+      path = "~/src/github.com/personal/second_brain",
     },
   },
   notes_subdir = "MainNotes",

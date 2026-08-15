@@ -7,7 +7,7 @@
 # NOTE: home-manager symlinks these read-only into the Nix store. To change a
 # config, edit the file in ~/.dotfiles/dotfiles/ and run:
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
-{ username, ... }:
+{ config, username, ... }:
 {
   home.username = username;
   home.homeDirectory = "/Users/${username}";
@@ -26,6 +26,16 @@
 
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
+
+  # ---- Phase 11: nvim ----------------------------------------------------
+  # NOT a store symlink. lazy.nvim rewrites lazy-lock.json on :Lazy update,
+  # and store paths are read-only, so that would fail. mkOutOfStoreSymlink
+  # points ~/.config/nvim straight at the repo working tree instead: the
+  # files stay writable, and plugin-lock changes show up as a normal git
+  # diff rather than being lost.
+  xdg.configFile."nvim".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.dotfiles/dotfiles/nvim";
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
