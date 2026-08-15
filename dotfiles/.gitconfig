@@ -1,0 +1,35 @@
+[user]
+	email = 90508814+thakurnishu@users.noreply.github.com
+	name = thakurnishu
+
+[init]
+	defaultBranch = main
+
+# Slow-connection tuning, carried over from the Ubuntu config.
+[http]
+	postBuffer = 524288000
+	lowSpeedLimit = 0
+	lowSpeedTime = 999999
+
+[core]
+	compression = 1
+
+# Work repos get a different identity. Path updated for this Mac:
+# the Linux config used /home/mahakal/Desktop/src/github.com/work/.
+# The trailing slash is required — without it the rule never matches.
+# A missing ~/.gitconfig-work is silently ignored by git.
+[includeIf "gitdir:~/src/github.com/work/"]
+	path = ~/.gitconfig-work
+
+# gh as the credential helper for HTTPS remotes. SSH remotes (which is what
+# ~/.dotfiles uses) don't touch this.
+#
+# Absolute path deliberately: git may invoke the helper from contexts with a
+# minimal PATH, the same way Ghostty's login shell couldn't find tmux.
+# /run/current-system is a stable symlink across nix-darwin generations.
+[credential "https://github.com"]
+	helper =
+	helper = !/run/current-system/sw/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/run/current-system/sw/bin/gh auth git-credential

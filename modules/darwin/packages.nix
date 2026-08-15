@@ -52,6 +52,9 @@
     codex
     graphify
 
+    # git credential helper (see dotfiles/.gitconfig) + gh CLI
+    gh
+
     # --- editor / dev support --------------------------------------------
     neovim
     tmux
@@ -84,7 +87,6 @@
   #   mise          — Nix owns the language toolchains now
   #   php/composer  — no Laravel work on this Mac
   #   displayplacer — not in nixpkgs; stays a Homebrew formula
-  #   gh            — deferred to Phase 8 (git credential helper decision)
   #
   # Dropped as X11/Linux-only: snapd, light, pavucontrol, maim, xclip,
   # picom, blueman, uxplay, and the lib*-dev Alacritty build deps.

@@ -198,13 +198,35 @@ SSH_AUTH_SOCK, XPC_SERVICE_NAME, OSLogRateLimit). All bindings survive it
 because they use absolute paths or /usr/bin tools, and display-sync exports
 `/opt/homebrew/bin` itself.
 
-### [ ] 8. Git + SSH
-`.gitconfig`: strip the three `/home/mahakal/` paths, repoint the `includeIf`
-work path, decide the credential helper (`gh` isn't installed).
-`~/.ssh/config`: net-new — nothing exists in either branch.
+### [x] 8. Git + SSH — BUILT (activation pending)
+Unlike other phases there *was* something to port: a 9-host `~/.ssh/config`
+had been created since the earlier survey.
 
-**Questions:** separate work GitHub account? Where do work repos live on this
-Mac? SSH keys, `gh` over HTTPS, or both? Generate new ed25519 keys?
+**Split, because this repo is public:**
+- `dotfiles/ssh/config` (tracked) — `github.com` only, plus `Include`s
+- `~/.ssh/config.local` (untracked, 600) — the other 8 hosts: LAN
+  192.168.1.203-206, EC2 13.61.174.96, lab.arachnys.com, and the
+  jbbkj/solytics GitHub accounts
+- original backed up to `~/.ssh/config.backup-<ts>`
+
+**5 of 6 referenced keys are MISSING** — only `github_personal` exists.
+Entries left in place as chosen; SSH errors only on use.
+
+No `Host *` defaults block, by choice. Noted in the file that without
+`IdentitiesOnly yes`, multiple loaded GitHub keys can authenticate as the
+wrong account.
+
+`.gitconfig`: `includeIf` repointed to `~/src/github.com/work/` (the Phase 7
+layout), gh credential helpers kept with an **absolute** Nix path — git can
+invoke helpers with a minimal PATH, same failure mode as Ghostty/tmux.
+`gh` added to packages.
+
+Verified: no IPs, hostnames, account names or keys in tracked files;
+gitconfig parses with all 12 entries including the includeIf.
+
+**Pre-existing leak (not from this phase):** `.config/claude/CLAUDE.md` is
+already tracked and public, and contains the employer name plus internal
+repo names (fcc-monorepo-tms-*, app-fcc-*). Address in Phase 12.
 
 ### [x] 9. tmux — BUILT (done early, alongside Phase 6)
 `dotfiles/.tmux.conf`. Ported near-verbatim; no tpm/plugins to handle.
