@@ -60,6 +60,9 @@
     zk
     lazygit
 
+    # tmux status-right runs #(pomo)
+    pomo
+
     # --- shell ------------------------------------------------------------
     # Replaces the bash PROMPT_COMMAND/PS1 and oh-my-zsh.
     starship

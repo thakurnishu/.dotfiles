@@ -23,4 +23,7 @@
 
   # ---- Phase 6: terminal -------------------------------------------------
   xdg.configFile."ghostty/config".source = ../../dotfiles/ghostty/config;
+
+  # ---- Phase 9: tmux -----------------------------------------------------
+  home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
 }

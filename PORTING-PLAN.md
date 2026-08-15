@@ -198,10 +198,23 @@ work path, decide the credential helper (`gh` isn't installed).
 **Questions:** separate work GitHub account? Where do work repos live on this
 Mac? SSH keys, `gh` over HTTPS, or both? Generate new ed25519 keys?
 
-### [ ] 9. tmux
-`.tmux.conf` (45 lines) scanned clean of Linux-isms — likely verbatim.
+### [x] 9. tmux — BUILT (done early, alongside Phase 6)
+`dotfiles/.tmux.conf`. Ported near-verbatim; no tpm/plugins to handle.
 
-**Questions:** any plugins (tpm) needing separate handling?
+Checked and fine on macOS: `tmux-256color` terminfo exists (a classic macOS
+breakage), `status-bg default`, mouse, vi mode-keys, base-index.
+
+Changes:
+- **added** pbcopy clipboard bindings (`y`, `Enter`, mouse-drag-end in
+  copy-mode-vi). The Linux config had none, so yanking only reached tmux's
+  internal buffer.
+- **added** `pomo` to packages — `status-right` runs `#(pomo)` and it wasn't
+  installed here (nixpkgs has pomo 1.2.1).
+- kept the gruvbox status greys rather than matching Catppuccin.
+
+Verified by starting a throwaway server (`tmux -L tmuxcheck -f <config>`):
+parsed OK, history-limit/mouse/status-position/base-index/default-terminal/
+mode-keys all applied, both copy-pipe bindings registered.
 
 ### [ ] 10. `.local/bin` scripts
 `screenshot` (macOS version written + verified — clipboard-only),
