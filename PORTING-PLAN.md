@@ -48,19 +48,27 @@ PORTING-PLAN.md
 
 Ordered by dependency. `[ ]` = not started.
 
-### [ ] 0. Bootstrap Nix — **you run this**
+### [x] 0. Bootstrap Nix — DONE
+Determinate Nix 3.21.9 (Nix 2.34.8), flakes enabled.
+
+<details><summary>original step</summary>
 Needs interactive sudo; can't be driven from the agent.
 ```
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 ```
-Then confirm: `nix --version`, flakes enabled.
+</details>
 
-### [ ] 1. Flake skeleton
-`flake.nix` + `hosts/macbook/default.nix` + empty modules. Inputs: `nixpkgs`,
-`nix-darwin`, `home-manager`. Goal: `darwin-rebuild switch` succeeds doing
-nothing. Establishes a working baseline before any config moves.
+### [x] 1. Flake skeleton — BUILT (activation pending)
+Decisions: channel `nixpkgs-unstable`, config name `macbook`, home-manager as
+a nix-darwin module, `nix.enable = false` for Determinate.
 
-**Questions:** nixpkgs channel (unstable vs 25.05)? Hostname for the config?
+`nix build .#darwinConfigurations.macbook.system` → exit 0.
+`nix flake check` → both configurations pass.
+
+Remaining: first activation needs sudo, run by you:
+```
+sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake ~/.dotfiles#macbook
+```
 
 ### [ ] 2. macOS system defaults
 `modules/darwin/system.nix`. Candidates include Dock autohide, Finder
