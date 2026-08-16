@@ -78,6 +78,7 @@ in
     fzf
     ripgrep
     jq # statusline.sh parses Claude Code's JSON input
+    htop
 
     # NOTE: coreutils deliberately NOT installed. Nix's coreutils provides
     # `date`, not `gdate` (the g-prefix is a Homebrew convention), so it
