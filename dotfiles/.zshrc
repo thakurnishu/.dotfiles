@@ -62,6 +62,14 @@ SAVEHIST=50000
 setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS HIST_VERIFY
 setopt AUTO_CD INTERACTIVE_COMMENTS
 
+# fzf widgets: ^R fuzzy history, ^T file picker, alt-c cd. `bindkey -v` above
+# leaves ^R unbound (that binding only exists in the emacs keymap), so without
+# this there is no ^R history search at all — only vi-mode Esc-/ .
+# Must come after compinit: the integration registers completions too.
+# HIST_VERIFY applies here as well, so a pick lands on the line for review
+# rather than running straight away.
+(( $+commands[fzf] )) && source <(fzf --zsh)
+
 # ------------------------------------------------------------- aliases -----
 alias k="kubectl"
 alias tf="terraform"
