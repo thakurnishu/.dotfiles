@@ -42,6 +42,14 @@
       # silently fall back to a default font.
       "font-jetbrains-mono-nerd-font"
 
+      # --- screenshots --------------------------------------------------
+      # Driven entirely through its shottr:// URL scheme from
+      # ~/.local/bin/screenshot, so its own global hotkeys can stay off and
+      # AeroSpace remains the single source of truth for keybindings.
+      # Needs Screen Recording permission; Accessibility too for scrolling
+      # capture and window detection.
+      "shottr"
+
       # --- adopted from manual installs ---------------------------------
       "brave-browser"
       "whatsapp"

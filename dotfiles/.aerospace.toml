@@ -140,7 +140,11 @@ ctrl-alt-shift-right = 'move-node-to-monitor --wrap-around --focus-follows-windo
 # Kept on the same PHYSICAL keys as Linux rather than following the
 # $mod -> alt remap: on i3 the selective shot was $mod1+Shift+p, which is
 # literally Alt+Shift+P under the fingers. Full-screen moves to ctrl-alt.
+# alt-shift-p keeps its old behaviour (region -> clipboard, no file) but now
+# captures through Shottr. alt-shift-o grabs a region and opens it in the
+# Shottr editor instead, for annotating / OCR / measuring.
 alt-shift-p       = 'exec-and-forget /Users/nishantsingh/.local/bin/screenshot --select'
+alt-shift-o       = 'exec-and-forget /Users/nishantsingh/.local/bin/screenshot --edit'
 ctrl-alt-shift-p  = 'exec-and-forget /Users/nishantsingh/.local/bin/screenshot'
 
 # --- Volume (i3 used XF86 keys + pactl) -----------------------------------

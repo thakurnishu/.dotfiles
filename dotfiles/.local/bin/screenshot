@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
-# Screenshot straight to the clipboard — nothing is written to disk.
-# $1: optional flag "--select" for region selection
+# Screenshot dispatcher. Region captures go through Shottr; the plain
+# full-screen shot stays on the built-in screencapture so it keeps working
+# even if Shottr is missing or unlicensed.
 #
-# -c  clipboard only, no file
-# -i  interactive region select
-# -x  no camera shutter sound
+#   --select   region -> clipboard, no editor, nothing written to disk
+#   --edit     region -> Shottr editor (annotate, OCR, measure, then save/copy)
+#   (no arg)   full screen -> clipboard, via screencapture
+#
+# Shottr is driven by its URL scheme rather than its own global hotkeys, so
+# AeroSpace stays the single source of truth for keybindings. `open -g` keeps
+# focus on the current window instead of jumping to Shottr.
+#
+# screencapture flags: -c clipboard only, -i interactive region, -x no sound.
 
-if [[ "$1" == "--select" ]]; then
-    screencapture -i -c -x
-else
-    screencapture -c -x
-fi
+case "$1" in
+    --select)
+        open -g "shottr://grab/area?then=copy"
+        ;;
+    --edit)
+        open -g "shottr://grab/area?then=edit"
+        ;;
+    *)
+        screencapture -c -x
+        ;;
+esac
