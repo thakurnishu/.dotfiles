@@ -21,7 +21,8 @@
       autoUpdate = false;
       upgrade = false;
 
-      # Brave, WhatsApp, Teams and Stats were installed outside Homebrew.
+      # Brave, WhatsApp, Teams, Stats and Affinity were installed outside
+      # Homebrew (Affinity from its DMG).
       # --adopt makes brew take ownership of the existing .app in place
       # instead of erroring or re-downloading it.
       extraEnv = {
@@ -55,6 +56,11 @@
       "whatsapp"
       "microsoft-teams"
       "stats"
+
+      # Canva's unified Affinity (bundle id com.canva.affinity), NOT the old
+      # affinity-photo/-designer/-publisher casks — those are Affinity 2,
+      # discontinued upstream and due to be disabled on 2026-10-30.
+      "affinity"
     ];
 
     # CLI tools live in modules/darwin/packages.nix (Nix), not here.
