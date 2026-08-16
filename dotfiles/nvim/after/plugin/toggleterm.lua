@@ -15,7 +15,13 @@ toggleterm.setup({
 	persist_size = true,
 	direction = "tab",
 	close_on_exit = true,
-	shell = "bash -l",
+	-- Was hardcoded to "bash -l", which made this terminal a bare
+	-- `bash-5.3$` prompt. That matched Linux, where .bashrc was the real
+	-- shell config; on macOS the shell is zsh and the prompt comes from
+	-- starship via ~/.zshrc. vim.o.shell follows $SHELL (/bin/zsh), and an
+	-- interactive zsh sources ~/.zshrc, so this terminal now looks like
+	-- every other one.
+	shell = vim.o.shell,
 	float_opts = {
 		border = "curved",
 		winblend = 0,
