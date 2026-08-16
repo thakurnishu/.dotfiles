@@ -50,6 +50,8 @@ disabled = true
 description = "single ✗ when the working tree is dirty"
 # NOTE: do not set shell = ["sh", "-c"] — starship appends -c itself, so the
 # command becomes `sh -c -c '…'` and the module silently never renders.
-when = "! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [ -n \"$(git ls-files --others --exclude-standard 2>/dev/null)\" ]"
+# The `git rev-parse` guard is essential: outside a repo `git diff --quiet`
+# exits 128, so the negation is true and ✗ would render in every directory.
+when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && { ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [ -n \"$(git ls-files --others --exclude-standard 2>/dev/null)\" ]; }"
 command = "printf '✗'"
 format = " [$output](bold yellow)"

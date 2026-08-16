@@ -167,7 +167,3 @@ export BLOG_PATH="$HOME/src/github.com/personal/nishantlabs.cloud/app/content/po
 # Replaces the bash PROMPT_COMMAND/PS1 pair (parse_git_branch +
 # parse_python_env). starship covers both, plus k8s context and AWS profile.
 (( $+commands[starship] )) && eval "$(starship init zsh)"
-
-# Directory shortcuts (sb / dof / homelab / blog) and the zk SB_PATH /
-# BLOG_PATH exports are deliberately omitted until the code layout on this
-# Mac is decided.

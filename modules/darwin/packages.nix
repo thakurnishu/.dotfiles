@@ -6,6 +6,10 @@
 #
 # GUI apps live in homebrew.nix, not here.
 { pkgs, ... }:
+let
+  # Your own zk, not the unrelated nixpkgs package of the same name.
+  zk-personal = pkgs.callPackage ../pkgs/zk.nix { };
+in
 {
   environment.systemPackages = with pkgs; [
 
@@ -60,7 +64,7 @@
     tmux
     tree-sitter
     prettierd
-    zk
+    zk-personal
     lazygit
 
     # tmux status-right runs #(pomo)
