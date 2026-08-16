@@ -26,6 +26,22 @@
     home = "/Users/${username}";
   };
 
+  # ---- Touch ID for sudo -------------------------------------------------
+  # `darwin-rebuild switch` needs sudo, and an agent has no TTY to type a
+  # password into — so applying config is always a human handoff. Touch ID
+  # makes that handoff a fingerprint instead of a password.
+  #
+  # This writes /etc/pam.d/sudo_local (macOS ships it empty, and preserves it
+  # across OS updates — unlike /etc/pam.d/sudo, which gets overwritten).
+  #
+  # reattach is required for Touch ID to work INSIDE tmux: pam_tid is tied to
+  # the bootstrap session, and tmux's server survives outside it, so without
+  # this sudo silently falls back to a password prompt in every tmux pane.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   # Do not change after the first successful build; it guards against
   # backwards-incompatible nix-darwin changes.
   system.stateVersion = 6;
