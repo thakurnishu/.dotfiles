@@ -47,6 +47,7 @@ modules/
 dotfiles/                    the actual config files
   .zshrc  .tmux.conf  .gitconfig  .aerospace.toml  starship.toml
   ghostty/config
+  gitwork/<org>              git identity -> ~/.gitwork-<org>
   nvim/  claude/  opencode/
   .local/bin/{screenshot,display-sync,tmux-sessionizer,dir-selector.sh}
 ```

@@ -57,9 +57,8 @@
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
-  # ~/.ssh/config is deliberately NOT managed here. It stays a plain local
-  # file: this repo is public and the config lists LAN addresses, an EC2
-  # host and an employer GitLab.
+  # dotfiles/gitwork/<org> -> ~/.gitwork-<org>.
+  home.file.".gitwork-solytics".source = ../../dotfiles/gitwork/solytics;
 
   # ---- Phase 7: window manager -------------------------------------------
   home.file.".aerospace.toml".source = ../../dotfiles/.aerospace.toml;
