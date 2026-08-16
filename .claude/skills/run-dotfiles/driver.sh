@@ -5,8 +5,9 @@
 # machine. So "driving" it means: does it build, is what's on disk actually
 # what the repo says, and did anyone forget to switch?
 #
-# Everything here is READ-ONLY except `switch` (which needs a human for sudo)
-# and `aerospace-reload` (which reloads the running WM). Safe to run anytime.
+# Everything here is READ-ONLY except `switch` (which applies the config via
+# sudo -- Touch ID, so the human just touches the sensor) and `aerospace-reload`
+# (which reloads the running WM). Everything else is safe to run anytime.
 #
 # Usage:  .claude/skills/run-dotfiles/driver.sh [subcommand]
 # Run with no subcommand for the full preflight.
@@ -298,19 +299,47 @@ cmd_doctor() {
 }
 
 # -------------------------------------------------------------- switch -----
-# Deliberately does NOT run: `darwin-rebuild switch` needs sudo, which needs a
-# real terminal. An agent should print this and hand it to the human.
+# An agent CAN run this. Touch ID (security.pam.services.sudo_local.touchIdAuth,
+# see hosts/macbook/default.nix) authenticates through the Security framework,
+# not the terminal -- pam_tid needs no TTY, so sudo works from a non-interactive
+# tool call and the human's whole job is to touch the sensor.
+#
+# `sudo -n` still fails, and that is expected: -n explicitly forbids prompting.
+# Do not use it to decide whether this will work.
+#
+# Falls back to printing the command if authentication does not happen.
 cmd_switch() {
-    head_ "apply (needs a human -- sudo)"
-    cat <<EOF
-  Run this yourself in a terminal:
+    head_ "apply"
+    local built current
+    built=$(cd "$REPO" && nix build --no-link --print-out-paths \
+            "$ATTR.system" 2>/dev/null)
+    current=$(realpath_ /run/current-system)
 
-      sudo darwin-rebuild switch --flake $FLAKE
+    if [[ -n "$built" && "$built" == "$current" && "${2:-}" != "force" ]]; then
+        pass "already applied -- nothing to switch"
+        echo "       (re-apply anyway with: $(basename "$0") switch force)"
+        return 0
+    fi
 
-  Afterwards:
-      $AEROSPACE reload-config     # WM re-reads its config
-      exec zsh                     # or open a new tab, for .zshrc changes
-EOF
+    echo "  running: sudo darwin-rebuild switch --flake $FLAKE"
+    printf '  \033[1mTOUCH THE FINGERPRINT SENSOR when macOS asks\033[0m\n\n'
+
+    if sudo darwin-rebuild switch --flake "$FLAKE"; then
+        pass "switch applied"
+        # AeroSpace caches its config at startup; a switch rewrites the file but
+        # the running instance keeps the old bindings until it is told to reload.
+        if [[ -x "$AEROSPACE" ]]; then
+            "$AEROSPACE" reload-config 2>/dev/null \
+                && pass "aerospace reloaded" \
+                || warn "aerospace reload failed (is it running?)"
+        fi
+        echo
+        echo "  .zshrc changes need a new shell:  exec zsh"
+    else
+        fail "switch failed, or Touch ID was declined/timed out"
+        echo "       Run it yourself with the ! prefix if this keeps failing:"
+        echo "         sudo darwin-rebuild switch --flake $FLAKE"
+    fi
 }
 
 cmd_check() {
@@ -342,7 +371,7 @@ case "${1:-check}" in
     zsh)              cmd_zsh;;
     aerospace)        cmd_aerospace;;
     aerospace-reload) cmd_aerospace_reload;;
-    switch)           cmd_switch;;
+    switch)           cmd_switch "$@";;
     *)
         echo "usage: $(basename "$0") {check|doctor|lint|build|pending|links|stale|drift|zsh|aerospace|aerospace-reload|switch}"
         exit 2;;

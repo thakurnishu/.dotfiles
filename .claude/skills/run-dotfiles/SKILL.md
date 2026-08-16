@@ -18,9 +18,11 @@ All of that is wrapped in one driver:
 
 Paths below are relative to the repo root (`~/.dotfiles`).
 
-**The one thing an agent cannot do:** `darwin-rebuild switch` requires `sudo`,
-which requires a real terminal. Everything else here is agent-runnable and
-read-only. Hand the switch to the human.
+**An agent can run everything here, including the switch.** Touch ID is enabled
+for sudo (`security.pam.services.sudo_local` in `hosts/macbook/default.nix`) and
+`pam_tid` authenticates through the Security framework rather than the terminal —
+so `sudo` works from a non-interactive tool call and the human's entire job is to
+touch the sensor. Everything except `switch` and `aerospace-reload` is read-only.
 
 ## Prerequisites
 
@@ -51,7 +53,7 @@ Runs `doctor`, `lint`, `build`, `pending`, `links`, `stale`, `drift`. Takes
 | `zsh` | loads the **repo** `.zshrc` in a throwaway `ZDOTDIR`, dumps keybindings |
 | `aerospace` | what the **running** WM actually has bound right now |
 | `aerospace-reload` | re-read `~/.aerospace.toml` (the running instance is stale after a switch) |
-| `switch` | prints the sudo command for the human — deliberately does not run it |
+| `switch` | **applies the config** (sudo → Touch ID prompt), then reloads AeroSpace. No-op if already applied; `switch force` re-applies anyway |
 
 `lint`, `pending`, `stale` and `drift` were each verified to **fail** on a
 deliberately broken repo, not just to print ok.
@@ -62,12 +64,15 @@ deliberately broken repo, not just to print ok.
 # 1. edit the file under dotfiles/ -- NEVER the copy in $HOME (read-only symlink)
 # 2. check before applying:
 .claude/skills/run-dotfiles/driver.sh
-# 3. hand to the human:
-sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
-# 4. reload the consumer that caches its config:
-/opt/homebrew/bin/aerospace reload-config    # keybinding changes
-exec zsh                                     # or a new tab, for .zshrc changes
+# 3. apply (asks the user for a fingerprint; reloads AeroSpace on success):
+.claude/skills/run-dotfiles/driver.sh switch
 ```
+
+Tell the user to touch the sensor when you run step 3 — the prompt is easy to
+miss and sudo will eventually time out waiting.
+
+`.zshrc` changes still need a new shell (`exec zsh` or a new tab); the driver
+prints that reminder. AeroSpace is reloaded for you.
 
 Where things go: **CLI tools → Nix** (`modules/darwin/packages.nix`),
 **GUI apps → Homebrew casks** (`modules/darwin/homebrew.nix`). One deliberate
@@ -125,6 +130,17 @@ Not run while authoring this skill, so treat as documented-but-unverified:
   only exists in the emacs keymap, so `^R` fell through to `redisplay` and
   appeared dead. Now fixed by sourcing `fzf --zsh`, which must come **after**
   `compinit`.
+
+- **`sudo -n true` failing does NOT mean you cannot sudo.** `-n` explicitly
+  forbids prompting, so it fails even though a plain `sudo` succeeds via the
+  Touch ID prompt. Do not use `sudo -n` to decide whether to attempt the switch —
+  just run `driver.sh switch` and let it authenticate. (This exact false negative
+  led to wrongly declaring the switch impossible for an agent.)
+
+- **Touch ID needs a reachable sensor.** Lid closed on an external display, or a
+  remote/SSH session, means no fingerprint — sudo falls back to a password
+  prompt, which a non-interactive tool call cannot answer. That is the case where
+  the human must run the switch themselves with the `!` prefix.
 
 - **Nix build noise is harmless**: "Git tree has uncommitted changes" and the
   `options.json` / `builtins.derivation` warning appear on every build. Ignore
