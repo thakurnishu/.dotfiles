@@ -39,7 +39,17 @@ in
     kubebuilder
     fluxcd
     talosctl
-    kubernetes-helm
+
+    # helm wrapped with its plugins. `helm plugin install` would write to
+    # ~/Library/helm/plugins -- untracked machine-local state that would not
+    # survive a fresh install. The wrapper sets HELM_PLUGINS to a store path,
+    # so it OWNS plugin resolution: hand-installed plugins stop being visible,
+    # and versions move with flake.lock rather than `helm plugin update`.
+    # More available under pkgs.kubernetes-helmPlugins: helm-secrets, helm-s3,
+    # helm-git, helm-unittest, helm-mapkubeapis, helm-cm-push, helm-schema.
+    (wrapHelm kubernetes-helm {
+      plugins = with kubernetes-helmPlugins; [ helm-diff ];
+    })
 
     # --- cloud / IaC ------------------------------------------------------
     terraform
