@@ -47,15 +47,32 @@ print(d)
 ' "$@" 2>/dev/null
 }
 
-# The source repo is whatever repo the CURRENT space sits in. Ask herdr rather
-# than guessing from $PWD: the popup's cwd is not necessarily the space's.
+# Which workspace are we acting on? Two callers, two answers:
 #
-# --workspace is REQUIRED here. A bare `worktree list` reports the FOCUSED
-# workspace, which is not necessarily the one this script was invoked from --
-# that mismatch made the first version fail with "not inside a git repository"
-# when run from an unfocused pane.
-src=$(herdr worktree list --workspace "${HERDR_WORKSPACE_ID:-}" 2>/dev/null \
-    | jget result source repo_root)
+#   * an AGENT in a pane inherits HERDR_WORKSPACE_ID -- use it, because the
+#     pane it runs in is not necessarily the focused one.
+#   * a POPUP (prefix+shift+g) sets HERDR_ENV but NOT HERDR_WORKSPACE_ID, so
+#     fall back to the focused workspace, which is the one you invoked from.
+#
+# Passing an empty --workspace is not harmless: it made this fail with "not
+# inside a git repository" from the popup even in a perfectly good repo.
+ws_id=${HERDR_WORKSPACE_ID:-}
+if [[ -z $ws_id ]]; then
+    ws_id=$(herdr api snapshot 2>/dev/null | jget result snapshot focused_workspace_id)
+fi
+log "workspace resolved to '${ws_id:-<none>}' (env='${HERDR_WORKSPACE_ID:-}')"
+
+if [[ -n $ws_id ]]; then
+    src=$(herdr worktree list --workspace "$ws_id" 2>/dev/null | jget result source repo_root)
+else
+    src=$(herdr worktree list 2>/dev/null | jget result source repo_root)
+fi
+
+# Last resort: ask git directly about the popup's own cwd.
+if [[ -z ${src:-} ]]; then
+    src=$(git rev-parse --show-toplevel 2>/dev/null)
+    log "fell back to git rev-parse: '${src:-<none>}'"
+fi
 [[ -n ${src:-} ]] || die "this space is not inside a git repository"
 repo=$(basename "$src")
 
@@ -100,12 +117,15 @@ base=${base:-$current}
 label=$(printf '%s' "$branch" | tr '/' '-')
 log "create branch=$branch base=$base repo=$src"
 
-out=$(herdr worktree create \
-    --workspace "${HERDR_WORKSPACE_ID:-}" \
-    --branch "$branch" \
-    --base "$base" \
-    --label "$label" \
-    --focus 2>&1)
+# Address the source by workspace when we have one, else by directory --
+# passing an empty --workspace is what broke the popup path.
+create_args=(worktree create --branch "$branch" --base "$base" --label "$label" --focus)
+if [[ -n ${ws_id:-} ]]; then
+    create_args+=(--workspace "$ws_id")
+else
+    create_args+=(--cwd "$src")
+fi
+out=$(herdr "${create_args[@]}" 2>&1)
 
 ws=$(printf '%s' "$out" | jget result workspace workspace_id)
 tab1=$(printf '%s' "$out" | jget result tab tab_id)
