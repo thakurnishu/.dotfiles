@@ -100,6 +100,10 @@ in
 
     # --- system CLI -------------------------------------------------------
     fzf
+    # Charm's shell-script TUI toolkit. Used by .local/bin/session-picker for
+    # the new-window menu; that script degrades to a plain `read` menu if this
+    # ever goes missing, so it is a nicety rather than a hard dependency.
+    gum
     ripgrep
     jq # statusline.sh parses Claude Code's JSON input
     htop
