@@ -103,7 +103,15 @@ else
 
     [[ -z $candidates ]] && die "none of the search roots exist yet."
 
-    selected=$(printf '%s\n' "$candidates" | fzf --prompt='space > ' --height=100%)
+    # --layout=reverse puts the prompt at the TOP and grows the list downward.
+    # Without it fzf anchors to the bottom and grows up, which in a tall popup
+    # leaves most of the box empty above the matches.
+    selected=$(printf '%s\n' "$candidates" | fzf \
+        --prompt='space > ' \
+        --height=100% \
+        --layout=reverse \
+        --info=inline \
+        --border=none)
 fi
 
 # Escaped out of fzf: do nothing rather than creating a stray workspace.
