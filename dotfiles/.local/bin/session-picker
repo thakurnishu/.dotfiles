@@ -50,7 +50,7 @@ if [ -z "$FORCE_PLAIN" ] && [ -x "$GUM" ]; then
         --item.foreground="$FG" \
         --height=8 \
         --label-delimiter='|' \
-        '  work       herdr · solytics|work' \
+        '  work       herdr|work' \
         '  personal   herdr · side projects|personal' \
         '  zsh        plain shell, no multiplexer|zsh' \
         '  tmux       the old multiplexer|tmux') || choice=''
