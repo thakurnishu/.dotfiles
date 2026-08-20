@@ -66,8 +66,30 @@ in
     codex
     graphify
 
+    # Agent multiplexer: a background server that hosts the CLIs above, and
+    # reports each one as working / blocked / idle in a sidebar.
+    #
+    # Persistence has two tiers, and they are NOT the same: detaching
+    # (prefix+q) or closing the lid keeps the processes alive, but a server
+    # restart or reboot only snapshot-restores the shape -- workspaces, tabs,
+    # panes, cwd, layout -- and the processes are gone. Claude Code resumes
+    # its conversation via herdr's integration; a plain shell does not.
+    #
+    # Overlaps tmux; dotfiles/herdr/config.toml moves the prefix off ctrl+b so
+    # the two can nest. Packaged in nixpkgs, so the upstream `curl | sh`
+    # installer is not used.
+    herdr
+
     # git credential helper (see dotfiles/.gitconfig) + gh CLI
     gh
+    # GitHub PR/issue TUI. Installed as a plain package rather than via
+    # `gh extension install`, which writes to ~/.local/share/gh/extensions --
+    # untracked state that would not survive a fresh install. The trade-off is
+    # that the command is `gh-dash`, not `gh dash`: gh only discovers
+    # extensions in its own data dir. Making `gh dash` work would mean
+    # home-manager's programs.gh.extensions, which also takes ownership of
+    # ~/.config/gh/config.yml -- hand-written here, and not in this repo.
+    gh-dash
 
     # --- editor / dev support --------------------------------------------
     neovim
@@ -86,6 +108,10 @@ in
 
     # --- system CLI -------------------------------------------------------
     fzf
+    # Charm's shell-script TUI toolkit. Used by .local/bin/session-picker for
+    # the new-window menu; that script degrades to a plain `read` menu if this
+    # ever goes missing, so it is a nicety rather than a hard dependency.
+    gum
     ripgrep
     jq # statusline.sh parses Claude Code's JSON input
     htop

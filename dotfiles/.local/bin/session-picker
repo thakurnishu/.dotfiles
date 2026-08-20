@@ -1,0 +1,78 @@
+#!/bin/bash
+# Ghostty's `command`: pick which multiplexer/session a new window opens.
+#
+# ABSOLUTE PATHS ARE MANDATORY HERE. Ghostty launches this via
+#   /usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l <command>
+# `login` reseeds PATH from /etc/paths, which has no Nix entries, and
+# --noprofile --norc stops bash sourcing anything that would add them. So a
+# bare `herdr`, `tmux` or `gum` here fails with "command not found" even though
+# all three are installed. /run/current-system is stable across generations.
+# The shebang is /bin/bash (system bash) for the same reason.
+#
+# TWO RENDERERS. gum draws the nice list; if gum is missing or not executable
+# the script falls back to a `read` menu built from bash builtins alone. That
+# fallback is not decoration: this script is the ONLY way a Ghostty window
+# starts, so it must degrade rather than fail. Same reason `zsh` is on the
+# menu -- if herdr will not launch, you still need a route to a shell.
+
+set -u
+
+HERDR=/run/current-system/sw/bin/herdr
+TMUX=/run/current-system/sw/bin/tmux
+ZSH=/run/current-system/sw/bin/zsh
+GUM=/run/current-system/sw/bin/gum
+
+# Testing hooks, used by `driver.sh picker`. Harmless when unset.
+DRY=${SESSION_PICKER_DRY_RUN:+echo}
+FORCE_PLAIN=${SESSION_PICKER_NO_GUM:-}
+
+# Gruvbox, matching ghostty/config's `theme = Gruvbox Dark`.
+YELLOW='#fabd2f'
+FG='#ebdbb2'
+GREY='#928374'
+
+choice=''
+
+if [ -z "$FORCE_PLAIN" ] && [ -x "$GUM" ]; then
+    # --label-delimiter lets the pretty label differ from the value printed on
+    # stdout, so the case below matches on clean words.
+    #
+    # DO NOT ADD `2>/dev/null` HERE. gum draws the list on STDERR whenever
+    # stdout is captured -- as it is by this $( ) -- so discarding stderr
+    # discards the entire UI. The window then looks empty while still
+    # accepting keys, and enter silently picks the first entry.
+    choice=$("$GUM" choose \
+        --header=$'\n  open a new terminal as\n' \
+        --header.foreground="$GREY" \
+        --cursor='  ❯ ' \
+        --cursor.foreground="$YELLOW" \
+        --selected.foreground="$YELLOW" \
+        --item.foreground="$FG" \
+        --height=8 \
+        --label-delimiter='|' \
+        '  work       herdr · day job|work' \
+        '  personal   herdr · side projects|personal' \
+        '  zsh        plain shell, no multiplexer|zsh' \
+        '  tmux       the old multiplexer|tmux') || choice=''
+    # Empty means gum failed or the user pressed esc/ctrl-c. Escaping out of
+    # the picker should still give you a usable window, so fall through to the
+    # default rather than exiting and closing it.
+    [ -z "$choice" ] && choice=work
+else
+    printf '\n  \033[1mherdr\033[0m\n\n'
+    printf '    \033[33m1\033[0m) work       \033[2m(default -- just press enter)\033[0m\n'
+    printf '    \033[33m2\033[0m) personal\n\n'
+    printf '    \033[33m3\033[0m) zsh        \033[2m(no multiplexer -- use if herdr is broken)\033[0m\n'
+    printf '    \033[33m4\033[0m) tmux\n'
+    printf '\n  \033[33m>\033[0m '
+    read -r choice
+fi
+
+case "${choice:-work}" in
+    2 | p | personal) exec $DRY "$HERDR" --session personal ;;
+    3 | z | zsh | shell) exec $DRY "$ZSH" -l ;;
+    4 | t | tmux) exec $DRY "$TMUX" ;;
+    # Anything unrecognised falls through to work rather than erroring --
+    # a typo should not cost you the window.
+    *) exec $DRY "$HERDR" --session work ;;
+esac

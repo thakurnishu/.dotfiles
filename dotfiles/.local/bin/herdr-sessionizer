@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# Pick a project directory with fzf, then create-or-focus a herdr workspace
+# for it laid out as three tabs: terminal, claude, lazygit.
+#
+# The herdr counterpart to tmux-sessionizer, and deliberately the same shape:
+# same search roots, same fzf pick, same create-or-switch behaviour. Bound to
+# prefix+n in dotfiles/herdr/config.toml.
+#
+# PATH IS NOT GUARANTEED. This runs from a herdr popup, which does not
+# reliably inherit your interactive login PATH -- bare `fzf` and `herdr` were
+# "command not found" there, and the popup closed too fast to read it. The Nix
+# profile is prepended below so the tools resolve regardless.
+#
+# Errors pause for a keypress for the same reason: a popup that vanishes
+# instantly is undebuggable. Diagnostics also append to
+# ~/.cache/herdr-sessionizer.log.
+#
+# The herdr CLI talks to whichever session it is invoked from, so running this
+# in the `work` session creates the workspace there, not in `default`.
+
+set -uo pipefail
+
+# See the PATH note above.
+export PATH="/run/current-system/sw/bin:$HOME/.nix-profile/bin:$PATH"
+
+LOG="$HOME/.cache/herdr-sessionizer.log"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null
+log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG" 2>/dev/null; }
+
+# A popup that closes instantly hides its own error. Hold it open instead.
+die() {
+    log "FAIL: $*"
+    printf '\n  \033[31mherdr-sessionizer:\033[0m %s\n' "$*" >&2
+    printf '  logged to %s\n' "$LOG" >&2
+    printf '  press any key to close...' >&2
+    read -rsn1 _ 2>/dev/null || sleep 5
+    exit 1
+}
+
+for t in fzf herdr python3 find; do
+    command -v "$t" >/dev/null 2>&1 || die "$t not found on PATH ($PATH)"
+done
+log "start PATH=$PATH"
+
+# Search roots, grouped by how deep the *repositories* sit under them.
+# Depth 1 = <root>/*, depth 2 = <root>/*/*, and so on. Put a root at whichever
+# depth lands on the repo itself, not on a grouping directory.
+#
+# Depths 1 and 2 are kept in sync with tmux-sessionizer by hand; 3 and 4 are
+# empty placeholders so adding one later is a one-line change.
+# Depth 0 = the path ITSELF is the project. ~/.dotfiles is a repo, not a
+# container of repos: at depth 1 the picker offered dotfiles/, hosts/,
+# modules/ and .git/ but never ~/.dotfiles, which is the thing you actually
+# want to open.
+roots_depth0=(
+    "$HOME/.dotfiles"
+)
+
+roots_depth1=(
+    "$HOME/src/github.com"
+    "$HOME/src/github.com/personal"
+    "$HOME/src/github.com/work"
+    "$HOME/src/gitlab.com"
+    "$HOME/go/src/github.com/thakurnishu"
+    "$HOME/go/src/k8s.io"
+    "$HOME/.config"
+)
+
+# Work repos are grouped a level down -- solytics/devops/devops-toolkit-iac,
+# solytics/tms/fcc-monorepo -- so a depth-1 search would only ever offer the
+# grouping directories (devops, tms, RFP).
+roots_depth2=(
+    "$HOME/src/github.com/work/solytics"
+)
+
+roots_depth3=()
+roots_depth4=()
+
+# find_at_depth <depth> <root>...
+# Prints directories exactly <depth> levels under each root that exists.
+# Non-existent roots are dropped first: find is noisy about missing paths and
+# that output would otherwise land in the fzf list. Same guard dir-selector.sh
+# uses.
+find_at_depth() {
+    local depth=$1
+    shift
+    local r
+    local existing=()
+    for r in "$@"; do
+        [[ -d "$r" ]] && existing+=("$r")
+    done
+    [[ ${#existing[@]} -eq 0 ]] && return 0
+    # Depth 0 means the root itself; find -mindepth 0 would also work but
+    # printing them directly keeps the intent obvious.
+    if [[ $depth -eq 0 ]]; then
+        printf '%s\n' "${existing[@]}"
+        return 0
+    fi
+    # -name .git prunes the repo internals that are never a project. Other
+    # dotdirs are left alone: ~/.config and ~/.dotfiles are both wanted.
+    find "${existing[@]}" -mindepth "$depth" -maxdepth "$depth" -type d \
+        ! -name .git 2>/dev/null
+}
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    # Each depth is guarded on its own count: expanding an empty array under
+    # `set -u` is an error in bash 3.2, and the shebang can resolve to
+    # /bin/bash when PATH is stripped.
+    candidates=$(
+        {
+            [[ ${#roots_depth0[@]} -gt 0 ]] && find_at_depth 0 "${roots_depth0[@]}"
+            [[ ${#roots_depth1[@]} -gt 0 ]] && find_at_depth 1 "${roots_depth1[@]}"
+            [[ ${#roots_depth2[@]} -gt 0 ]] && find_at_depth 2 "${roots_depth2[@]}"
+            [[ ${#roots_depth3[@]} -gt 0 ]] && find_at_depth 3 "${roots_depth3[@]}"
+            [[ ${#roots_depth4[@]} -gt 0 ]] && find_at_depth 4 "${roots_depth4[@]}"
+        } | sort -u
+    )
+
+    [[ -z $candidates ]] && die "none of the search roots exist yet."
+
+    # --layout=reverse puts the prompt at the TOP and grows the list downward.
+    # Without it fzf anchors to the bottom and grows up, which in a tall popup
+    # leaves most of the box empty above the matches.
+    selected=$(printf '%s\n' "$candidates" | fzf \
+        --prompt='space > ' \
+        --height=100% \
+        --layout=reverse \
+        --info=inline \
+        --border=none)
+fi
+
+# Escaped out of fzf: do nothing rather than creating a stray workspace.
+[[ -z ${selected:-} ]] && exit 0
+
+label=$(basename "$selected" | tr . _)
+
+# jq is not in packages.nix for this path's sake -- python3 is already a
+# dependency of the repo's tooling, so use it for JSON rather than adding one.
+jget() {
+    python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for k in sys.argv[1:]:
+    if not isinstance(d, dict) or k not in d:
+        sys.exit(0)
+    d = d[k]
+print(d)
+' "$@" 2>/dev/null
+}
+
+# Create-or-focus, matching tmux-sessionizer. Dedupe is by label: workspace
+# list does not report cwd, and two workspaces on the same directory would be
+# indistinguishable in the sidebar anyway.
+existing_id=$(herdr workspace list 2>/dev/null | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for w in d.get('result', {}).get('workspaces', []):
+    if w.get('label') == '$label':
+        print(w['workspace_id'])
+        break
+")
+
+if [[ -n $existing_id ]]; then
+    herdr workspace focus "$existing_id" >/dev/null 2>&1
+    exit 0
+fi
+
+ws_json=$(herdr workspace create --cwd "$selected" --label "$label" --focus 2>/dev/null)
+ws_id=$(printf '%s' "$ws_json" | jget result workspace workspace_id)
+tab1=$(printf '%s' "$ws_json" | jget result tab tab_id)
+
+if [[ -z ${ws_id:-} ]]; then
+    die "workspace create failed (is this running inside herdr?)"
+fi
+
+# Tab 1 already exists as the workspace root; it just needs a name.
+[[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
+
+# Tabs 2 and 3. `tab create` spawns a shell in the pane; `pane run` then types
+# the command into it, so the tool owns the pane and exiting it leaves you a
+# usable shell rather than closing the tab.
+for spec in "claude:claude" "lazygit:lazygit" "gh-dash:gh-dash"; do
+    name=${spec%%:*}
+    cmd=${spec##*:}
+    tab_json=$(herdr tab create --workspace "$ws_id" --cwd "$selected" \
+        --label "$name" --no-focus 2>/dev/null)
+    pane=$(printf '%s' "$tab_json" | jget result root_pane pane_id)
+    [[ -n ${pane:-} ]] && herdr pane run "$pane" "$cmd" >/dev/null 2>&1
+done
+
+# Land on the terminal tab, not on whichever was created last.
+[[ -n ${tab1:-} ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+exit 0

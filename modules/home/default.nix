@@ -8,6 +8,19 @@
 # config, edit the file in ~/.dotfiles/dotfiles/ and run:
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
 { config, username, ... }:
+let
+  # Repo checkout that the out-of-store symlinks below resolve to: herdr's
+  # config.toml and ~/.claude/skills.
+  #
+  # An out-of-store symlink is an ABSOLUTE path baked at build time, so it does
+  # NOT follow the flake it was built from. While this work lived on a feature
+  # worktree, this had to name that worktree or both links dangled -- herdr
+  # silently falling back to its default keybindings, and the skills directory
+  # disappearing. Now that it is merged, it is the main checkout again.
+  #
+  # Building from a worktree again means pointing this at it for the duration.
+  repoRoot = "${config.home.homeDirectory}/.dotfiles";
+in
 {
   home.username = username;
   home.homeDirectory = "/Users/${username}";
@@ -23,6 +36,20 @@
 
   # ---- Phase 6: terminal -------------------------------------------------
   xdg.configFile."ghostty/config".source = ../../dotfiles/ghostty/config;
+
+  # herdr. Out-of-store because herdr writes back to its own config file
+  # (the onboarding flag, and settings saved from the prefix+s panel) --
+  # a read-only store path would make those saves fail.
+  #
+  # If this link dangles, herdr silently falls back to its defaults rather
+  # than erroring -- see worktreeRoot above.
+  xdg.configFile."herdr/config.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/herdr/config.toml";
+
+  # gh-dash. A plain store symlink, unlike herdr's config: gh-dash reads this
+  # file and does not write back to it. If it ever fails to save something,
+  # that is the signal to move it out of store like the herdr one.
+  xdg.configFile."gh-dash/config.yml".source = ../../dotfiles/gh-dash/config.yml;
 
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
@@ -55,6 +82,17 @@
   # Skills are read-only content; a normal store symlink is fine.
   xdg.configFile."opencode/skills".source = ../../dotfiles/opencode/skills;
 
+  # Global Claude Code skills, as a WHOLE DIRECTORY pointed at the working
+  # tree. Out-of-store on purpose: a store copy would make every skill edit
+  # require a rebuild, and adding a skill would need a Nix change too. This
+  # way `git add dotfiles/claude/skills/<name>/SKILL.md` is the entire
+  # workflow and the file is live immediately.
+  #
+  # Consequence: home-manager owns ~/.claude/skills. A skill dropped there by
+  # hand does not exist -- put it in the repo instead, which is the point.
+  home.file.".claude/skills".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/claude/skills";
+
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
   # dotfiles/gitwork/<org> -> ~/.gitwork-<org>.
@@ -75,6 +113,27 @@
     source = ../../dotfiles/.local/bin/screenshot;
     executable = true;
   };
+  # Ghostty's `command` -- the menu that picks herdr work / herdr personal /
+  # plain zsh / tmux for each new window. Must be at an absolute path because
+  # ghostty/config names it literally.
+  home.file.".local/bin/session-picker" = {
+    source = ../../dotfiles/.local/bin/session-picker;
+    executable = true;
+  };
+
+  # Bound to prefix+n in dotfiles/herdr/config.toml, which names it by
+  # absolute path.
+  home.file.".local/bin/herdr-sessionizer" = {
+    source = ../../dotfiles/.local/bin/herdr-sessionizer;
+    executable = true;
+  };
+
+  # Bound to prefix+shift+g in dotfiles/herdr/config.toml.
+  home.file.".local/bin/herdr-worktreeizer" = {
+    source = ../../dotfiles/.local/bin/herdr-worktreeizer;
+    executable = true;
+  };
+
   home.file.".local/bin/tmux-sessionizer" = {
     source = ../../dotfiles/.local/bin/tmux-sessionizer;
     executable = true;
