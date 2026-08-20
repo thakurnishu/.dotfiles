@@ -36,6 +36,11 @@ choice=''
 if [ -z "$FORCE_PLAIN" ] && [ -x "$GUM" ]; then
     # --label-delimiter lets the pretty label differ from the value printed on
     # stdout, so the case below matches on clean words.
+    #
+    # DO NOT ADD `2>/dev/null` HERE. gum draws the list on STDERR whenever
+    # stdout is captured -- as it is by this $( ) -- so discarding stderr
+    # discards the entire UI. The window then looks empty while still
+    # accepting keys, and enter silently picks the first entry.
     choice=$("$GUM" choose \
         --header=$'\n  open a new terminal as\n' \
         --header.foreground="$GREY" \
@@ -48,8 +53,7 @@ if [ -z "$FORCE_PLAIN" ] && [ -x "$GUM" ]; then
         '  work       herdr · solytics|work' \
         '  personal   herdr · side projects|personal' \
         '  zsh        plain shell, no multiplexer|zsh' \
-        '  tmux       the old multiplexer|tmux' \
-        2>/dev/null) || choice=''
+        '  tmux       the old multiplexer|tmux') || choice=''
     # Empty means gum failed or the user pressed esc/ctrl-c. Escaping out of
     # the picker should still give you a usable window, so fall through to the
     # default rather than exiting and closing it.
