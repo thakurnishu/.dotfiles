@@ -35,13 +35,17 @@ prefix = "ctrl+b"
 next_tab = ""
 new_workspace = "prefix+shift+n"
 
-# prefix+1..9 switches tabs, prefix+alt+1..9 switches spaces. The picker
+# prefix+1..9 switches tabs, prefix+shift+1..9 switches spaces. The picker
 # (prefix+w) stays for when there are more than nine.
+#
+# shift rather than alt: herdr's own docs note alt+... reliability depends on
+# the terminal, while ctrl+letter, function keys and shift are the dependable
+# ones.
 #
 # NOT "prefix+p+1..9": herdr binds CHORDS, not tmux-style key sequences. The
 # grammar is [ctrl/shift/alt/cmd/super +] key, and `p` is not a modifier, so
 # there is no way to express "prefix, then p, then a digit".
-switch_workspace = "prefix+alt+1..9"
+switch_workspace = "prefix+shift+1..9"
 
 # prefix+p was the leftover half of the tab-cycling pair that prefix+1..9
 # replaced. Unbound rather than repurposed.
