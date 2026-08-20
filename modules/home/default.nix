@@ -95,6 +95,14 @@ in
     source = ../../dotfiles/.local/bin/screenshot;
     executable = true;
   };
+  # Ghostty's `command` -- the menu that picks herdr work / herdr personal /
+  # plain zsh / tmux for each new window. Must be at an absolute path because
+  # ghostty/config names it literally.
+  home.file.".local/bin/session-picker" = {
+    source = ../../dotfiles/.local/bin/session-picker;
+    executable = true;
+  };
+
   home.file.".local/bin/tmux-sessionizer" = {
     source = ../../dotfiles/.local/bin/tmux-sessionizer;
     executable = true;

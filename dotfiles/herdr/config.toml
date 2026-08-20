@@ -31,6 +31,7 @@ tab_bar_position = "top"
 show_agent_labels_on_pane_borders = true
 
 # lazygit is already in packages.nix; popup = session-modal, no layout change.
+agent_panel_sort = "spaces"
 [[keys.command]]
 key = "prefix+alt+g"
 type = "popup"

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Ghostty's `command`: pick which multiplexer/session a new window opens.
+#
+# ABSOLUTE PATHS ARE MANDATORY HERE. Ghostty launches this via
+#   /usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l <command>
+# `login` reseeds PATH from /etc/paths, which has no Nix entries, and
+# --noprofile --norc stops bash sourcing anything that would add them. So a
+# bare `herdr` or `tmux` here fails with "command not found" even though both
+# are installed. /run/current-system is stable across generations.
+#
+# The shebang is /bin/bash (system bash, always present) rather than
+# /usr/bin/env bash, for the same reason.
+#
+# WHY A PLAIN `read` MENU and not fzf: fzf is a Nix binary subject to the same
+# PATH problem, and this script is the ONLY way to get a terminal window. It
+# must not depend on anything that could go missing. Bash builtins only.
+
+set -u
+
+HERDR=/run/current-system/sw/bin/herdr
+TMUX=/run/current-system/sw/bin/tmux
+ZSH=/run/current-system/sw/bin/zsh
+
+# Set SESSION_PICKER_DRY_RUN=1 to print the command instead of running it.
+# Used by the tests in run-dotfiles; harmless otherwise.
+DRY=${SESSION_PICKER_DRY_RUN:+echo}
+
+printf '\n  \033[1mherdr\033[0m\n\n'
+printf '    \033[33m1\033[0m) work       \033[2m(default -- just press enter)\033[0m\n'
+printf '    \033[33m2\033[0m) personal\n'
+printf '\n'
+printf '    \033[33m3\033[0m) zsh        \033[2m(no multiplexer -- use if herdr is broken)\033[0m\n'
+printf '    \033[33m4\033[0m) tmux\n'
+printf '\n  \033[33m>\033[0m '
+
+read -r choice
+
+case "${choice:-1}" in
+    2 | p | personal) exec $DRY "$HERDR" --session personal ;;
+    3 | z | zsh | shell) exec $DRY "$ZSH" -l ;;
+    4 | t | tmux) exec $DRY "$TMUX" ;;
+    # Anything unrecognised falls through to work rather than erroring --
+    # a typo should not cost you the window.
+    *) exec $DRY "$HERDR" --session work ;;
+esac

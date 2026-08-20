@@ -25,13 +25,21 @@ window-decoration = false
 # bare command fails with "exec: not found" even though it is installed.
 # /run/current-system is a stable symlink maintained across generations.
 #
+# A picker script, not a multiplexer directly -- it offers herdr work / herdr
+# personal / plain zsh / tmux, defaulting to work on Enter. The plain-zsh entry
+# is the escape hatch: this command is the only way a new window starts, so if
+# herdr ever fails to launch you still need a route to a shell.
+#
+# Absolute /Users path matches the convention in .aerospace.toml; ghostty does
+# not expand ~ or $HOME here.
+#
 # herdr is the default for the trial (see modules/darwin/packages.nix). Unlike
 # the tmux line below, every window attaches to the SAME herdr session --
 # there is one server per session name, and `herdr` with no --session always
 # means "default". So a second window is another view of the same workspaces,
 # not a fresh one. Use prefix+shift+N for a new workspace instead of a new
 # window; use `herdr --session <name>` if you genuinely want an isolated one.
-command = /run/current-system/sw/bin/herdr
+command = /Users/nishantsingh/.local/bin/session-picker
 
 # PREVIOUS DEFAULT, kept for rollback. Plain `tmux`, matching .alacritty.toml's
 # `[terminal.shell] program = "tmux"`. Each window gets its OWN new session
