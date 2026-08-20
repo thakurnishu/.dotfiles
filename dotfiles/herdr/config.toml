@@ -35,6 +35,11 @@ prefix = "ctrl+b"
 next_tab = ""
 new_workspace = "prefix+shift+n"
 
+# Spaces get the shifted twin of the tab keys: prefix+1..9 switches tabs,
+# prefix+shift+1..9 switches spaces. The picker (prefix+w) stays for when
+# there are more than nine or you cannot remember the number.
+switch_workspace = "prefix+shift+1..9"
+
 [ui]
 tab_bar_position = "top"
 # Show which agent is in each split without opening the sidebar.
