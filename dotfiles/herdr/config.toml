@@ -28,6 +28,13 @@ version_check = false
 # you change one of them.
 prefix = "ctrl+b"
 
+# prefix+1..9 already switches tabs, so cycling them with n/p is redundant.
+# next_tab is unbound and its key handed to new_workspace, which is the thing
+# actually reached for often. This also displaces the default
+# new_workspace = "prefix+shift+n".
+new_workspace = "prefix+n"
+next_tab = ""
+
 [ui]
 tab_bar_position = "top"
 # Show which agent is in each split without opening the sidebar.
