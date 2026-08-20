@@ -21,9 +21,12 @@ new_cwd = "follow"
 version_check = false
 
 [keys]
-# NOT ctrl+b. .tmux.conf never sets `prefix`, so tmux keeps its ctrl+b
-# default; sharing it would make whichever multiplexer is inner unreachable.
-prefix = "ctrl+a"
+# herdr's own default. This is also tmux's default prefix, which is fine
+# because the two are never nested here: session-picker launches herdr OR
+# tmux as the window's command, not one inside the other. If you ever do run
+# herdr inside tmux (or vice versa), the inner one becomes unreachable until
+# you change one of them.
+prefix = "ctrl+b"
 
 [ui]
 tab_bar_position = "top"
