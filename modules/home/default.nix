@@ -9,9 +9,14 @@
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
 { config, username, ... }:
 let
-  # Repo checkout that herdr's out-of-store config symlink resolves to.
-  # See the herdr block below before changing this.
-  herdrRoot = "${config.home.homeDirectory}/.dotfiles/.claude/worktrees/feat-herdr";
+  # Repo checkout that the out-of-store symlinks below resolve to. An
+  # out-of-store symlink is an ABSOLUTE path baked at build time, so it does
+  # not follow the flake it was built from -- pointing it at ~/.dotfiles would
+  # resolve into the macos-config checkout, where these files do not exist yet.
+  #
+  # ON MERGE INTO macos-config: change this back to
+  #   "${config.home.homeDirectory}/.dotfiles"
+  worktreeRoot = "${config.home.homeDirectory}/.dotfiles/.claude/worktrees/feat-herdr";
 in
 {
   home.username = username;
@@ -33,16 +38,10 @@ in
   # (the onboarding flag, and settings saved from the prefix+s panel) --
   # a read-only store path would make those saves fail.
   #
-  # NOTE: herdrRoot points at THIS WORKTREE, not ~/.dotfiles. An out-of-store
-  # symlink is an absolute path baked at build time, so it does not follow the
-  # flake it was built from -- pointing it at ~/.dotfiles would resolve into
-  # the macos-config checkout, where dotfiles/herdr/ does not exist yet. The
-  # link would dangle and herdr would silently fall back to its defaults
-  # (ctrl+b prefix, clashing with tmux).
-  # ON MERGE INTO macos-config: change herdrRoot back to
-  #   "${config.home.homeDirectory}/.dotfiles"
+  # If this link dangles, herdr silently falls back to its defaults rather
+  # than erroring -- see worktreeRoot above.
   xdg.configFile."herdr/config.toml".source =
-    config.lib.file.mkOutOfStoreSymlink "${herdrRoot}/dotfiles/herdr/config.toml";
+    config.lib.file.mkOutOfStoreSymlink "${worktreeRoot}/dotfiles/herdr/config.toml";
 
   # gh-dash. A plain store symlink, unlike herdr's config: gh-dash reads this
   # file and does not write back to it. If it ever fails to save something,
@@ -80,12 +79,16 @@ in
   # Skills are read-only content; a normal store symlink is fine.
   xdg.configFile."opencode/skills".source = ../../dotfiles/opencode/skills;
 
-  # Global Claude Code skills. Read-only, so a store symlink -- unlike the
-  # three files above, which Claude Code rewrites. Deployed per-skill rather
-  # than as a whole ~/.claude/skills directory, so anything you add there by
-  # hand is not clobbered by activation.
-  home.file.".claude/skills/herdr-worktree/SKILL.md".source =
-    ../../dotfiles/claude/skills/herdr-worktree/SKILL.md;
+  # Global Claude Code skills, as a WHOLE DIRECTORY pointed at the working
+  # tree. Out-of-store on purpose: a store copy would make every skill edit
+  # require a rebuild, and adding a skill would need a Nix change too. This
+  # way `git add dotfiles/claude/skills/<name>/SKILL.md` is the entire
+  # workflow and the file is live immediately.
+  #
+  # Consequence: home-manager owns ~/.claude/skills. A skill dropped there by
+  # hand does not exist -- put it in the repo instead, which is the point.
+  home.file.".claude/skills".source =
+    config.lib.file.mkOutOfStoreSymlink "${worktreeRoot}/dotfiles/claude/skills";
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
