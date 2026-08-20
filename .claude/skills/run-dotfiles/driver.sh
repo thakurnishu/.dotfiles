@@ -14,6 +14,12 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# When run from a feature worktree, REPO is that worktree -- but the
+# out-of-store links for nvim and .claude/* deliberately stay pinned to the
+# main checkout (you do not want your editor config following a throwaway
+# branch). `links` must accept both roots or it reports four false failures.
+MAIN_REPO="$(git -C "$REPO" worktree list 2>/dev/null | head -1 | awk '{print $1}')"
+MAIN_REPO="${MAIN_REPO:-$REPO}"
 FLAKE="$REPO#macbook"
 ATTR=".#darwinConfigurations.macbook"
 USER_NAME="$(id -un)"
@@ -156,9 +162,11 @@ cmd_links() {
         fi
         real=$(realpath_ "$live")
         case "$real" in
-            "$REPO"/*)
+            "$REPO"/*|"$MAIN_REPO"/*)
                 if [[ -w "$real" ]]; then
-                    pass "$t -> repo (out-of-store, writable)"
+                    local where="repo"
+                    [[ "$real" == "$MAIN_REPO"/* && "$real" != "$REPO"/* ]] && where="main checkout"
+                    pass "$t -> $where (out-of-store, writable)"
                 else
                     fail "$t resolves to the repo but is not writable"
                 fi
