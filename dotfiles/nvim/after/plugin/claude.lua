@@ -3,6 +3,18 @@ if not ok then
   return
 end
 
+-- Which multiplexer are we inside? Read the env directly rather than shelling
+-- out to `printenv`: is_available() is called on redraw, and a system() call
+-- per keypress is what made the old version noticeable.
+local function in_tmux()
+  local v = vim.env.TMUX
+  return v ~= nil and v ~= ""
+end
+
+local function in_herdr()
+  return vim.env.HERDR_ENV == "1"
+end
+
 local function get_claude_win_name()
   local cwd_basename = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
   return cwd_basename .. "-claude"
@@ -66,14 +78,123 @@ function tmux_provider.get_active_bufnr()
 end
 
 function tmux_provider.is_available()
-  return vim.trim(vim.fn.system("printenv TMUX")) ~= ""
+  return in_tmux()
+end
+
+-- ---------------------------------------------------------------- herdr ----
+-- herdr equivalent of the tmux provider: Claude lives in a TAB of the current
+-- workspace rather than a tmux window. herdr-sessionizer already creates a tab
+-- called "claude" per project space, so this reuses it when present.
+local herdr_provider = {}
+
+local function herdr_json(args)
+  local out = vim.fn.system(vim.list_extend({ "herdr" }, args))
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  local ok, decoded = pcall(vim.json.decode, out)
+  return ok and decoded or nil
+end
+
+local CLAUDE_TAB = "claude"
+
+local function herdr_find_tab()
+  local data = herdr_json({ "tab", "list" })
+  local tabs = data and data.result and data.result.tabs or {}
+  for _, t in ipairs(tabs) do
+    if t.label == CLAUDE_TAB and t.workspace_id == vim.env.HERDR_WORKSPACE_ID then
+      return t.tab_id
+    end
+  end
+  return nil
+end
+
+function herdr_provider.setup(term_config)
+  herdr_provider.config = term_config or {}
+end
+
+function herdr_provider.open(cmd_string, env_table)
+  if not in_herdr() then
+    vim.notify("Not inside a herdr session", vim.log.levels.WARN)
+    return
+  end
+
+  local existing = herdr_find_tab()
+  if existing then
+    vim.fn.system({ "herdr", "tab", "focus", existing })
+    return
+  end
+
+  -- The env table carries CLAUDE_CODE_SSE_PORT and the IDE integration flag;
+  -- without it the running Claude cannot talk back to this nvim.
+  local args = { "tab", "create", "--label", CLAUDE_TAB, "--focus" }
+  if vim.env.HERDR_WORKSPACE_ID then
+    table.insert(args, "--workspace")
+    table.insert(args, vim.env.HERDR_WORKSPACE_ID)
+  end
+  table.insert(args, "--cwd")
+  table.insert(args, vim.fn.getcwd())
+  for k, v in pairs(env_table or {}) do
+    table.insert(args, "--env")
+    table.insert(args, k .. "=" .. tostring(v))
+  end
+
+  local created = herdr_json(args)
+  local pane = created and created.result and created.result.root_pane
+  if not pane then
+    vim.notify("herdr: could not create the claude tab", vim.log.levels.ERROR)
+    return
+  end
+
+  -- `pane run` types into the tab's shell, so quitting Claude leaves a usable
+  -- shell instead of closing the tab.
+  local run = { "herdr", "pane", "run", pane.pane_id }
+  vim.list_extend(run, vim.split(cmd_string, " ", { trimempty = true }))
+  vim.fn.system(run)
+end
+
+function herdr_provider.close()
+  local existing = herdr_find_tab()
+  if existing then
+    vim.fn.system({ "herdr", "tab", "close", existing })
+  end
+end
+
+function herdr_provider.simple_toggle(cmd_string, env_table, _cfg)
+  herdr_provider.open(cmd_string, env_table)
+end
+
+function herdr_provider.focus_toggle(cmd_string, env_table, _cfg)
+  herdr_provider.open(cmd_string, env_table)
+end
+
+function herdr_provider.toggle(cmd_string, env_table, _cfg)
+  herdr_provider.open(cmd_string, env_table)
+end
+
+function herdr_provider.get_active_bufnr()
+  -- Claude runs in a separate herdr tab, not an in-editor buffer.
+  return nil
+end
+
+function herdr_provider.is_available()
+  return in_herdr()
+end
+
+-- Only hand claudecode a custom provider when one is actually usable. It warns
+-- "Custom table provider configured but provider reports not available" on
+-- every redraw otherwise -- which is exactly what happened when this config
+-- kept naming the tmux provider while running under herdr. With no provider
+-- key, claudecode falls back to its own in-editor terminal.
+local terminal_opts = { split_side = "left" }
+if in_herdr() then
+  terminal_opts.provider = herdr_provider
+elseif in_tmux() then
+  terminal_opts.provider = tmux_provider
 end
 
 claudecode.setup({
-  terminal = {
-    split_side = "left",
-    provider = tmux_provider,
-  },
+  terminal = terminal_opts,
   diff_opts = {
     layout = "unified", -- VS Code-style inline red/green diff instead of a plain split
   },
