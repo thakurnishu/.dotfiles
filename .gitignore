@@ -1,0 +1,3 @@
+# Nested git worktrees for feature branches. Ignored so a dirty `nix build`
+# does not copy an entire second checkout into the store.
+.claude/worktrees/
