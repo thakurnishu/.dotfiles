@@ -48,6 +48,14 @@ log "start PATH=$PATH"
 #
 # Depths 1 and 2 are kept in sync with tmux-sessionizer by hand; 3 and 4 are
 # empty placeholders so adding one later is a one-line change.
+# Depth 0 = the path ITSELF is the project. ~/.dotfiles is a repo, not a
+# container of repos: at depth 1 the picker offered dotfiles/, hosts/,
+# modules/ and .git/ but never ~/.dotfiles, which is the thing you actually
+# want to open.
+roots_depth0=(
+    "$HOME/.dotfiles"
+)
+
 roots_depth1=(
     "$HOME/src/github.com"
     "$HOME/src/github.com/personal"
@@ -56,7 +64,6 @@ roots_depth1=(
     "$HOME/go/src/github.com/thakurnishu"
     "$HOME/go/src/k8s.io"
     "$HOME/.config"
-    "$HOME/.dotfiles"
 )
 
 # Work repos are grouped a level down -- solytics/devops/devops-toolkit-iac,
@@ -83,7 +90,16 @@ find_at_depth() {
         [[ -d "$r" ]] && existing+=("$r")
     done
     [[ ${#existing[@]} -eq 0 ]] && return 0
-    find "${existing[@]}" -mindepth "$depth" -maxdepth "$depth" -type d 2>/dev/null
+    # Depth 0 means the root itself; find -mindepth 0 would also work but
+    # printing them directly keeps the intent obvious.
+    if [[ $depth -eq 0 ]]; then
+        printf '%s\n' "${existing[@]}"
+        return 0
+    fi
+    # -name .git prunes the repo internals that are never a project. Other
+    # dotdirs are left alone: ~/.config and ~/.dotfiles are both wanted.
+    find "${existing[@]}" -mindepth "$depth" -maxdepth "$depth" -type d \
+        ! -name .git 2>/dev/null
 }
 
 if [[ $# -eq 1 ]]; then
@@ -94,6 +110,7 @@ else
     # /bin/bash when PATH is stripped.
     candidates=$(
         {
+            [[ ${#roots_depth0[@]} -gt 0 ]] && find_at_depth 0 "${roots_depth0[@]}"
             [[ ${#roots_depth1[@]} -gt 0 ]] && find_at_depth 1 "${roots_depth1[@]}"
             [[ ${#roots_depth2[@]} -gt 0 ]] && find_at_depth 2 "${roots_depth2[@]}"
             [[ ${#roots_depth3[@]} -gt 0 ]] && find_at_depth 3 "${roots_depth3[@]}"
