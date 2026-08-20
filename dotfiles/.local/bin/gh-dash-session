@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Launch gh-dash against the GitHub account that belongs to the current herdr
+# session, so the `work` session shows the work account's PRs and `personal`
+# shows the personal one.
+#
+# Both accounts are logged in at once (`gh auth status` lists both); gh has a
+# single ACTIVE account, and flipping it with `gh auth switch` is global -- it
+# would change the other session's dashboard too, and every plain `gh` command
+# with it. Setting GH_TOKEN for this process only is the per-session knob:
+# gh-dash reads it via go-gh and `@me` in every section filter then resolves to
+# that account.
+#
+# The token is fetched HERE, at launch, rather than baked into the tab's
+# environment: herdr persists tab env in session.json on disk, and a token has
+# no business being written there.
+#
+# PATH is prepended for the same reason as the other herdr scripts: a tab
+# spawned by herdr does not reliably inherit the interactive login PATH.
+
+set -uo pipefail
+
+export PATH="/run/current-system/sw/bin:$HOME/.nix-profile/bin:$PATH"
+
+# session name -> gh account. `gh auth status` is the list of valid values.
+case "${HERDR_SESSION:-}" in
+    work)     account=nishant-solytics ;;
+    personal) account=thakurnishu ;;
+    *)        account='' ;;
+esac
+
+# Outside herdr, or in a session with no mapping, defer to gh's active account
+# rather than guessing -- running plain gh-dash is always the safe fallback.
+if [[ -n $account ]] && command -v gh >/dev/null 2>&1; then
+    if token=$(gh auth token --user "$account" 2>/dev/null) && [[ -n $token ]]; then
+        export GH_TOKEN=$token
+    else
+        printf '  gh-dash: no token for %s -- run `gh auth login --user %s`.\n' \
+            "$account" "$account" >&2
+        printf '  falling back to the active account.\n\n' >&2
+    fi
+fi
+
+exec gh-dash "$@"

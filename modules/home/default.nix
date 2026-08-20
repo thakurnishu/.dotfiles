@@ -160,6 +160,13 @@ in
     executable = true;
   };
 
+  # Launched by herdr-sessionizer as the gh-dash tab: picks the GitHub account
+  # from $HERDR_SESSION so work and personal dashboards stay separate.
+  home.file.".local/bin/gh-dash-session" = {
+    source = ../../dotfiles/.local/bin/gh-dash-session;
+    executable = true;
+  };
+
   home.file.".local/bin/tmux-sessionizer" = {
     source = ../../dotfiles/.local/bin/tmux-sessionizer;
     executable = true;
