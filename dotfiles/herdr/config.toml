@@ -1,0 +1,40 @@
+# herdr — agent multiplexer. See `herdr --default-config` for every key and
+# its default; only deliberate deviations are listed here.
+#
+# This file is deployed OUT OF STORE (writable) because herdr rewrites its
+# own config -- clearing the onboarding flag, saving settings from prefix+s.
+
+onboarding = false
+
+[theme]
+name = "gruvbox"  # matches dotfiles/ghostty/config
+
+[terminal]
+# Inherit the source pane's directory, like the `-c "#{pane_current_path}"`
+# splits in .tmux.conf.
+new_cwd = "follow"
+
+[update]
+# Nix owns this binary and flake.lock pins it. The background check only
+# nags about versions `herdr update` could never install -- the store path
+# is read-only. Bump it with `nix flake update` instead.
+version_check = false
+
+[keys]
+# NOT ctrl+b. .tmux.conf never sets `prefix`, so tmux keeps its ctrl+b
+# default; sharing it would make whichever multiplexer is inner unreachable.
+prefix = "ctrl+a"
+
+[ui]
+tab_bar_position = "top"
+# Show which agent is in each split without opening the sidebar.
+show_agent_labels_on_pane_borders = true
+
+# lazygit is already in packages.nix; popup = session-modal, no layout change.
+[[keys.command]]
+key = "prefix+alt+g"
+type = "popup"
+command = "lazygit"
+width = "80%"
+height = "80%"
+description = "run lazygit"

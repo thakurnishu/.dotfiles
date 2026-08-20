@@ -66,6 +66,20 @@ in
     codex
     graphify
 
+    # Agent multiplexer: a background server that hosts the CLIs above, and
+    # reports each one as working / blocked / idle in a sidebar.
+    #
+    # Persistence has two tiers, and they are NOT the same: detaching
+    # (prefix+q) or closing the lid keeps the processes alive, but a server
+    # restart or reboot only snapshot-restores the shape -- workspaces, tabs,
+    # panes, cwd, layout -- and the processes are gone. Claude Code resumes
+    # its conversation via herdr's integration; a plain shell does not.
+    #
+    # Overlaps tmux; dotfiles/herdr/config.toml moves the prefix off ctrl+b so
+    # the two can nest. Packaged in nixpkgs, so the upstream `curl | sh`
+    # installer is not used.
+    herdr
+
     # git credential helper (see dotfiles/.gitconfig) + gh CLI
     gh
 

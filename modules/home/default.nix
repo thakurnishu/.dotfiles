@@ -8,6 +8,11 @@
 # config, edit the file in ~/.dotfiles/dotfiles/ and run:
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
 { config, username, ... }:
+let
+  # Repo checkout that herdr's out-of-store config symlink resolves to.
+  # See the herdr block below before changing this.
+  herdrRoot = "${config.home.homeDirectory}/.dotfiles/.claude/worktrees/feat-herdr";
+in
 {
   home.username = username;
   home.homeDirectory = "/Users/${username}";
@@ -23,6 +28,21 @@
 
   # ---- Phase 6: terminal -------------------------------------------------
   xdg.configFile."ghostty/config".source = ../../dotfiles/ghostty/config;
+
+  # herdr. Out-of-store because herdr writes back to its own config file
+  # (the onboarding flag, and settings saved from the prefix+s panel) --
+  # a read-only store path would make those saves fail.
+  #
+  # NOTE: herdrRoot points at THIS WORKTREE, not ~/.dotfiles. An out-of-store
+  # symlink is an absolute path baked at build time, so it does not follow the
+  # flake it was built from -- pointing it at ~/.dotfiles would resolve into
+  # the macos-config checkout, where dotfiles/herdr/ does not exist yet. The
+  # link would dangle and herdr would silently fall back to its defaults
+  # (ctrl+b prefix, clashing with tmux).
+  # ON MERGE INTO macos-config: change herdrRoot back to
+  #   "${config.home.homeDirectory}/.dotfiles"
+  xdg.configFile."herdr/config.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "${herdrRoot}/dotfiles/herdr/config.toml";
 
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
