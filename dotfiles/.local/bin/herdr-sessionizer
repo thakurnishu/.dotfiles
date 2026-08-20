@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Pick a project directory with fzf, then create-or-focus a herdr workspace
+# for it laid out as three tabs: terminal, claude, lazygit.
+#
+# The herdr counterpart to tmux-sessionizer, and deliberately the same shape:
+# same search roots, same fzf pick, same create-or-switch behaviour. Bound to
+# prefix+n in dotfiles/herdr/config.toml.
+#
+# Unlike .local/bin/session-picker, bare command names are fine here. That
+# script is Ghostty's `command` and runs under a login wrapper that strips Nix
+# out of PATH; this one runs inside an existing herdr pane, which has your
+# normal user PATH.
+#
+# The herdr CLI talks to whichever session it is invoked from, so running this
+# in the `work` session creates the workspace there, not in `default`.
+
+set -uo pipefail
+
+# Kept in sync with tmux-sessionizer by hand. If you add a root there, add it
+# here too.
+roots=(
+    "$HOME/src/github.com"
+    "$HOME/src/github.com/personal"
+    "$HOME/src/github.com/work"
+    "$HOME/src/gitlab.com"
+    "$HOME/go/src/github.com/thakurnishu"
+    "$HOME/go/src/k8s.io"
+    "$HOME/.config"
+    "$HOME/.dotfiles"
+)
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    existing=()
+    for r in "${roots[@]}"; do
+        [[ -d "$r" ]] && existing+=("$r")
+    done
+    if [[ ${#existing[@]} -eq 0 ]]; then
+        echo "herdr-sessionizer: none of the search roots exist yet." >&2
+        exit 1
+    fi
+    selected=$(find "${existing[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+        | sort -u | fzf --prompt='space > ' --height=100%)
+fi
+
+# Escaped out of fzf: do nothing rather than creating a stray workspace.
+[[ -z ${selected:-} ]] && exit 0
+
+label=$(basename "$selected" | tr . _)
+
+# jq is not in packages.nix for this path's sake -- python3 is already a
+# dependency of the repo's tooling, so use it for JSON rather than adding one.
+jget() {
+    python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for k in sys.argv[1:]:
+    if not isinstance(d, dict) or k not in d:
+        sys.exit(0)
+    d = d[k]
+print(d)
+' "$@" 2>/dev/null
+}
+
+# Create-or-focus, matching tmux-sessionizer. Dedupe is by label: workspace
+# list does not report cwd, and two workspaces on the same directory would be
+# indistinguishable in the sidebar anyway.
+existing_id=$(herdr workspace list 2>/dev/null | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for w in d.get('result', {}).get('workspaces', []):
+    if w.get('label') == '$label':
+        print(w['workspace_id'])
+        break
+")
+
+if [[ -n $existing_id ]]; then
+    herdr workspace focus "$existing_id" >/dev/null 2>&1
+    exit 0
+fi
+
+ws_json=$(herdr workspace create --cwd "$selected" --label "$label" --focus 2>/dev/null)
+ws_id=$(printf '%s' "$ws_json" | jget result workspace workspace_id)
+tab1=$(printf '%s' "$ws_json" | jget result tab tab_id)
+
+if [[ -z ${ws_id:-} ]]; then
+    echo "herdr-sessionizer: workspace create failed" >&2
+    exit 1
+fi
+
+# Tab 1 already exists as the workspace root; it just needs a name.
+[[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
+
+# Tabs 2 and 3. `tab create` spawns a shell in the pane; `pane run` then types
+# the command into it, so the tool owns the pane and exiting it leaves you a
+# usable shell rather than closing the tab.
+for spec in "claude:claude" "lazygit:lazygit"; do
+    name=${spec%%:*}
+    cmd=${spec##*:}
+    tab_json=$(herdr tab create --workspace "$ws_id" --cwd "$selected" \
+        --label "$name" --no-focus 2>/dev/null)
+    pane=$(printf '%s' "$tab_json" | jget result root_pane pane_id)
+    [[ -n ${pane:-} ]] && herdr pane run "$pane" "$cmd" >/dev/null 2>&1
+done
+
+# Land on the terminal tab, not on whichever was created last.
+[[ -n ${tab1:-} ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+exit 0

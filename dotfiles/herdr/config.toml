@@ -29,11 +29,11 @@ version_check = false
 prefix = "ctrl+b"
 
 # prefix+1..9 already switches tabs, so cycling them with n/p is redundant.
-# next_tab is unbound and its key handed to new_workspace, which is the thing
-# actually reached for often. This also displaces the default
-# new_workspace = "prefix+shift+n".
-new_workspace = "prefix+n"
+# next_tab is unbound and its key handed to the sessionizer at the bottom of
+# this file. The plain built-in "new empty space here" keeps its default
+# prefix+shift+n for when you do not want the three-tab layout.
 next_tab = ""
+new_workspace = "prefix+shift+n"
 
 [ui]
 tab_bar_position = "top"
@@ -49,3 +49,17 @@ command = "lazygit"
 width = "80%"
 height = "80%"
 description = "run lazygit"
+
+# prefix+n: pick a project directory with fzf, then create-or-focus a
+# workspace for it laid out as terminal / claude / lazygit. The herdr
+# counterpart to tmux-sessionizer, and the same create-or-switch behaviour.
+#
+# popup, not pane: fzf wants the whole screen for a moment and a popup is
+# session-modal, so it does not disturb the layout it is about to build.
+[[keys.command]]
+key = "prefix+n"
+type = "popup"
+command = "/Users/nishantsingh/.local/bin/herdr-sessionizer"
+width = "80%"
+height = "80%"
+description = "new project space"

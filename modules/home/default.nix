@@ -103,6 +103,13 @@ in
     executable = true;
   };
 
+  # Bound to prefix+n in dotfiles/herdr/config.toml, which names it by
+  # absolute path.
+  home.file.".local/bin/herdr-sessionizer" = {
+    source = ../../dotfiles/.local/bin/herdr-sessionizer;
+    executable = true;
+  };
+
   home.file.".local/bin/tmux-sessionizer" = {
     source = ../../dotfiles/.local/bin/tmux-sessionizer;
     executable = true;
