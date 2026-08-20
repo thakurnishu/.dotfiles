@@ -31,13 +31,32 @@ esac
 # Outside herdr, or in a session with no mapping, defer to gh's active account
 # rather than guessing -- running plain gh-dash is always the safe fallback.
 if [[ -n $account ]] && command -v gh >/dev/null 2>&1; then
-    if token=$(gh auth token --user "$account" 2>/dev/null) && [[ -n $token ]]; then
-        export GH_TOKEN=$token
-    else
-        printf '  gh-dash: no token for %s -- run `gh auth login --user %s`.\n' \
-            "$account" "$account" >&2
-        printf '  falling back to the active account.\n\n' >&2
+    token=$(gh auth token --user "$account" 2>/dev/null)
+
+    # No token means that account was never logged in, or its login expired or
+    # was revoked. Offer the fix in place rather than printing an instruction
+    # and dumping you into the wrong dashboard: `gh auth login` is interactive
+    # and this is a real terminal pane, so it can just run here.
+    if [[ -z $token && -t 0 ]]; then
+        printf '\n  \033[33mgh-dash:\033[0m not logged in as \033[1m%s\033[0m ' "$account" >&2
+        printf '(the %s session account).\n\n' "${HERDR_SESSION:-current}" >&2
+        printf '    [enter]  log in to GitHub now\n' >&2
+        printf '    [any]    skip, and use whichever account gh has active\n\n  > ' >&2
+        read -rsn1 key
+        printf '\n'
+        if [[ -z $key ]]; then
+            # --hostname skips the host question and --skip-ssh-key skips the
+            # "upload a public key?" step, which only matters on a first login
+            # and is not what you came here for. The account itself is whoever
+            # completes the browser flow, since `gh auth login` has no --user.
+            gh auth login --hostname github.com --git-protocol ssh --skip-ssh-key
+            token=$(gh auth token --user "$account" 2>/dev/null)
+            [[ -z $token ]] && printf '\n  still no token for %s -- using the active account.\n\n' \
+                "$account" >&2
+        fi
     fi
+
+    [[ -n $token ]] && export GH_TOKEN=$token
 fi
 
 exec gh-dash "$@"
