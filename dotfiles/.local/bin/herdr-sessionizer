@@ -170,7 +170,7 @@ fi
 # Tabs 2 and 3. `tab create` spawns a shell in the pane; `pane run` then types
 # the command into it, so the tool owns the pane and exiting it leaves you a
 # usable shell rather than closing the tab.
-for spec in "claude:claude" "lazygit:lazygit"; do
+for spec in "claude:claude" "lazygit:lazygit" "gh-dash:gh-dash"; do
     name=${spec%%:*}
     cmd=${spec##*:}
     tab_json=$(herdr tab create --workspace "$ws_id" --cwd "$selected" \

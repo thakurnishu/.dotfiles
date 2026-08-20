@@ -44,6 +44,11 @@ in
   xdg.configFile."herdr/config.toml".source =
     config.lib.file.mkOutOfStoreSymlink "${herdrRoot}/dotfiles/herdr/config.toml";
 
+  # gh-dash. A plain store symlink, unlike herdr's config: gh-dash reads this
+  # file and does not write back to it. If it ever fails to save something,
+  # that is the signal to move it out of store like the herdr one.
+  xdg.configFile."gh-dash/config.yml".source = ../../dotfiles/gh-dash/config.yml;
+
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
 

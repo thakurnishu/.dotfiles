@@ -82,6 +82,14 @@ in
 
     # git credential helper (see dotfiles/.gitconfig) + gh CLI
     gh
+    # GitHub PR/issue TUI. Installed as a plain package rather than via
+    # `gh extension install`, which writes to ~/.local/share/gh/extensions --
+    # untracked state that would not survive a fresh install. The trade-off is
+    # that the command is `gh-dash`, not `gh dash`: gh only discovers
+    # extensions in its own data dir. Making `gh dash` work would mean
+    # home-manager's programs.gh.extensions, which also takes ownership of
+    # ~/.config/gh/config.yml -- hand-written here, and not in this repo.
+    gh-dash
 
     # --- editor / dev support --------------------------------------------
     neovim

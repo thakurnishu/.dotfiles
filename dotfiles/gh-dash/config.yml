@@ -1,0 +1,37 @@
+# gh-dash -- GitHub PR/issue dashboard. Run with `gh-dash` (not `gh dash`;
+# see the note in modules/darwin/packages.nix).
+#
+# Sections are GitHub search queries. Auth comes from `gh auth login`, so
+# nothing secret lives here.
+
+prSections:
+  - title: mine
+    filters: is:open author:@me
+  - title: review requested
+    filters: is:open review-requested:@me
+  - title: involves me
+    filters: is:open involves:@me -author:@me
+
+issuesSections:
+  - title: assigned
+    filters: is:open assignee:@me
+  - title: created
+    filters: is:open author:@me
+
+defaults:
+  preview:
+    open: true
+    width: 60
+  prsLimit: 20
+  issuesLimit: 20
+  refetchIntervalMinutes: 30
+
+# A theme here must define EVERY colour -- gh-dash has no built-in theme
+# names, and a partial palette is rejected. Left unset so it follows the
+# terminal, which is already Gruvbox Dark via ghostty/config.
+
+keybindings:
+  prs:
+    - key: g
+      command: >
+        cd {{.RepoPath}} && lazygit
