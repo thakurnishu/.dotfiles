@@ -9,14 +9,17 @@
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
 { config, username, ... }:
 let
-  # Repo checkout that the out-of-store symlinks below resolve to. An
-  # out-of-store symlink is an ABSOLUTE path baked at build time, so it does
-  # not follow the flake it was built from -- pointing it at ~/.dotfiles would
-  # resolve into the macos-config checkout, where these files do not exist yet.
+  # Repo checkout that the out-of-store symlinks below resolve to: herdr's
+  # config.toml and ~/.claude/skills.
   #
-  # ON MERGE INTO macos-config: change this back to
-  #   "${config.home.homeDirectory}/.dotfiles"
-  worktreeRoot = "${config.home.homeDirectory}/.dotfiles/.claude/worktrees/feat-herdr";
+  # An out-of-store symlink is an ABSOLUTE path baked at build time, so it does
+  # NOT follow the flake it was built from. While this work lived on a feature
+  # worktree, this had to name that worktree or both links dangled -- herdr
+  # silently falling back to its default keybindings, and the skills directory
+  # disappearing. Now that it is merged, it is the main checkout again.
+  #
+  # Building from a worktree again means pointing this at it for the duration.
+  repoRoot = "${config.home.homeDirectory}/.dotfiles";
 in
 {
   home.username = username;
@@ -41,7 +44,7 @@ in
   # If this link dangles, herdr silently falls back to its defaults rather
   # than erroring -- see worktreeRoot above.
   xdg.configFile."herdr/config.toml".source =
-    config.lib.file.mkOutOfStoreSymlink "${worktreeRoot}/dotfiles/herdr/config.toml";
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/herdr/config.toml";
 
   # gh-dash. A plain store symlink, unlike herdr's config: gh-dash reads this
   # file and does not write back to it. If it ever fails to save something,
@@ -88,7 +91,7 @@ in
   # Consequence: home-manager owns ~/.claude/skills. A skill dropped there by
   # hand does not exist -- put it in the repo instead, which is the point.
   home.file.".claude/skills".source =
-    config.lib.file.mkOutOfStoreSymlink "${worktreeRoot}/dotfiles/claude/skills";
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/claude/skills";
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
