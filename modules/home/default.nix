@@ -115,6 +115,12 @@ in
     executable = true;
   };
 
+  # Bound to prefix+shift+g in dotfiles/herdr/config.toml.
+  home.file.".local/bin/herdr-worktreeizer" = {
+    source = ../../dotfiles/.local/bin/herdr-worktreeizer;
+    executable = true;
+  };
+
   home.file.".local/bin/tmux-sessionizer" = {
     source = ../../dotfiles/.local/bin/tmux-sessionizer;
     executable = true;

@@ -47,6 +47,10 @@ new_workspace = "prefix+shift+n"
 # there is no way to express "prefix, then p, then a digit".
 switch_workspace = "prefix+shift+1..9"
 
+# The built-in new_worktree creates the space but cannot lay out tabs, so it
+# is unbound and prefix+shift+g goes to herdr-worktreeizer below.
+new_worktree = ""
+
 # prefix+p was the leftover half of the tab-cycling pair that prefix+1..9
 # replaced. Unbound rather than repurposed.
 previous_tab = ""
@@ -79,3 +83,13 @@ command = "/Users/nishantsingh/.local/bin/herdr-sessionizer"
 width = "90%"
 height = "90%"
 description = "new project space"
+
+# prefix+shift+g: new branch -> git worktree -> space with terminal + lazygit.
+# The branch-level sibling of prefix+n, which works at the repo level.
+[[keys.command]]
+key = "prefix+shift+g"
+type = "popup"
+command = "/Users/nishantsingh/.local/bin/herdr-worktreeizer"
+width = "70%"
+height = "70%"
+description = "new worktree space"

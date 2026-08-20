@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# Create a git worktree for a new branch and open it as a herdr space laid out
+# as two tabs: terminal, lazygit.
+#
+# The branch-level sibling of herdr-sessionizer: that one opens a space per
+# REPO, this one opens a space per BRANCH of the repo you are already in.
+# Bound to prefix+shift+g in dotfiles/herdr/config.toml, replacing herdr's
+# built-in new_worktree (which creates the space but cannot lay out tabs).
+#
+# PATH is prepended for the same reason as herdr-sessionizer: a herdr popup
+# does not reliably inherit the interactive login PATH.
+
+set -uo pipefail
+
+export PATH="/run/current-system/sw/bin:$HOME/.nix-profile/bin:$PATH"
+
+LOG="$HOME/.cache/herdr-worktreeizer.log"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null
+log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG" 2>/dev/null; }
+
+die() {
+    log "FAIL: $*"
+    printf '\n  \033[31mherdr-worktreeizer:\033[0m %s\n' "$*" >&2
+    printf '  logged to %s\n' "$LOG" >&2
+    printf '  press any key to close...' >&2
+    read -rsn1 _ 2>/dev/null || sleep 5
+    exit 1
+}
+
+for t in herdr git; do
+    command -v "$t" >/dev/null 2>&1 || die "$t not found on PATH ($PATH)"
+done
+[[ ${HERDR_ENV:-} == "1" ]] || die "not running inside herdr"
+
+jget() {
+    python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for k in sys.argv[1:]:
+    if not isinstance(d, dict) or k not in d:
+        sys.exit(0)
+    d = d[k]
+print(d)
+' "$@" 2>/dev/null
+}
+
+# The source repo is whatever repo the CURRENT space sits in. Ask herdr rather
+# than guessing from $PWD: the popup's cwd is not necessarily the space's.
+#
+# --workspace is REQUIRED here. A bare `worktree list` reports the FOCUSED
+# workspace, which is not necessarily the one this script was invoked from --
+# that mismatch made the first version fail with "not inside a git repository"
+# when run from an unfocused pane.
+src=$(herdr worktree list --workspace "${HERDR_WORKSPACE_ID:-}" 2>/dev/null \
+    | jget result source repo_root)
+[[ -n ${src:-} ]] || die "this space is not inside a git repository"
+repo=$(basename "$src")
+
+# Non-interactive form: herdr-worktreeizer <branch> [base]. This is how an
+# AGENT calls it -- no prompts, so a Claude session in a pane can spin up its
+# own branch workspace. Also how it gets tested.
+branch=${1:-}
+base=${2:-}
+
+# --- branch name ---------------------------------------------------------
+if [[ -n $branch ]]; then
+    :
+elif command -v gum >/dev/null 2>&1; then
+    branch=$(gum input --prompt 'new branch > ' --placeholder 'feat/my-thing' \
+        --prompt.foreground='#fabd2f')
+else
+    printf '  new branch for %s: ' "$repo" >&2
+    read -r branch
+fi
+[[ -n ${branch:-} ]] || exit 0
+
+# --- base branch ---------------------------------------------------------
+bases=$(git -C "$src" for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)
+current=$(git -C "$src" rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [[ -n $base ]]; then
+    :
+elif command -v gum >/dev/null 2>&1; then
+    base=$(printf '%s\n' "$bases" | gum choose \
+        --header="  base branch for ${branch}" \
+        --header.foreground='#928374' \
+        --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
+        --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
+        --height=12)
+else
+    base=$(printf '%s\n' "$bases" | fzf --prompt="base > " --layout=reverse --height=100%)
+fi
+# Escaping the base picker falls back to the branch that is checked out now,
+# rather than aborting work already half done.
+base=${base:-$current}
+[[ -n ${base:-} ]] || die "could not determine a base branch"
+
+label=$(printf '%s' "$branch" | tr '/' '-')
+log "create branch=$branch base=$base repo=$src"
+
+out=$(herdr worktree create \
+    --workspace "${HERDR_WORKSPACE_ID:-}" \
+    --branch "$branch" \
+    --base "$base" \
+    --label "$label" \
+    --focus 2>&1)
+
+ws=$(printf '%s' "$out" | jget result workspace workspace_id)
+tab1=$(printf '%s' "$out" | jget result tab tab_id)
+checkout=$(printf '%s' "$out" | jget result workspace worktree checkout_path)
+
+if [[ -z ${ws:-} ]]; then
+    die "worktree create failed: $(printf '%s' "$out" | head -c 200)"
+fi
+log "created ws=$ws checkout=$checkout"
+
+# Tab 1 is the workspace root pane; it only needs a name.
+[[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
+
+# Tab 2: lazygit, on the WORKTREE checkout rather than the source repo.
+tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
+    --label lazygit --no-focus 2>/dev/null)
+pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+[[ -n ${pane:-} ]] && herdr pane run "$pane" lazygit >/dev/null 2>&1
+
+# Land on terminal, not on lazygit.
+[[ -n ${tab1:-} ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+exit 0
