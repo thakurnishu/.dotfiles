@@ -42,9 +42,13 @@ for t in fzf herdr python3 find; do
 done
 log "start PATH=$PATH"
 
-# Kept in sync with tmux-sessionizer by hand. If you add a root there, add it
-# here too.
-roots=(
+# Search roots, grouped by how deep the *repositories* sit under them.
+# Depth 1 = <root>/*, depth 2 = <root>/*/*, and so on. Put a root at whichever
+# depth lands on the repo itself, not on a grouping directory.
+#
+# Depths 1 and 2 are kept in sync with tmux-sessionizer by hand; 3 and 4 are
+# empty placeholders so adding one later is a one-line change.
+roots_depth1=(
     "$HOME/src/github.com"
     "$HOME/src/github.com/personal"
     "$HOME/src/github.com/work"
@@ -55,19 +59,51 @@ roots=(
     "$HOME/.dotfiles"
 )
 
+# Work repos are grouped a level down -- solytics/devops/devops-toolkit-iac,
+# solytics/tms/fcc-monorepo -- so a depth-1 search would only ever offer the
+# grouping directories (devops, tms, RFP).
+roots_depth2=(
+    "$HOME/src/github.com/work/solytics"
+)
+
+roots_depth3=()
+roots_depth4=()
+
+# find_at_depth <depth> <root>...
+# Prints directories exactly <depth> levels under each root that exists.
+# Non-existent roots are dropped first: find is noisy about missing paths and
+# that output would otherwise land in the fzf list. Same guard dir-selector.sh
+# uses.
+find_at_depth() {
+    local depth=$1
+    shift
+    local r
+    local existing=()
+    for r in "$@"; do
+        [[ -d "$r" ]] && existing+=("$r")
+    done
+    [[ ${#existing[@]} -eq 0 ]] && return 0
+    find "${existing[@]}" -mindepth "$depth" -maxdepth "$depth" -type d 2>/dev/null
+}
+
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    existing=()
-    for r in "${roots[@]}"; do
-        [[ -d "$r" ]] && existing+=("$r")
-    done
-    if [[ ${#existing[@]} -eq 0 ]]; then
-        echo "herdr-sessionizer: none of the search roots exist yet." >&2
-        exit 1
-    fi
-    selected=$(find "${existing[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
-        | sort -u | fzf --prompt='space > ' --height=100%)
+    # Each depth is guarded on its own count: expanding an empty array under
+    # `set -u` is an error in bash 3.2, and the shebang can resolve to
+    # /bin/bash when PATH is stripped.
+    candidates=$(
+        {
+            [[ ${#roots_depth1[@]} -gt 0 ]] && find_at_depth 1 "${roots_depth1[@]}"
+            [[ ${#roots_depth2[@]} -gt 0 ]] && find_at_depth 2 "${roots_depth2[@]}"
+            [[ ${#roots_depth3[@]} -gt 0 ]] && find_at_depth 3 "${roots_depth3[@]}"
+            [[ ${#roots_depth4[@]} -gt 0 ]] && find_at_depth 4 "${roots_depth4[@]}"
+        } | sort -u
+    )
+
+    [[ -z $candidates ]] && die "none of the search roots exist yet."
+
+    selected=$(printf '%s\n' "$candidates" | fzf --prompt='space > ' --height=100%)
 fi
 
 # Escaped out of fzf: do nothing rather than creating a stray workspace.
