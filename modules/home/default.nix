@@ -80,6 +80,13 @@ in
   # Skills are read-only content; a normal store symlink is fine.
   xdg.configFile."opencode/skills".source = ../../dotfiles/opencode/skills;
 
+  # Global Claude Code skills. Read-only, so a store symlink -- unlike the
+  # three files above, which Claude Code rewrites. Deployed per-skill rather
+  # than as a whole ~/.claude/skills directory, so anything you add there by
+  # hand is not clobbered by activation.
+  home.file.".claude/skills/herdr-worktree/SKILL.md".source =
+    ../../dotfiles/claude/skills/herdr-worktree/SKILL.md;
+
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
   # dotfiles/gitwork/<org> -> ~/.gitwork-<org>.
