@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pick a project directory with fzf, then create-or-focus a herdr workspace
-# for it laid out as three tabs: terminal, claude, lazygit.
+# for it laid out as tabs: terminal and claude always, plus lazygit and
+# gh-dash when the directory is a git repo.
 #
 # The herdr counterpart to tmux-sessionizer, and deliberately the same shape:
 # same search roots, same fzf pick, same create-or-switch behaviour. Bound to
@@ -37,7 +38,7 @@ die() {
     exit 1
 }
 
-for t in fzf herdr python3 find; do
+for t in fzf herdr python3 find git; do
     command -v "$t" >/dev/null 2>&1 || die "$t not found on PATH ($PATH)"
 done
 log "start PATH=$PATH"
@@ -184,10 +185,23 @@ fi
 # Tab 1 already exists as the workspace root; it just needs a name.
 [[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
 
-# Tabs 2 and 3. `tab create` spawns a shell in the pane; `pane run` then types
-# the command into it, so the tool owns the pane and exiting it leaves you a
-# usable shell rather than closing the tab.
-for spec in "claude:claude" "lazygit:lazygit" "gh-dash:gh-dash-session"; do
+# The remaining tabs. `tab create` spawns a shell in the pane; `pane run` then
+# types the command into it, so the tool owns the pane and exiting it leaves you
+# a usable shell rather than closing the tab.
+#
+# Plain directories are a common pick here (~/.config/*, ~/src/github.com/work),
+# and lazygit and gh-dash have nothing to show outside a repo. `rev-parse`
+# rather than a `.git` test: it is also true in subdirectories and in worktree
+# checkouts, where `.git` is a file or absent entirely.
+tab_specs=("claude:claude")
+if git -C "$selected" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    tab_specs+=("lazygit:lazygit" "gh-dash:gh-dash-session")
+    log "git repo: $selected -- creating lazygit and gh-dash tabs"
+else
+    log "not a git repo: $selected -- skipping lazygit and gh-dash tabs"
+fi
+
+for spec in "${tab_specs[@]}"; do
     name=${spec%%:*}
     cmd=${spec##*:}
     tab_json=$(herdr tab create --workspace "$ws_id" --cwd "$selected" \
