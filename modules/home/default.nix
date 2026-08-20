@@ -7,7 +7,7 @@
 # NOTE: home-manager symlinks these read-only into the Nix store. To change a
 # config, edit the file in ~/.dotfiles/dotfiles/ and run:
 #   sudo darwin-rebuild switch --flake ~/.dotfiles#macbook
-{ config, username, ... }:
+{ config, lib, pkgs, username, ... }:
 let
   # Repo checkout that the out-of-store symlinks below resolve to: herdr's
   # config.toml and ~/.claude/skills.
@@ -92,6 +92,32 @@ in
   # hand does not exist -- put it in the repo instead, which is the point.
   home.file.".claude/skills".source =
     config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/claude/skills";
+
+  # herdr's agent integrations. These are lifecycle hooks that let herdr report
+  # a pane's agent as working/blocked/idle AUTHORITATIVELY, instead of guessing
+  # by pattern-matching the terminal. They are what makes the sidebar's state
+  # rollup trustworthy.
+  #
+  # WHY THIS IS IMPERATIVE, in an otherwise declarative file: herdr owns the
+  # installed files and stamps them with its own version --
+  #   ~/.claude/hooks/herdr-agent-state.sh          (HERDR_INTEGRATION_VERSION)
+  #   ~/.config/opencode/plugins/herdr-agent-state.js
+  # The file header says reinstalling overwrites it, so writing our own copy
+  # from the store would fight herdr on every upgrade. Instead we make sure the
+  # install has RUN, and let herdr own the contents.
+  #
+  # This matters because dotfiles/claude/settings.json commits a SessionStart
+  # hook pointing at that script. Without this step a fresh machine would have
+  # a tracked reference to a file nothing creates.
+  #
+  # `integration install` is idempotent -- it reports "current" and rewrites in
+  # place. Failure is swallowed: a missing herdr must not abort activation.
+  home.activation.herdrIntegrations =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      for target in claude opencode; do
+        run ${pkgs.herdr}/bin/herdr integration install "$target" ||           echo "herdr: could not install the $target integration (continuing)"
+      done
+    '';
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
