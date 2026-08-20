@@ -36,7 +36,8 @@ herdr-worktreeizer <branch> [base]      # e.g. herdr-worktreeizer feat/thing mai
 ```
 
 Non-interactive when given arguments, which is the agent path. Without
-arguments it prompts, which is the human path (bound to prefix+shift+g).
+arguments it opens a create/open menu, which is the human path (bound to
+prefix+shift+g).
 
 Raw equivalent, if you need control over the steps:
 
@@ -52,13 +53,31 @@ The checkout lands in `~/.herdr/worktrees/<repo>/<branch with / as ->`.
 `create` fails or duplicates if the worktree exists. Use `open`:
 
 ```bash
-herdr worktree list --workspace "$WS"          # see what exists, and what is already open
-herdr worktree open --cwd <repo-root> --branch <branch> --label <label> --no-focus
+herdr-worktreeizer --open <branch>      # branch name, or the checkout's directory name
 ```
 
-The response carries `already_open`; if it is `true`, do not lay out tabs again.
-`open` works wherever the checkout lives — including `<repo>/.claude/worktrees/`
-— so there is no need to relocate anything.
+Same two-tab layout as create, and it is a no-op-plus-focus when the worktree is
+already open as a space. With no branch argument it shows a picker.
+
+Raw equivalent:
+
+```bash
+herdr worktree list --workspace "$WS"   # what exists, and what is already open
+herdr worktree open --workspace "$WS" --path <checkout> --label <label> --focus
+```
+
+Each entry in `worktree list` carries **`open_workspace_id`, present only when
+this session already has that worktree open**. When it is set, `herdr workspace
+focus "$id"` instead of opening — opening again stacks a duplicate space.
+
+Address the checkout by `--path`, not `--branch`: paths are unique, and it is
+the field `worktree list` gives you. `open` works wherever the checkout lives —
+including `<repo>/.claude/worktrees/` — so there is no need to relocate
+anything.
+
+Beware `--cwd`: when you address the source repo by directory rather than by
+`--workspace`, herdr materialises a space for the source repo too, so you get
+two new spaces instead of one.
 
 ## Resolving which workspace you are acting on
 

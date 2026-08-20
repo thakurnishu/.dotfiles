@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# Create a git worktree for a new branch and open it as a herdr space laid out
-# as two tabs: terminal, lazygit.
+# Open a git worktree as a herdr space laid out as two tabs: terminal, lazygit.
+# Either CREATE a worktree for a new branch, or OPEN one that already exists.
 #
 # The branch-level sibling of herdr-sessionizer: that one opens a space per
 # REPO, this one opens a space per BRANCH of the repo you are already in.
 # Bound to prefix+shift+g in dotfiles/herdr/config.toml, replacing herdr's
 # built-in new_worktree (which creates the space but cannot lay out tabs).
+#
+# Usage:
+#   herdr-worktreeizer                     interactive: pick create or open
+#   herdr-worktreeizer <branch> [base]     create (agent path, no prompts)
+#   herdr-worktreeizer --open [branch]     open an existing worktree
 #
 # PATH is prepended for the same reason as herdr-sessionizer: a herdr popup
 # does not reliably inherit the interactive login PATH.
@@ -47,7 +52,23 @@ print(d)
 ' "$@" 2>/dev/null
 }
 
-# Which workspace are we acting on? Two callers, two answers:
+# --- what are we doing? ---------------------------------------------------
+# --open/--create are flags rather than positional words so that a branch
+# legitimately named "open" still creates a branch.
+mode=""
+case ${1:-} in
+    --open)   mode=open;   shift ;;
+    --create) mode=create; shift ;;
+esac
+
+branch=${1:-}
+base=${2:-}
+
+# A bare branch argument means the agent path: create, no prompts.
+[[ -z $mode && -n $branch ]] && mode=create
+
+# --- which workspace are we acting on? ------------------------------------
+# Two callers, two answers:
 #
 #   * an AGENT in a pane inherits HERDR_WORKSPACE_ID -- use it, because the
 #     pane it runs in is not necessarily the focused one.
@@ -62,25 +83,137 @@ if [[ -z $ws_id ]]; then
 fi
 log "workspace resolved to '${ws_id:-<none>}' (env='${HERDR_WORKSPACE_ID:-}')"
 
-if [[ -n $ws_id ]]; then
-    src=$(herdr worktree list --workspace "$ws_id" 2>/dev/null | jget result source repo_root)
-else
-    src=$(herdr worktree list 2>/dev/null | jget result source repo_root)
+# Address the source by workspace when we have one, else by directory --
+# passing an empty --workspace is what broke the popup path.
+source_args=()
+if [[ -n ${ws_id:-} ]]; then
+    source_args=(--workspace "$ws_id")
 fi
+
+wt_json=$(herdr worktree list "${source_args[@]+"${source_args[@]}"}" 2>/dev/null)
+src=$(printf '%s' "$wt_json" | jget result source repo_root)
 
 # Last resort: ask git directly about the popup's own cwd.
 if [[ -z ${src:-} ]]; then
     src=$(git rev-parse --show-toplevel 2>/dev/null)
     log "fell back to git rev-parse: '${src:-<none>}'"
+    [[ -n ${src:-} ]] && wt_json=$(herdr worktree list --cwd "$src" 2>/dev/null)
+    source_args=(--cwd "$src")
 fi
 [[ -n ${src:-} ]] || die "this space is not inside a git repository"
+[[ ${#source_args[@]} -eq 0 ]] && source_args=(--cwd "$src")
 repo=$(basename "$src")
 
-# Non-interactive form: herdr-worktreeizer <branch> [base]. This is how an
-# AGENT calls it -- no prompts, so a Claude session in a pane can spin up its
-# own branch workspace. Also how it gets tested.
-branch=${1:-}
-base=${2:-}
+# --- shared helpers -------------------------------------------------------
+
+# gum when it is there, fzf when it is not. Items arrive on stdin as
+# "label<TAB>value" and the VALUE is what comes back on stdout.
+#   DO NOT ADD 2>/dev/null TO THE gum CALL. gum draws its list on STDERR when
+#   stdout is captured, so silencing stderr renders an invisible menu.
+pick() {
+    local header=$1 height=${2:-12}
+    if command -v gum >/dev/null 2>&1; then
+        gum choose --header="  $header" \
+            --header.foreground='#928374' \
+            --label-delimiter=$'\t' \
+            --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
+            --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
+            --height="$height"
+    else
+        fzf --prompt="$header > " --layout=reverse --height=100% \
+            --delimiter=$'\t' --with-nth=1 | cut -f2-
+    fi
+}
+
+# Tab 1 is the workspace root pane, so it only needs a name; tab 2 gets
+# lazygit on the CHECKOUT rather than on the source repo. Land on terminal.
+layout() {
+    local ws=$1 tab1=$2 checkout=$3 tabj pane
+    [[ -n $tab1 ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
+    tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
+        --label lazygit --no-focus 2>/dev/null)
+    pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+    [[ -n ${pane:-} ]] && herdr pane run "$pane" lazygit >/dev/null 2>&1
+    [[ -n $tab1 ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+}
+
+# --- mode menu ------------------------------------------------------------
+if [[ -z $mode ]]; then
+    mode=$(printf 'create   new branch + worktree\tcreate\nopen     existing worktree\topen\n' \
+        | pick "$repo" 4)
+    [[ -n ${mode:-} ]] || exit 0
+fi
+log "mode=$mode repo=$src"
+
+# ==========================================================================
+# OPEN an existing worktree
+# ==========================================================================
+if [[ $mode == open ]]; then
+    # open_workspace_id is only present when this SESSION already has the
+    # worktree open -- reopening it would stack a duplicate space, so focus
+    # the existing one instead.
+    rows=$(printf '%s' "$wt_json" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for w in d.get("result", {}).get("worktrees", []):
+    if not w.get("is_linked_worktree"):
+        continue
+    print("\t".join([
+        w.get("branch") or "(detached)",
+        w.get("path", ""),
+        w.get("open_workspace_id") or "",
+    ]))
+' 2>/dev/null)
+
+    [[ -n ${rows:-} ]] || die "$repo has no linked worktrees yet -- create one first"
+
+    # The checkout path is the value the picker returns, because it is the one
+    # field guaranteed unique -- two worktrees can never share a directory.
+    # Everything else is looked up from it, which also keeps exactly ONE tab
+    # in each picker line (gum splits label from value on the first one).
+    if [[ -n $branch ]]; then
+        # Agent path: match on branch name, else on the checkout's basename.
+        checkout=$(printf '%s\n' "$rows" | awk -F'\t' -v b="$branch" \
+            '$1==b || $2 ~ ("/" b "$") {print $2; exit}')
+        [[ -n ${checkout:-} ]] || die "no worktree for '$branch' in $repo"
+    else
+        # "branch -> dirname [open]" reads better than a wall of long paths.
+        checkout=$(printf '%s\n' "$rows" | awk -F'\t' '{
+            n = split($2, p, "/"); mark = ($3 == "" ? "" : "  [open]")
+            printf "%-38s %s%s\t%s\n", $1, p[n], mark, $2
+        }' | pick "open worktree in $repo" 14)
+        [[ -n ${checkout:-} ]] || exit 0
+    fi
+
+    wt_branch=$(printf '%s\n' "$rows" | awk -F'\t' -v c="$checkout" '$2==c {print $1; exit}')
+    open_ws=$(printf '%s\n' "$rows"  | awk -F'\t' -v c="$checkout" '$2==c {print $3; exit}')
+    log "open branch=$wt_branch checkout=$checkout already_open='${open_ws:-}'"
+
+    if [[ -n ${open_ws:-} ]]; then
+        herdr workspace focus "$open_ws" >/dev/null 2>&1 \
+            || die "could not focus the space already showing $wt_branch"
+        exit 0
+    fi
+
+    label=$(printf '%s' "$wt_branch" | tr '/' '-')
+    out=$(herdr worktree open "${source_args[@]}" \
+        --path "$checkout" --label "$label" --focus 2>&1)
+
+    ws=$(printf '%s' "$out" | jget result workspace workspace_id)
+    tab1=$(printf '%s' "$out" | jget result tab tab_id)
+    [[ -n ${ws:-} ]] || die "worktree open failed: $(printf '%s' "$out" | head -c 200)"
+    log "opened ws=$ws checkout=$checkout"
+
+    layout "$ws" "${tab1:-}" "$checkout"
+    exit 0
+fi
+
+# ==========================================================================
+# CREATE a worktree for a new branch
+# ==========================================================================
 
 # --- branch name ---------------------------------------------------------
 if [[ -n $branch ]]; then
@@ -99,15 +232,9 @@ bases=$(git -C "$src" for-each-ref --format='%(refname:short)' refs/heads 2>/dev
 current=$(git -C "$src" rev-parse --abbrev-ref HEAD 2>/dev/null)
 if [[ -n $base ]]; then
     :
-elif command -v gum >/dev/null 2>&1; then
-    base=$(printf '%s\n' "$bases" | gum choose \
-        --header="  base branch for ${branch}" \
-        --header.foreground='#928374' \
-        --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
-        --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
-        --height=12)
 else
-    base=$(printf '%s\n' "$bases" | fzf --prompt="base > " --layout=reverse --height=100%)
+    base=$(printf '%s\n' "$bases" | awk '{print $0 "\t" $0}' \
+        | pick "base branch for $branch" 12)
 fi
 # Escaping the base picker falls back to the branch that is checked out now,
 # rather than aborting work already half done.
@@ -117,34 +244,15 @@ base=${base:-$current}
 label=$(printf '%s' "$branch" | tr '/' '-')
 log "create branch=$branch base=$base repo=$src"
 
-# Address the source by workspace when we have one, else by directory --
-# passing an empty --workspace is what broke the popup path.
-create_args=(worktree create --branch "$branch" --base "$base" --label "$label" --focus)
-if [[ -n ${ws_id:-} ]]; then
-    create_args+=(--workspace "$ws_id")
-else
-    create_args+=(--cwd "$src")
-fi
-out=$(herdr "${create_args[@]}" 2>&1)
+out=$(herdr worktree create "${source_args[@]}" \
+    --branch "$branch" --base "$base" --label "$label" --focus 2>&1)
 
 ws=$(printf '%s' "$out" | jget result workspace workspace_id)
 tab1=$(printf '%s' "$out" | jget result tab tab_id)
 checkout=$(printf '%s' "$out" | jget result workspace worktree checkout_path)
 
-if [[ -z ${ws:-} ]]; then
-    die "worktree create failed: $(printf '%s' "$out" | head -c 200)"
-fi
+[[ -n ${ws:-} ]] || die "worktree create failed: $(printf '%s' "$out" | head -c 200)"
 log "created ws=$ws checkout=$checkout"
 
-# Tab 1 is the workspace root pane; it only needs a name.
-[[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
-
-# Tab 2: lazygit, on the WORKTREE checkout rather than the source repo.
-tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
-    --label lazygit --no-focus 2>/dev/null)
-pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
-[[ -n ${pane:-} ]] && herdr pane run "$pane" lazygit >/dev/null 2>&1
-
-# Land on terminal, not on lazygit.
-[[ -n ${tab1:-} ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+layout "$ws" "${tab1:-}" "$checkout"
 exit 0
