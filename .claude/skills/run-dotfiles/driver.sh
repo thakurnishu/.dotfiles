@@ -31,6 +31,7 @@ for c in /opt/homebrew/bin/brew /usr/local/bin/brew; do
     [[ -x "$c" ]] && { BREW="$c"; break; }
 done
 AEROSPACE=/opt/homebrew/bin/aerospace
+HERDR=/run/current-system/sw/bin/herdr
 
 FAILED=0
 pass() { printf '  \033[32mok\033[0m   %s\n' "$*"; }
@@ -341,6 +342,7 @@ cmd_switch() {
                 && pass "aerospace reloaded" \
                 || warn "aerospace reload failed (is it running?)"
         fi
+        cmd_herdr_reload
         echo
         echo "  .zshrc changes need a new shell:  exec zsh"
     else
@@ -348,6 +350,58 @@ cmd_switch() {
         echo "       Run it yourself with the ! prefix if this keeps failing:"
         echo "         sudo darwin-rebuild switch --flake $FLAKE"
     fi
+}
+
+# ------------------------------------------------------- herdr-reload -----
+# herdr caches config in its server, like AeroSpace does. Unlike AeroSpace
+# there can be SEVERAL servers -- one per session -- and a bare
+# `herdr server reload-config` only reaches the default one. Since
+# session-picker puts real work in the named `work` and `personal` sessions,
+# reloading only default would silently do nothing useful. So iterate.
+#
+# Note herdr/config.toml is an out-of-store symlink, so its contents change
+# the moment you edit the repo file -- no switch required. This reload is
+# what makes a running server notice.
+cmd_herdr_reload() {
+    head_ "herdr config reload"
+    if [[ ! -x "$HERDR" ]]; then
+        warn "herdr not installed, skipped"
+        return 0
+    fi
+
+    local names
+    names=$("$HERDR" session list --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for s in d.get("sessions", []):
+    if s.get("running"):
+        print(s["name"])
+' 2>/dev/null)
+
+    if [[ -z "$names" ]]; then
+        warn "no herdr server running, nothing to reload"
+        return 0
+    fi
+
+    local n out
+    while IFS= read -r n; do
+        [[ -n "$n" ]] || continue
+        # "default" is a display label; that session has no name internally,
+        # so it is addressed by omitting --session entirely.
+        if [[ "$n" == "default" ]]; then
+            out=$("$HERDR" server reload-config 2>&1)
+        else
+            out=$("$HERDR" --session "$n" server reload-config 2>&1)
+        fi
+        if [[ "$out" == *'"status":"applied"'* ]]; then
+            pass "reloaded session: $n"
+        else
+            warn "reload failed for session $n: ${out:0:80}"
+        fi
+    done <<< "$names"
 }
 
 cmd_check() {
@@ -379,9 +433,10 @@ case "${1:-check}" in
     zsh)              cmd_zsh;;
     aerospace)        cmd_aerospace;;
     aerospace-reload) cmd_aerospace_reload;;
+    herdr-reload)     cmd_herdr_reload;;
     switch)           cmd_switch "$@";;
     *)
-        echo "usage: $(basename "$0") {check|doctor|lint|build|pending|links|stale|drift|zsh|aerospace|aerospace-reload|switch}"
+        echo "usage: $(basename "$0") {check|doctor|lint|build|pending|links|stale|drift|zsh|aerospace|aerospace-reload|herdr-reload|switch}"
         exit 2;;
 esac
 exit $FAILED

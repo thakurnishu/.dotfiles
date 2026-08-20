@@ -22,7 +22,8 @@ Paths below are relative to the repo root (`~/.dotfiles`).
 for sudo (`security.pam.services.sudo_local` in `hosts/macbook/default.nix`) and
 `pam_tid` authenticates through the Security framework rather than the terminal —
 so `sudo` works from a non-interactive tool call and the human's entire job is to
-touch the sensor. Everything except `switch` and `aerospace-reload` is read-only.
+touch the sensor. Everything except `switch`, `aerospace-reload` and
+`herdr-reload` is read-only.
 
 ## Prerequisites
 
@@ -53,7 +54,8 @@ Runs `doctor`, `lint`, `build`, `pending`, `links`, `stale`, `drift`. Takes
 | `zsh` | loads the **repo** `.zshrc` in a throwaway `ZDOTDIR`, dumps keybindings |
 | `aerospace` | what the **running** WM actually has bound right now |
 | `aerospace-reload` | re-read `~/.aerospace.toml` (the running instance is stale after a switch) |
-| `switch` | **applies the config** (sudo → Touch ID prompt), then reloads AeroSpace. No-op if already applied; `switch force` re-applies anyway |
+| `herdr-reload` | re-read `herdr/config.toml` in **every running herdr session**, not just the default one |
+| `switch` | **applies the config** (sudo → Touch ID prompt), then reloads AeroSpace and herdr. No-op if already applied; `switch force` re-applies anyway |
 
 `lint`, `pending`, `stale` and `drift` were each verified to **fail** on a
 deliberately broken repo, not just to print ok.
@@ -102,6 +104,16 @@ Not run while authoring this skill, so treat as documented-but-unverified:
   focused app — e.g. `alt-shift-o` typing `Ø` instead of firing. Fix:
   `aerospace reload-config` (or `alt-shift-c`). Same shape for `.zshrc`:
   existing shells keep the old one until `exec zsh`.
+
+- **herdr caches config per SERVER, and there is one server per session.**
+  Same shape as the AeroSpace problem, but multiplied: `session-picker` starts
+  the named `work` and `personal` sessions, so a bare
+  `herdr server reload-config` reaches only `default` -- the session you do not
+  use -- and appears to succeed while changing nothing. `driver.sh herdr-reload`
+  iterates every running session; `switch` calls it for you. Note that
+  `herdr/config.toml` is an out-of-store symlink, so editing the repo file
+  changes the deployed file immediately: a reload is all that is needed, and a
+  full switch is not.
 
 - **Two kinds of symlink, and the difference is load-bearing.** Most configs are
   read-only Nix store symlinks. But `~/.config/nvim` and `~/.claude/{settings.json,
