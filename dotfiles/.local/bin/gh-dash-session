@@ -59,4 +59,25 @@ if [[ -n $account ]] && command -v gh >/dev/null 2>&1; then
     [[ -n $token ]] && export GH_TOKEN=$token
 fi
 
+# --- scope the dashboard to this repo ------------------------------------
+# gh-dash already prepends `repo:owner/name` to every section filter when it
+# can work out which repo the cwd belongs to -- but it decides that from the
+# remote's HOST, and the work remotes go through the `sp.github.com` ssh alias
+# from ~/.ssh/config. It does not recognise that as GitHub, so personal spaces
+# came out scoped and work spaces silently did not. GH_REPO states it outright.
+#
+# `t` still toggles smart filtering off in the UI if you want everything.
+if [[ -z ${GH_REPO:-} ]] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    url=$(git remote get-url origin 2>/dev/null)
+    if [[ -n ${url:-} ]]; then
+        host=$(printf '%s' "$url" | sed -E 's|^[a-z+]+://||; s|^[^@]*@||; s|[:/].*$||')
+        slug=$(printf '%s' "$url" | sed -E 's|\.git$||; s|.*[:/]([^/]+/[^/]+)$|\1|')
+        # Resolve an alias before trusting it: a non-GitHub remote would
+        # otherwise get a repo: filter that quietly matches nothing.
+        [[ $host != "github.com" ]] && \
+            host=$(ssh -G "$host" 2>/dev/null | awk '$1=="hostname"{print $2; exit}')
+        [[ ${host:-} == "github.com" && $slug == */* ]] && export GH_REPO=$slug
+    fi
+fi
+
 exec gh-dash "$@"
