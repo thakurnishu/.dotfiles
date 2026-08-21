@@ -21,6 +21,11 @@ issuesSections:
 defaults:
   preview:
     open: true
+    # Right, not the bottom the auto layout picks. A PR body is tall and
+    # narrow, so a side pane shows more of it than a full-width strip -- and
+    # the list keeps its rows. `P` still toggles at runtime, but an `auto`
+    # override is reset by a terminal resize, which is why this is pinned.
+    position: right
     width: 60
   prsLimit: 20
   issuesLimit: 20
