@@ -82,81 +82,53 @@ function tmux_provider.is_available()
 end
 
 -- ---------------------------------------------------------------- herdr ----
--- herdr equivalent of the tmux provider: Claude lives in a TAB of the current
--- workspace rather than a tmux window. herdr-sessionizer already creates a tab
--- called "claude" per project space, so this reuses it when present.
+-- Claude lives in a TAB of the current workspace rather than a tmux window.
+--
+-- Tab discovery is DELEGATED to lua/herdr-harness/, which owns it for every
+-- harness. Two config files each reimplementing "find the tab, make it, focus
+-- it" is what let this morning's claude -> harness rename break one and not the
+-- other; there is now one owner.
+--
+-- Reusing an existing tab does NOT cost you the IDE bridge, though it looks as
+-- if it should: the agent in it was started by the picker, so claudecode's env
+-- never reached it. Claude Code does not rely on that env -- claudecode.nvim
+-- advertises itself in ~/.claude/ide/<port>.lock with its port, authToken and
+-- workspaceFolders, and any Claude started in a matching folder can attach with
+-- /ide. Env is a convenience for the instance claudecode starts itself.
+local hh = require("herdr-harness.herdr")
 local herdr_provider = {}
 
-local function herdr_json(args)
-  local out = vim.fn.system(vim.list_extend({ "herdr" }, args))
-  if vim.v.shell_error ~= 0 then
-    return nil
-  end
-  local ok, decoded = pcall(vim.json.decode, out)
-  return ok and decoded or nil
-end
-
-local CLAUDE_TAB = "claude"
-
-local function herdr_find_tab()
-  local data = herdr_json({ "tab", "list" })
-  local tabs = data and data.result and data.result.tabs or {}
-  for _, t in ipairs(tabs) do
-    if t.label == CLAUDE_TAB and t.workspace_id == vim.env.HERDR_WORKSPACE_ID then
-      return t.tab_id
-    end
-  end
-  return nil
-end
+local HARNESS_TAB = "harness"
 
 function herdr_provider.setup(term_config)
   herdr_provider.config = term_config or {}
 end
 
 function herdr_provider.open(cmd_string, env_table)
-  if not in_herdr() then
+  if not hh.available() then
     vim.notify("Not inside a herdr session", vim.log.levels.WARN)
     return
   end
 
-  local existing = herdr_find_tab()
+  local existing = hh.find_pane(HARNESS_TAB)
   if existing then
-    vim.fn.system({ "herdr", "tab", "focus", existing })
+    hh.focus_tab(existing.tab_id)
     return
   end
 
-  -- The env table carries CLAUDE_CODE_SSE_PORT and the IDE integration flag;
-  -- without it the running Claude cannot talk back to this nvim.
-  local args = { "tab", "create", "--label", CLAUDE_TAB, "--focus" }
-  if vim.env.HERDR_WORKSPACE_ID then
-    table.insert(args, "--workspace")
-    table.insert(args, vim.env.HERDR_WORKSPACE_ID)
-  end
-  table.insert(args, "--cwd")
-  table.insert(args, vim.fn.getcwd())
-  for k, v in pairs(env_table or {}) do
-    table.insert(args, "--env")
-    table.insert(args, k .. "=" .. tostring(v))
-  end
-
-  local created = herdr_json(args)
-  local pane = created and created.result and created.result.root_pane
-  if not pane then
-    vim.notify("herdr: could not create the claude tab", vim.log.levels.ERROR)
+  local created = hh.create_tab(HARNESS_TAB, vim.fn.getcwd(), { env = env_table })
+  if not created or not created.pane_id then
+    vim.notify("herdr: could not create the " .. HARNESS_TAB .. " tab", vim.log.levels.ERROR)
     return
   end
-
-  -- `pane run` types into the tab's shell, so quitting Claude leaves a usable
-  -- shell instead of closing the tab.
-  local run = { "herdr", "pane", "run", pane.pane_id }
-  vim.list_extend(run, vim.split(cmd_string, " ", { trimempty = true }))
-  vim.fn.system(run)
+  hh.focus_tab(created.tab_id)
+  hh.pane_run(created.pane_id, vim.split(cmd_string, " ", { trimempty = true }))
 end
 
 function herdr_provider.close()
-  local existing = herdr_find_tab()
+  local existing = hh.find_pane(HARNESS_TAB)
   if existing then
-    vim.fn.system({ "herdr", "tab", "close", existing })
+    hh.run({ "tab", "close", existing.tab_id })
   end
 end
 
@@ -178,7 +150,7 @@ function herdr_provider.get_active_bufnr()
 end
 
 function herdr_provider.is_available()
-  return in_herdr()
+  return hh.available()
 end
 
 -- Only hand claudecode a custom provider when one is actually usable. It warns
