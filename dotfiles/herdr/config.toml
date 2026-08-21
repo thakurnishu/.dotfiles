@@ -93,3 +93,21 @@ command = "/Users/nishantsingh/.local/bin/herdr-worktreeizer"
 width = "70%"
 height = "70%"
 description = "new worktree space"
+
+# prefix+shift+a: reopen the harness picker for this space. The harness tab
+# starts one agent and then keeps it forever; this is how you get the menu back
+# to pick a different one, and how a worktree space -- laid out without a
+# harness tab at all -- gets one.
+#
+# shift+a rather than a bare letter because herdr's defaults already claim most
+# of the alphabet: h/j/k/l are pane movement, and prefix+a is close enough to
+# them to be a misfire waiting to happen.
+#
+# Refuses to type into a harness that is mid-answer; see the script.
+[[keys.command]]
+key = "prefix+shift+a"
+type = "popup"
+command = "/Users/nishantsingh/.local/bin/herdr-harness-switch"
+width = "70%"
+height = "50%"
+description = "switch harness"

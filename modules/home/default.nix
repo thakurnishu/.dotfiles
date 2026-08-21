@@ -169,6 +169,13 @@ in
     executable = true;
   };
 
+  # Bound to prefix+shift+a in dotfiles/herdr/config.toml: brings the harness
+  # picker back so you can swap claude for codex without leaving the keyboard.
+  home.file.".local/bin/herdr-harness-switch" = {
+    source = ../../dotfiles/.local/bin/herdr-harness-switch;
+    executable = true;
+  };
+
   # Launched by herdr-sessionizer as the gh-dash tab: picks the GitHub account
   # from $HERDR_SESSION so work and personal dashboards stay separate.
   home.file.".local/bin/gh-dash-session" = {

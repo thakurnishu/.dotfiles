@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+# Bring back the harness picker in this space, so you can swap claude for codex
+# without hunting for the tab and remembering the command.
+#
+# Bound to prefix+shift+a in dotfiles/herdr/config.toml.
+#
+# The picker itself lives in `harness`, which this never duplicates: it either
+# runs `harness` IN the harness pane (so the menu draws where the harness will
+# end up), or calls `harness --print` to choose a kind for a new tab.
+#
+# WHAT IT WILL NOT DO is send anything to a pane that already has a harness
+# running. A harness mid-answer is a conversation, and typing into it is not
+# recoverable, so a busy tab gets a choice instead of an action.
+#
+# PATH is prepended for the same reason as the other herdr scripts: a popup
+# does not reliably inherit the interactive login PATH.
+
+set -uo pipefail
+
+export PATH="/run/current-system/sw/bin:${HOME:-}/.nix-profile/bin:$PATH"
+
+HARNESS="$HOME/.local/bin/harness"
+
+LOG="$HOME/.cache/herdr-harness-switch.log"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null
+log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG" 2>/dev/null; }
+
+die() {
+    log "FAIL: $*"
+    printf '\n  \033[31mharness-switch:\033[0m %s\n' "$*" >&2
+    printf '  logged to %s\n' "$LOG" >&2
+    printf '  press any key to close...' >&2
+    read -rsn1 _ 2>/dev/null || sleep 5
+    exit 1
+}
+
+note() {
+    printf '\n  \033[33mharness-switch:\033[0m %s\n' "$*" >&2
+    printf '  press any key to close...' >&2
+    read -rsn1 _ 2>/dev/null || sleep 3
+}
+
+for t in herdr python3; do
+    command -v "$t" >/dev/null 2>&1 || die "$t not found on PATH ($PATH)"
+done
+[[ ${HERDR_ENV:-} == "1" ]] || die "not running inside herdr"
+[[ -x $HARNESS ]] || die "$HARNESS is not executable -- has home-manager run?"
+
+jget() {
+    python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for k in sys.argv[1:]:
+    if not isinstance(d, dict) or k not in d:
+        sys.exit(0)
+    d = d[k]
+print(d)
+' "$@" 2>/dev/null
+}
+
+# gum when it is there, fzf when it is not. Items arrive on stdin as
+# "label<TAB>value" and the VALUE comes back on stdout.
+#   DO NOT ADD 2>/dev/null TO THE gum CALL. gum draws its list on STDERR when
+#   stdout is captured, so silencing stderr renders an invisible menu.
+pick() {
+    local header=$1 height=${2:-12}
+    if command -v gum >/dev/null 2>&1; then
+        gum choose --header="  $header" \
+            --header.foreground='#928374' \
+            --label-delimiter=$'\t' \
+            --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
+            --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
+            --height="$height"
+    else
+        fzf --prompt="$header > " --layout=reverse --height=100% \
+            --delimiter=$'\t' --with-nth=1 | cut -f2-
+    fi
+}
+
+# --- which workspace are we acting on? ------------------------------------
+# Same two callers as herdr-worktreeizer: a PANE inherits HERDR_WORKSPACE_ID,
+# a POPUP does not and has to fall back to the focused space.
+ws=${HERDR_WORKSPACE_ID:-}
+snap=$(herdr api snapshot 2>/dev/null)
+[[ -n ${snap:-} ]] || die "could not reach the herdr API"
+if [[ -z $ws ]]; then
+    ws=$(printf '%s' "$snap" | jget result snapshot focused_workspace_id)
+fi
+[[ -n ${ws:-} ]] || die "could not work out which space you are in"
+
+# tab_id, its first pane, and a cwd to open new tabs at.
+#
+# One field per LINE, not one tab-separated line. A missing tab_id leaves two
+# empty leading fields, and `read a b c` collapses those into one separator no
+# matter what IFS says -- tab and space are IFS *whitespace*, which bash always
+# runs together. That made "this space has no harness tab" read as "it has one
+# called /Users/..." and skip straight past the create path.
+{
+    IFS= read -r tab
+    IFS= read -r pane
+    IFS= read -r cwd
+} < <(printf '%s' "$snap" | python3 -c '
+import json, sys
+ws = sys.argv[1]
+label = "harness"
+try:
+    s = json.load(sys.stdin)["result"]["snapshot"]
+except Exception:
+    sys.exit(0)
+
+cwd = ""
+for w in s.get("workspaces", []):
+    if w.get("workspace_id") == ws:
+        cwd = (w.get("worktree") or {}).get("checkout_path") or ""
+panes = [p for p in s.get("panes", []) if p.get("workspace_id") == ws]
+if not cwd and panes:
+    cwd = panes[0].get("cwd") or ""
+
+tab_id = pane_id = ""
+for t in s.get("tabs", []):
+    if t.get("workspace_id") == ws and t.get("label") == label:
+        tab_id = t.get("tab_id") or ""
+        # A tab can be split; prefer the focused pane over the first one.
+        own = [p for p in panes if p.get("tab_id") == tab_id]
+        focused = [p for p in own if p.get("focused")]
+        chosen = (focused or own or [None])[0]
+        pane_id = (chosen or {}).get("pane_id") or ""
+        break
+
+print(tab_id)
+print(pane_id)
+print(cwd)
+' "$ws")
+tab=${tab:-}; pane=${pane:-}; cwd=${cwd:-$HOME}
+log "ws=$ws tab='${tab}' pane='${pane}' cwd='$cwd'"
+
+# Create a harness tab, start something in it, and land on it.
+open_tab() {
+    local label=$1 cmd=$2 tabj p t
+    tabj=$(herdr tab create --workspace "$ws" --cwd "$cwd" \
+        --label "$label" --no-focus 2>&1)
+    p=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+    t=$(printf '%s' "$tabj" | jget result tab tab_id)
+    [[ -n ${p:-} ]] || die "could not create a $label tab: $(printf '%s' "$tabj" | head -c 200)"
+    herdr pane run "$p" $cmd >/dev/null 2>&1
+    [[ -n ${t:-} ]] && herdr tab focus "$t" >/dev/null 2>&1
+    log "opened tab=$t pane=$p cmd='$cmd'"
+}
+
+# --- no harness tab at all (worktree spaces are laid out without one) ------
+if [[ -z $tab ]]; then
+    open_tab harness harness
+    exit 0
+fi
+
+# --- is something already running in it? ----------------------------------
+# The JOB LEADER, not the first entry: `claude` sits behind its own `caffeinate`
+# child in foreground_processes, so the first entry names the wrong process.
+# foreground_process_group_id is exactly the pid we want.
+#
+# Compare against the SHELL rather than a list of agent names, so a harness
+# this script has never heard of still counts as running.
+running=$(herdr pane process-info --pane "$pane" 2>/dev/null | python3 -c '
+import json, sys
+SHELLS = {"zsh", "bash", "sh", "fish", "dash", "ksh"}
+try:
+    info = json.load(sys.stdin)["result"]["process_info"]
+except Exception:
+    sys.exit(0)
+lead = info.get("foreground_process_group_id")
+procs = info.get("foreground_processes") or []
+chosen = next((p for p in procs if p.get("pid") == lead), procs[0] if procs else None)
+if not chosen:
+    sys.exit(0)
+name = (chosen.get("argv0") or chosen.get("name") or "").lstrip("-")
+if name.split("/")[-1] in SHELLS:
+    sys.exit(0)
+print(name)
+' 2>/dev/null)
+log "running='${running:-<shell>}'"
+
+# --- the pane is free: reopen the picker right where it belongs -----------
+if [[ -z ${running:-} ]]; then
+    herdr pane run "$pane" harness >/dev/null 2>&1 \
+        || die "could not start the picker in $pane"
+    herdr tab focus "$tab" >/dev/null 2>&1
+    exit 0
+fi
+
+# --- the pane is busy: your call, not mine --------------------------------
+choice=$(printf 'focus     go quit %s yourself, then press again\tfocus\nnew tab   run a second harness alongside it\tnewtab\n' \
+    "$running" | pick "harness tab is running $running" 4)
+[[ -n ${choice:-} ]] || exit 0
+
+case $choice in
+    focus)
+        herdr tab focus "$tab" >/dev/null 2>&1
+        ;;
+    newtab)
+        # Choose here in the popup rather than in the new pane, so the tab can
+        # carry the harness's own name -- two tabs both labelled "harness"
+        # would be ambiguous to the nvim bridge, which finds panes by label.
+        kind=$("$HARNESS" --print)
+        [[ -n ${kind:-} ]] || exit 0
+        open_tab "$kind" "$kind"
+        ;;
+esac
+exit 0

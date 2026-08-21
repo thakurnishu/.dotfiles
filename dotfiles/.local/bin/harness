@@ -17,12 +17,22 @@
 # under it, so quitting drops you at the pane's shell, where running `harness`
 # again picks a different one.
 #
+# --print offers the same menu but writes the choice to stdout instead of
+# becoming it. That is how herdr-harness-switch reuses this menu from a POPUP,
+# where exec would replace the popup rather than the harness pane.
+#
 # PATH is prepended for the same reason as the other herdr scripts: a tab
 # spawned by herdr does not reliably inherit the interactive login PATH.
 
 set -uo pipefail
 
 export PATH="/run/current-system/sw/bin:${HOME:-}/.nix-profile/bin:$PATH"
+
+print_only=0
+if [[ ${1:-} == --print ]]; then
+    print_only=1
+    shift
+fi
 
 # herdr agent start --kind, as of 0.x. Anything not installed is skipped, so
 # this list costs nothing to keep long.
@@ -54,6 +64,10 @@ fi
 
 # A menu of one is just a slower way to start it.
 if [[ ${#available[@]} -eq 1 ]]; then
+    if [[ $print_only == 1 ]]; then
+        printf '%s\n' "${available[0]}"
+        exit 0
+    fi
     exec "${available[0]}" "$@"
 fi
 
@@ -95,5 +109,10 @@ fi
 # Escaping the menu leaves you at the shell rather than starting something you
 # did not ask for.
 [[ -n ${choice:-} ]] || exit 0
+
+if [[ $print_only == 1 ]]; then
+    printf '%s\n' "$choice"
+    exit 0
+fi
 
 exec "$choice" "$@"
