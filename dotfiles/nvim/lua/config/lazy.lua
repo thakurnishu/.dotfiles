@@ -195,6 +195,14 @@ require("lazy").setup({
       dependencies = {
         { "folke/snacks.nvim", optional = true },
       },
+      -- Off, and unlike claudecode this one was already dead: every path in
+      -- after/plugin/opencode.lua goes through tmux, so under herdr  is
+      -- nil, no tmux server runs, and its port computes to nil. It was still
+      -- holding <C-a>/<C-x> for that dead path -- and had remapped increment
+      -- and decrement to +/- to free them. Disabling gives those back.
+      --
+      -- herdr-harness covers opencode the same as any other harness.
+      enabled = false,
     },
 
 --    {
@@ -206,6 +214,20 @@ require("lazy").setup({
       "coder/claudecode.nvim",
       dependencies = { "folke/snacks.nvim" },
       lazy = false, -- Must load on startup so keymaps in after/plugin/claude.lua are registered
+      -- PHASE A: off, so nvim -> harness can be judged on its own.
+      --
+      -- Disabling here rather than editing after/plugin/claude.lua: that file
+      -- opens with  and returns when the plugin
+      -- is absent, so this one flag takes its keymaps AND its websocket IDE
+      -- server with it. The file stays intact, unedited, for phase B.
+      --
+      -- While this is false you lose, for Claude only: in-editor diffs
+      -- (<leader>aa / <leader>ad), model select, --resume / --continue.
+      -- <leader>a* is then uniformly herdr-harness, every key working for
+      -- every harness -- which is the property being tested.
+      --
+      -- Phase B: flip to true, then decide (docs/nvim-harness-bridge.md B5).
+      enabled = false,
     },
 
     {
