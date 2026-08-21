@@ -14,6 +14,18 @@ format = "$character$directory$python$git_branch${custom.git_dirty} "
 
 add_newline = false
 
+# custom.git_dirty below shells out to git three times per prompt. That takes
+# ~80ms in fcc-monorepo (4,289 files) -- comfortable against starship's 500ms
+# default, until a space first opens and the shell, lazygit, gh-dash and
+# `hunk diff --watch` all hit the same repo at once on a cold cache. Then it
+# blows the budget, starship kills it, and the prompt warns and drops the ✗.
+#
+# 2s is far more than the module needs, so this now only trips when something
+# is genuinely stuck -- which is the case worth being told about. The cost is
+# that this is GLOBAL: any custom command that truly hangs stalls the prompt
+# for 2s rather than 0.5s.
+command_timeout = 2000
+
 [character]
 # The default format is "$symbol " — that trailing space would make three
 # spaces after the arrow instead of two.
