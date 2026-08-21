@@ -5,17 +5,22 @@
 -- selection, and edit it. Sending bare code throws that away.
 local M = {}
 
---- Path relative to nvim's cwd, which in a herdr space is the workspace root.
---- Shorter to read, and it is the form the harnesses' own tools expect.
-local function relpath(bufnr)
+--- Absolute path.
+---
+--- Relative was the first cut, and it was wrong: it resolves against NVIM's
+--- cwd, and nvim is frequently opened in a subdirectory while the harness pane
+--- sits at the workspace root. The same "src/thing.ts" then means two different
+--- files, and the harness silently reads the wrong one -- or none. Absolute
+--- costs some width in the prompt and removes the ambiguity entirely.
+local function filepath(bufnr)
   local name = vim.api.nvim_buf_get_name(bufnr or 0)
   if name == "" then
     return nil
   end
-  return vim.fn.fnamemodify(name, ":.")
+  return vim.fn.fnamemodify(name, ":p")
 end
 
-M.relpath = relpath
+M.filepath = filepath
 
 --- The visual selection, as text plus its line range.
 --- Called from a visual-mode mapping, so the selection is still live: "v" is
@@ -39,7 +44,7 @@ function M.selection()
 
   return {
     text = table.concat(lines, "\n"),
-    path = relpath(),
+    path = filepath(),
     first = first,
     last = last,
   }
@@ -47,7 +52,7 @@ end
 
 --- A reference to the whole current buffer.
 function M.buffer()
-  local path = relpath()
+  local path = filepath()
   if not path then
     return nil, "buffer has no file"
   end
@@ -63,7 +68,7 @@ function M.tree_file()
     local state = api.get_state("filesystem")
     local node = state and state.tree and state.tree:get_node()
     if node and node.path then
-      return { path = vim.fn.fnamemodify(node.path, ":.") }
+      return { path = vim.fn.fnamemodify(node.path, ":p") }
     end
   end
 
@@ -72,13 +77,13 @@ function M.tree_file()
     local entry = oil.get_cursor_entry()
     local dir = oil.get_current_dir()
     if entry and dir then
-      return { path = vim.fn.fnamemodify(dir .. entry.name, ":.") }
+      return { path = vim.fn.fnamemodify(dir .. entry.name, ":p") }
     end
   end
 
   local cfile = vim.fn.expand("<cfile>")
   if cfile ~= "" then
-    return { path = vim.fn.fnamemodify(cfile, ":.") }
+    return { path = vim.fn.fnamemodify(cfile, ":p") }
   end
   return nil, "no file under the cursor"
 end
