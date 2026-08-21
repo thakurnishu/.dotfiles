@@ -93,10 +93,24 @@ in
   home.file.".claude/skills".source =
     config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/claude/skills";
 
-  # herdr's agent integrations. These are lifecycle hooks that let herdr report
-  # a pane's agent as working/blocked/idle AUTHORITATIVELY, instead of guessing
-  # by pattern-matching the terminal. They are what makes the sidebar's state
-  # rollup trustworthy.
+  # herdr's agent integrations. WHAT THEY REPORT DIFFERS BY AGENT, and an
+  # earlier version of this comment had it wrong for claude:
+  #
+  #   claude (v7)    reports the SESSION ID and nothing else, via
+  #                  pane.report_agent_session. It never reports
+  #                  working/idle/blocked -- herdr infers that by pattern
+  #                  matching the terminal against
+  #                  ~/.local/state/herdr/agent-detection/remote/claude.toml,
+  #                  mostly off the spinner glyph Claude Code puts in the OSC
+  #                  title. `herdr agent explain <pane>` names the rule that
+  #                  fired and quotes the evidence. The id is what lets
+  #                  [session] resume_agents_on_restore bring an agent back on
+  #                  the same conversation rather than a blank one.
+  #
+  #   opencode (v9)  reports BOTH, calling pane.report_agent as well. It hooks
+  #                  real lifecycle events (session.idle, permission.asked,
+  #                  tool.execute.before/after), so ITS state is authoritative
+  #                  where claude's is inference.
   #
   # WHY THIS IS IMPERATIVE, in an otherwise declarative file: herdr owns the
   # installed files and stamps them with its own version --
