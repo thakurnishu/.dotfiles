@@ -1,153 +1,204 @@
-# Plan: nvim ↔ harness, for every harness
+# Plan: two-way nvim ↔ harness, for every harness
 
-**Branch:** `feat/nvim-harness-bridge` · **Status:** proposal, nothing implemented yet
+**Branch:** `feat/nvim-harness-bridge` · **Status:** proposal, nothing implemented
 
-> Revised. The first draft recommended ACP via `agentic.nvim`. Probing herdr's
-> own API showed that is more machinery than the job needs — see "Why we do not
-> need a protocol".
+> Third draft. First chased ACP + `agentic.nvim`; second dropped protocols for
+> one-way `send-text`. This one is two-way, which needs a real component — but
+> a smaller and more general one than the ACP route.
 
-## The problem
+## Goal
 
-The `terminal` tab and the `harness` tab share a directory and nothing else.
-Under tmux they talked: `claudecode.nvim` ran a WebSocket server inside nvim,
-Claude connected to it as an "IDE", and that bought `<leader>as` to send a
-selection and `<leader>ab` to add a buffer.
+What `claudecode.nvim` gives you with Claude today, available whichever harness
+the picker started:
 
-That integration is Claude-specific, and the tab is now a picker that can start
-codex or opencode instead.
+- nvim pushes context to the harness (selection, buffer, file refs)
+- the harness reaches back into nvim (open a file at a line, read the selection,
+  see LSP diagnostics, propose a diff you accept or reject in the editor)
 
-## What is broken right now
+## The two directions use different mechanisms
 
-`dotfiles/nvim/after/plugin/claude.lua:99` still says:
+Both proven on this machine before writing this.
 
-```lua
-local CLAUDE_TAB = "claude"
-```
-
-Every tab was renamed to `harness` this morning. The lookup finds nothing, so
-`<leader>ac` **creates a duplicate `claude` tab** instead of reusing the one that
-is there. One line, fix it first regardless of everything below.
-
-## Why we do not need a protocol
-
-The three harnesses speak three different protocols — Claude a WebSocket IDE
-protocol, opencode built-in ACP, codex an experimental app-server. Chasing that
-means either three bespoke bridges or adopting ACP and a general-purpose chat
-plugin.
-
-**But they all have one thing in common: they are TUIs reading from a terminal.**
-And herdr can type into a terminal. Verified on this machine — `cat` running in a
-pane, text sent from outside:
+### nvim → harness: herdr types into the pane
 
 ```bash
-herdr pane send-text wG:p4 "$(printf 'Explain this:\n\nfunction add(a, b) {\n  return a + b\n}\n')"
+herdr pane send-text <pane> "$(printf 'Explain:\n\nfn add(a,b){}\n')"
 ```
 
-```
-Explain this:
+Multi-line, verbatim, into an unfocused pane. `herdr agent prompt <pane> <text>`
+is the nicer variant — it submits — but requires herdr to have detected an agent
+(`agent_not_found` otherwise), so `send-text` is the fallback.
 
-function add(a, b) {
-  return a + b
-}
-```
+Harness-agnostic by construction: it does not know what is running in the pane.
 
-Multi-line, verbatim, no escaping problems. There is also `herdr agent prompt
-<pane> <text>`, which *submits* rather than just typing — nicer, but it requires
-herdr to have detected an agent in that pane (`agent_not_found` otherwise), so
-`send-text` is the fallback that always works.
+### harness → nvim: MCP, into nvim's RPC socket
 
-That is the entire transport. It is harness-agnostic **by construction**: it does
-not know or care what is running in the pane, so a harness we install next month
-works with no code change. No ACP, no WebSocket server, no herdr plugin, no
-third-party nvim plugin.
+**All three harnesses speak MCP.** Verified: `claude mcp add <name> <cmd> [args]`,
+`codex mcp add <NAME> -- <COMMAND>`, `opencode mcp add`.
 
-## What we build
+**nvim exposes a full RPC API to any process.** Verified — an outside process
+reading and writing a running nvim:
 
-One Lua file, replacing the provider machinery in `claude.lua`. Roughly 80 lines.
-
-**Finding the harness pane.** nvim is in a pane, so it has `HERDR_WORKSPACE_ID`.
-Ask herdr for that workspace's panes, take the one whose tab is labelled
-`harness`. If the tab exists but is sitting at a shell, run `harness` in it; if
-it does not exist, create it.
-
-**Sending.** Try `agent prompt` first, fall back to `pane send-text`:
-
-```lua
--- selection + where it came from, so the harness can open the file itself
-local payload = string.format("%s:%d-%d\n\n%s", relpath, first, last, text)
+```bash
+$ nvim --server $SOCK --remote-expr 'expand("%:p")'
+/…/sample.txt
+$ nvim --server $SOCK --remote-expr 'luaeval("(function() vim.api.nvim_buf_set_lines(0,1,2,false,{\"CHANGED\"}) return \"ok\" end)()")'
+ok
+$ nvim --server $SOCK --remote-expr 'join(getline(1,"$"), " | ")'
+line one | CHANGED | line three
+$ nvim --server $SOCK --remote-expr 'luaeval("(function() vim.cmd(\"edit +2 /etc/hosts\") return … end)()")'
+/etc/hosts:2
 ```
 
-**The keymaps**, keeping the muscle memory already in `claude.lua`:
+Note `--remote-send` is the wrong tool — keystrokes land literally in the buffer.
+`--remote-expr` with `luaeval` is the programmatic path.
+
+So the missing piece is one process that speaks MCP on one side and nvim RPC on
+the other. **That is the thing we build.** One server, all three harnesses,
+because MCP is the common denominator rather than an adapter per harness.
+
+## Architecture
+
+```
+┌─ terminal tab ─────────────┐         ┌─ harness tab ─────────────────┐
+│ nvim                       │         │ claude │ codex │ opencode     │
+│                            │         │            │                  │
+│  serverstart(SOCK) ◄───────┼── RPC ──┼── herdr-nvim-mcp (stdio MCP)  │
+│                            │         │            ▲                  │
+│  <leader>as ───────────────┼─────────┼─ herdr pane send-text ────────┤
+└────────────────────────────┘         └───────────────────────────────┘
+             both sides derive SOCK from $HERDR_WORKSPACE_ID
+```
+
+### Socket discovery
+
+nvim and the MCP server are in different panes of the same **workspace**, and
+both inherit `HERDR_WORKSPACE_ID` from herdr. So both compute the same path with
+no registry, no config, no discovery protocol:
+
+```
+${XDG_STATE_HOME:-~/.local/state}/herdr-nvim/<HERDR_WORKSPACE_ID>.sock
+```
+
+nvim publishes it — `vim.fn.serverstart(path)` verified working — and the MCP
+server connects to it. When nvim is not running, tools return "no editor in this
+workspace" rather than failing obscurely.
+
+**Collision:** two nvims in one workspace both want that path. v1 rule: first one
+wins, the second runs without publishing. Good enough for terminal-tab-plus-nvim,
+and the failure mode is "the harness talks to the other nvim", not a crash. If it
+bites, the fix is a per-pane socket plus a `list_editors` tool.
+
+## Components
+
+### 1. `dotfiles/nvim/after/plugin/harness.lua`
+
+Replaces the ~140 lines of provider machinery in `claude.lua`.
+
+- On startup inside herdr: `serverstart` at the workspace socket path
+- Find the `harness` tab's pane from `herdr api snapshot`
+- Send helpers, `agent prompt` first and `pane send-text` as fallback
+- Keymaps, keeping the fingers already trained:
 
 | Key | Does |
 |---|---|
-| `<leader>ac` | focus the harness tab (start one if the pane is at a shell) |
-| `<leader>as` | send the visual selection, prefixed with `path:line-line` |
-| `<leader>ab` | send the current buffer's path as a reference |
-| `<leader>aa` | send the file under the cursor in a tree buffer |
+| `<leader>ac` | focus the harness tab, starting `harness` if the pane is at a shell |
+| `<leader>as` | send visual selection, prefixed `path:first-last` |
+| `<leader>ab` | send the current buffer as a reference |
+| `<leader>aa` / `<leader>ad` | accept / reject a proposed diff |
 
-Same prefix, same fingers, works whichever harness the picker started.
+### 2. `dotfiles/.local/bin/herdr-nvim-mcp`
 
-## What this gives up
+A stdio MCP server. **`python3Packages.mcp` is in nixpkgs at 1.29.0**, so this is
+an SDK server rather than hand-rolled JSON-RPC.
 
-Worth being explicit, because it is a real trade and not a rounding error.
+Tools exposed to the harness:
 
-`claudecode.nvim`'s IDE protocol is **two-way**. Ours is **one-way** — nvim
-pushes context, the harness answers in its own pane. So we lose:
+| Tool | Direction | Notes |
+|---|---|---|
+| `editor_context` | read | current file, cursor, visual selection |
+| `list_buffers` | read | what is open, with modified flags |
+| `read_buffer` | read | unsaved contents — the harness sees what you see, not what is on disk |
+| `diagnostics` | read | **LSP errors/warnings.** nvim has language servers; the harness does not. Highest-value tool here. |
+| `open_file` | write | jump the editor to `path:line` |
+| `propose_diff` | write | opens a diff buffer for review — the `claudecode.nvim` feature we would otherwise lose |
+| `notify` | write | message in the editor |
 
-- **Diffs opening as nvim buffers**, with `<leader>aa` / `<leader>ad` to accept or deny. This is the big one. You configured unified layout and custom highlight groups for it.
-- The harness seeing your cursor and selection **without being told**.
-- `ClaudeCodeAdd`-style structured file references — ours are plain text the harness has to interpret.
+Read tools first; they cannot damage anything.
 
-You read the harness's output in the harness pane, the way you would if you had
-typed the prompt yourself. For a workflow where the harness edits files and you
-review them in the `hunk` tab, that may be the whole of what you need — but it is
-less than what you have with Claude today.
+### 3. Registration — the part that must stay declarative
 
-**Mitigation, if the diffs turn out to matter:** keep `claudecode.nvim` bound to
-its own prefix for when the harness is Claude, and use the universal bridge for
-everything else. Costs a second keymap namespace and the code stays around.
+`claude mcp add --scope user` writes `~/.claude.json`; codex writes `~/.codex/`;
+opencode its own config. **All untracked state**, the exact problem the gh-dash
+extension note in `packages.nix` already calls out.
+
+Options, in order of preference:
+
+1. **Write the config files from Nix** where each harness reads a plain file we can own — the way `dotfiles/claude/settings.json` is already an out-of-store symlink.
+2. **`home.activation`** running each harness's `mcp add`, idempotently — the pattern already used for `herdr integration install`.
+3. Project-scoped `.mcp.json`, which pollutes every repo. Rejected.
+
+This needs deciding before Phase 3, not after: get it wrong and a fresh machine
+silently has no bridge.
 
 ## Phases
 
+Each is separately mergeable.
+
 ### Phase 1 — fix the stale tab name *(do now, independent)*
-`CLAUDE_TAB = "claude"` → `"harness"`.
-**Done when:** `<leader>ac` focuses the existing tab and the tab count stops growing.
+`claude.lua:99` still says `CLAUDE_TAB = "claude"`; the rename to `harness` broke
+the lookup so `<leader>ac` spawns a duplicate tab.
+**Done when:** `<leader>ac` focuses the existing tab, tab count stops growing.
 
-### Phase 2 — the bridge
-New `dotfiles/nvim/after/plugin/harness.lua`: pane discovery, send, the four keymaps.
-**Done when:** a visual selection lands in the harness pane, with claude, codex and opencode in turn.
+### Phase 2 — nvim → harness *(useful alone)*
+`harness.lua`: pane discovery, send helpers, keymaps, `serverstart`.
+**Done when:** a selection lands in the harness pane, with claude, codex and
+opencode in turn.
 
-### Phase 3 — decide about claudecode.nvim
-Use Phase 2 for a few days of real work, then either delete the ~140 lines of
-provider code in `claude.lua`, or keep it on a second prefix for Claude's diffs.
-**Explicitly deferred** — this is the question the first draft tried to answer
-before there was any evidence.
+### Phase 3 — harness → nvim, read-only
+`herdr-nvim-mcp` with `editor_context`, `list_buffers`, `read_buffer`,
+`diagnostics`. Registration decided per the section above.
+**Done when:** each harness can answer "what am I looking at?" and "what are the
+LSP errors in this file?"
 
-### Phase 4 — a herdr plugin *(optional, probably not)*
-herdr does have a real plugin system, verified: `herdr-plugin.toml`, actions as
-plain processes, `herdr plugin link`. The invocation context carries
-`workspace_cwd`, `tab_label`, `focused_pane_id`, `selected_text` and — the useful
-one — **`focused_pane_agent`**, which reported `"claude"` correctly in a probe.
+### Phase 4 — write tools
+`open_file`, `propose_diff`, `notify`.
+**Done when:** the harness proposes an edit and it opens as a diff in nvim.
 
-It would let herdr *itself* act on the editor, which no nvim plugin can do. But
-nothing in Phases 1–3 needs it: nvim already knows its workspace from the
-environment, and `herdr` on PATH is the whole API. **Do not build this until
-there is a concrete want it answers.**
+### Phase 5 — decide about claudecode.nvim
+After real use: delete its provider code, or keep it on a second prefix for
+Claude's native diffs. **Deliberately deferred** — no evidence yet.
 
-## Open questions
+## Does this need a herdr plugin?
 
-1. **Does `agent prompt` submit reliably across all three?** It presses enter for you. If codex or opencode need a different key to send, `send-text` plus an explicit `send-keys enter` is the fallback. Test in Phase 2.
-2. **Does the harness pane need to be focused to receive input?** `send-text` worked on an unfocused pane in the probe, but that pane was running `cat`, not a TUI with its own input handling.
-3. **What does a harness do with a multi-line paste?** Some TUIs treat a newline as submit and would fire the prompt half-written. Bracketed paste may be needed — `send-text` may already handle it; worth checking per harness.
+herdr has a real plugin system — verified by linking a probe and reading what the
+action received: `herdr-plugin.toml`, actions as plain processes, and an
+invocation context carrying `workspace_cwd`, `tab_label`, `focused_pane_id`,
+`selected_text`, and `focused_pane_agent` (which correctly reported `"claude"`).
+
+**But nothing in Phases 1–4 needs it.** nvim gets its workspace from the
+environment; the MCP server gets it the same way; `herdr` on PATH is the whole
+API. A herdr plugin buys one thing neither side can do: letting *herdr* act on
+the editor — a herdr keybinding that sends the focused pane's selection into
+nvim, say. Worth building when there is a concrete want. Not now.
+
+## Risks and unknowns
+
+1. **Does the MCP server inherit `HERDR_WORKSPACE_ID`?** It is spawned by the harness, which has it, so ordinary process inheritance says yes — but unverified, and the whole discovery scheme rests on it. **First thing Phase 3 checks.** Fallback: pass it at registration time via `codex --env` / equivalent.
+2. **Multi-line paste into a TUI.** Some TUIs treat newline as submit and would fire a half-written prompt. `cat` cannot tell us; each harness must be tried. May need bracketed paste or `send-keys enter` separately.
+3. **Two nvims, one workspace.** Documented above; first wins.
+4. **MCP config as untracked state.** The registration question. Bad answer here means a fresh machine has no bridge and nothing says so.
+5. **`propose_diff` scope.** Rebuilding claudecode.nvim's diff UI is the largest single piece of work in this plan and the most likely to disappoint. If Phase 4 gets ugly, keeping claudecode.nvim for Claude and living with one-way for the others is a legitimate stopping point.
 
 ## Verified vs assumed
 
-**Verified on this machine:** the stale `CLAUDE_TAB`; that `pane send-text`
-delivers multi-line text verbatim to an unfocused pane; that `agent prompt`
-requires a detected agent and errors cleanly otherwise; herdr's plugin manifest
-format and full invocation context, by linking a probe plugin and reading what
-the action received; the CLI surfaces of `claude`, `codex` and `opencode`.
+**Verified on this machine:** `pane send-text` delivers multi-line text verbatim
+to an unfocused pane; `agent prompt` requires a detected agent; nvim RPC
+round-trip (read buffer, query file, write lines, open at line) from an outside
+process; `--remote-send` is unsuitable while `--remote-expr` + `luaeval` works;
+`vim.fn.serverstart` publishes a predictable socket; all three harnesses expose
+`mcp add`; `python3Packages.mcp` 1.29.0 is in nixpkgs; herdr's plugin manifest
+format and invocation context; the stale `CLAUDE_TAB`.
 
-**Assumed:** how each harness's TUI reacts to injected multi-line text. That is
-question 3, and it is the one thing that could force this design to change.
+**Assumed:** MCP env inheritance (risk 1); TUI paste behaviour (risk 2); that
+`propose_diff` can be made pleasant (risk 5).
