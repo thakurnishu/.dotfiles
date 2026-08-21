@@ -16,7 +16,7 @@ M.config = {
   tab_label = "harness",   -- the tab herdr-sessionizer creates
   command = { "harness" }, -- what to run when that tab is at a shell
   submit = false,          -- type the payload and leave the cursor there
-  focus_on_send = false,   -- stay in nvim after sending
+  focus_on_send = true,    -- land in the harness, where you finish the prompt
 }
 
 local function warn(msg)
@@ -83,7 +83,11 @@ function M.send_text(text, opts)
     warn("send failed: " .. tostring(err))
     return false
   end
-  if opts.focus == nil and M.config.focus_on_send or opts.focus then
+  local want_focus = opts.focus
+  if want_focus == nil then
+    want_focus = M.config.focus_on_send
+  end
+  if want_focus then
     herdr.focus_tab(p.tab_id)
   end
   return true
@@ -123,7 +127,10 @@ end
 
 local function keymaps()
   local map = vim.keymap.set
-  map("n", "<leader>ac", M.focus, { desc = "Focus harness" })
+  -- Normal AND visual: you select something, then decide to go and talk about
+  -- it. Binding this in normal mode only meant <leader>ac did nothing at all
+  -- from a selection, which is exactly when you want it.
+  map({ "n", "x" }, "<leader>ac", M.focus, { desc = "Focus harness" })
   map("x", "<leader>as", function() M.send_selection() end, { desc = "Send selection to harness" })
   map("n", "<leader>ab", function() M.send_buffer() end, { desc = "Send buffer ref to harness" })
 

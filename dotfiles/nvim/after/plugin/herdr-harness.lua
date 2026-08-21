@@ -7,7 +7,9 @@ end
 
 harness.setup({
   -- submit = true would press enter for you. Off by default: sending a
-  -- selection is usually the START of a question, not the whole of one.
+  -- selection is usually the START of a question, not the whole of one --
+  -- which is also why focus_on_send is on. You are taken to the harness with
+  -- the code already typed in, ready to say what you want done with it.
   submit = false,
-  focus_on_send = false,
+  focus_on_send = true,
 })
