@@ -13,9 +13,9 @@
 # ends the running agent's session, which is the point -- escaping the picker
 # is the way to change nothing.
 #
-# In the SAME PANE, not a fresh tab, because herdr has no `tab move`: closing
-# the harness tab and creating another sends it to the end of the tab bar, so
-# prefix+2 would quietly stop being the harness.
+# In the SAME PANE, not a fresh tab: a new tab is cheap to place correctly but
+# the running harness's tab id is what the nvim bridge and your muscle memory
+# both already point at, so reusing it is simply less to go wrong.
 #
 # PATH is prepended for the same reason as the other herdr scripts: a popup
 # does not reliably inherit the interactive login PATH.
@@ -142,22 +142,80 @@ print(cwd)
 tab=${tab:-}; pane=${pane:-}; cwd=${cwd:-$HOME}
 log "ws=$ws tab='${tab}' pane='${pane}' cwd='$cwd'"
 
+# herdr's socket API has tab.move; the CLI does not expose it, so talk to the
+# socket. Without this a created tab lands at the END of the tab bar, which is
+# the wrong place for the harness -- it belongs at prefix+2, next to terminal.
+#
+# prefix+1..9 follows tab ORDER, not the stable `number` field. Verified in a
+# throwaway session: a tab moved into slot 2 answers prefix+2 while still
+# reporting number=4, and closing a tab leaves a gap in the numbers rather
+# than renumbering. So moving the tab really does move the keybinding.
+api() {
+    python3 - "$1" "$2" <<'PYEOF'
+import json, os, socket, sys
+sock = os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser(
+    "~/.config/herdr/sessions/%s/herdr.sock" % os.environ.get("HERDR_SESSION", "default"))
+try:
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(5)
+    s.connect(sock)
+    s.sendall((json.dumps({"id": "harness-switch", "method": sys.argv[1],
+                           "params": json.loads(sys.argv[2])}) + "\n").encode())
+    buf = b""
+    while b"\n" not in buf:
+        chunk = s.recv(65536)
+        if not chunk:
+            break
+        buf += chunk
+    s.close()
+    sys.stdout.write(buf.decode().splitlines()[0])
+except Exception:
+    sys.exit(1)
+PYEOF
+}
+
+# Slot directly after the tab labelled "terminal", which is how sessionizer
+# lays a space out. insert_index is 0-BASED, so "index of terminal + 1" is the
+# slot after it. Falls back to 1 (second position) when there is no terminal
+# tab to anchor to.
+place_after_terminal() {
+    local tab_id=$1 idx
+    idx=$(api tab.list "{\"workspace_id\":\"$ws\"}" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    tabs = json.load(sys.stdin)["result"]["tabs"]
+except Exception:
+    sys.exit(0)
+for i, t in enumerate(tabs):
+    if t.get("label") == "terminal":
+        print(i + 1)
+        break
+else:
+    print(1)
+' 2>/dev/null)
+    [[ -n ${idx:-} ]] || idx=1
+    api tab.move "{\"tab_id\":\"$tab_id\",\"insert_index\":$idx}" >/dev/null 2>&1 \
+        || log "tab.move failed; $tab_id stays at the end of the tab bar"
+    log "placed $tab_id at insert_index $idx"
+}
+
 # Create a harness tab, start something in it, and land on it.
 open_tab() {
-    local label=$1 cmd=$2 tabj p t
+    local label=$1 cmd=$2 place=${3:-} tabj p t
     tabj=$(herdr tab create --workspace "$ws" --cwd "$cwd" \
         --label "$label" --no-focus 2>&1)
     p=$(printf '%s' "$tabj" | jget result root_pane pane_id)
     t=$(printf '%s' "$tabj" | jget result tab tab_id)
     [[ -n ${p:-} ]] || die "could not create a $label tab: $(printf '%s' "$tabj" | head -c 200)"
     herdr pane run "$p" $cmd >/dev/null 2>&1
+    [[ -n ${t:-} && $place == after-terminal ]] && place_after_terminal "$t"
     [[ -n ${t:-} ]] && herdr tab focus "$t" >/dev/null 2>&1
     log "opened tab=$t pane=$p cmd='$cmd'"
 }
 
 # --- no harness tab at all (worktree spaces are laid out without one) ------
 if [[ -z $tab ]]; then
-    open_tab harness harness
+    open_tab harness harness after-terminal
     exit 0
 fi
 
