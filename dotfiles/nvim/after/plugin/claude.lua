@@ -89,12 +89,12 @@ end
 -- it" is what let this morning's claude -> harness rename break one and not the
 -- other; there is now one owner.
 --
--- CAVEAT worth knowing: when the tab already exists, the agent in it was
--- started by the picker WITHOUT claudecode's env, so CLAUDE_CODE_SSE_PORT never
--- reached it and the IDE bridge is inactive for that instance. Reuse is still
--- the right default -- you get the tab you expect rather than a second one --
--- but the in-editor diffs only work when claudecode started the agent itself.
--- The harness-agnostic path in herdr-harness has no such condition.
+-- Reusing an existing tab does NOT cost you the IDE bridge, though it looks as
+-- if it should: the agent in it was started by the picker, so claudecode's env
+-- never reached it. Claude Code does not rely on that env -- claudecode.nvim
+-- advertises itself in ~/.claude/ide/<port>.lock with its port, authToken and
+-- workspaceFolders, and any Claude started in a matching folder can attach with
+-- /ide. Env is a convenience for the instance claudecode starts itself.
 local hh = require("herdr-harness.herdr")
 local herdr_provider = {}
 
