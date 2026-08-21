@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pick a project directory with fzf, then create-or-focus a herdr workspace
-# for it laid out as tabs: terminal and claude always, plus lazygit and
+# for it laid out as tabs: terminal and harness always, plus lazygit and
 # gh-dash when the directory is a git repo.
 #
 # The herdr counterpart to tmux-sessionizer, and deliberately the same shape:
@@ -193,9 +193,9 @@ fi
 # and lazygit and gh-dash have nothing to show outside a repo. `rev-parse`
 # rather than a `.git` test: it is also true in subdirectories and in worktree
 # checkouts, where `.git` is a file or absent entirely.
-# hunk goes LAST so the existing tab numbers do not move: terminal, claude,
+# hunk goes LAST so the existing tab numbers do not move: terminal, harness,
 # lazygit, gh-dash are already muscle memory at prefix+1..4.
-tab_specs=("claude:claude")
+tab_specs=("harness:harness")
 if git -C "$selected" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     tab_specs+=("lazygit:lazygit" "gh-dash:gh-dash-session" "hunk:hunk diff --watch")
     log "git repo: $selected -- creating lazygit, gh-dash and hunk tabs"

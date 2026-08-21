@@ -160,6 +160,15 @@ in
     executable = true;
   };
 
+  # The "harness" tab in every space: offers whichever agent CLIs are actually
+  # installed and becomes the one you pick. Discovery is dynamic, so adding a
+  # harness to modules/darwin/packages.nix is the whole job -- the script does
+  # not name them.
+  home.file.".local/bin/harness" = {
+    source = ../../dotfiles/.local/bin/harness;
+    executable = true;
+  };
+
   # Launched by herdr-sessionizer as the gh-dash tab: picks the GitHub account
   # from $HERDR_SESSION so work and personal dashboards stay separate.
   home.file.".local/bin/gh-dash-session" = {
