@@ -20,6 +20,8 @@
 # --print offers the same menu but writes the choice to stdout instead of
 # becoming it. That is how herdr-harness-switch reuses this menu from a POPUP,
 # where exec would replace the popup rather than the harness pane.
+# --header retitles it, so the popup can say what the choice will DO -- picking
+# from a list headed "replace claude" is the confirmation step.
 #
 # PATH is prepended for the same reason as the other herdr scripts: a tab
 # spawned by herdr does not reliably inherit the interactive login PATH.
@@ -29,10 +31,14 @@ set -uo pipefail
 export PATH="/run/current-system/sw/bin:${HOME:-}/.nix-profile/bin:$PATH"
 
 print_only=0
-if [[ ${1:-} == --print ]]; then
-    print_only=1
-    shift
-fi
+header='  harness'
+while true; do
+    case ${1:-} in
+        --print)  print_only=1; shift ;;
+        --header) header="  ${2:-}"; shift 2 ;;
+        *)        break ;;
+    esac
+done
 
 # herdr agent start --kind, as of 0.x. Anything not installed is skipped, so
 # this list costs nothing to keep long.
@@ -85,7 +91,7 @@ if command -v gum >/dev/null 2>&1; then
         fi
     done
     choice=$(printf '%s\n' "${items[@]}" | gum choose \
-        --header='  harness' \
+        --header="$header" \
         --header.foreground='#928374' \
         --label-delimiter=$'\t' \
         --cursor='  ❯ ' --cursor.foreground='#fabd2f' \

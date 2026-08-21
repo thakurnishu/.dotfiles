@@ -103,7 +103,8 @@ description = "new worktree space"
 # of the alphabet: h/j/k/l are pane movement, and prefix+a is close enough to
 # them to be a misfire waiting to happen.
 #
-# Refuses to type into a harness that is mid-answer; see the script.
+# A harness already running is REPLACED in place -- signalled away, and the new
+# one started in the same pane. Escaping the picker is how you change nothing.
 [[keys.command]]
 key = "prefix+shift+a"
 type = "popup"

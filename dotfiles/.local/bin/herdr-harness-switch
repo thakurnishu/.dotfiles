@@ -8,9 +8,14 @@
 # runs `harness` IN the harness pane (so the menu draws where the harness will
 # end up), or calls `harness --print` to choose a kind for a new tab.
 #
-# WHAT IT WILL NOT DO is send anything to a pane that already has a harness
-# running. A harness mid-answer is a conversation, and typing into it is not
-# recoverable, so a busy tab gets a choice instead of an action.
+# A harness ALREADY RUNNING is replaced, not worked around: pick a new one and
+# the old one is signalled away and the new one started in the same pane. That
+# ends the running agent's session, which is the point -- escaping the picker
+# is the way to change nothing.
+#
+# In the SAME PANE, not a fresh tab, because herdr has no `tab move`: closing
+# the harness tab and creating another sends it to the end of the tab bar, so
+# prefix+2 would quietly stop being the harness.
 #
 # PATH is prepended for the same reason as the other herdr scripts: a popup
 # does not reliably inherit the interactive login PATH.
@@ -157,13 +162,16 @@ if [[ -z $tab ]]; then
 fi
 
 # --- is something already running in it? ----------------------------------
+# Prints the running process, or nothing at all when the pane is at a shell.
+#
 # The JOB LEADER, not the first entry: `claude` sits behind its own `caffeinate`
 # child in foreground_processes, so the first entry names the wrong process.
 # foreground_process_group_id is exactly the pid we want.
 #
 # Compare against the SHELL rather than a list of agent names, so a harness
 # this script has never heard of still counts as running.
-running=$(herdr pane process-info --pane "$pane" 2>/dev/null | python3 -c '
+pane_running() {
+    herdr pane process-info --pane "$1" 2>/dev/null | python3 -c '
 import json, sys
 SHELLS = {"zsh", "bash", "sh", "fish", "dash", "ksh"}
 try:
@@ -179,7 +187,10 @@ name = (chosen.get("argv0") or chosen.get("name") or "").lstrip("-")
 if name.split("/")[-1] in SHELLS:
     sys.exit(0)
 print(name)
-' 2>/dev/null)
+' 2>/dev/null
+}
+
+running=$(pane_running "$pane")
 log "running='${running:-<shell>}'"
 
 # --- the pane is free: reopen the picker right where it belongs -----------
@@ -190,22 +201,50 @@ if [[ -z ${running:-} ]]; then
     exit 0
 fi
 
-# --- the pane is busy: your call, not mine --------------------------------
-choice=$(printf 'focus     go quit %s yourself, then press again\tfocus\nnew tab   run a second harness alongside it\tnewtab\n' \
-    "$running" | pick "harness tab is running $running" 4)
-[[ -n ${choice:-} ]] || exit 0
+# --- the pane is busy: replace what is in it ------------------------------
+# Refuse to do this to the pane we are RUNNING IN. A popup is its own process
+# so the normal keybinding is safe, but an agent calling this from inside the
+# harness tab would be signalling itself.
+if [[ -n ${HERDR_PANE_ID:-} && ${HERDR_PANE_ID} == "$pane" ]]; then
+    die "$pane is this pane -- switching it would kill the caller"
+fi
 
-case $choice in
-    focus)
-        herdr tab focus "$tab" >/dev/null 2>&1
-        ;;
-    newtab)
-        # Choose here in the popup rather than in the new pane, so the tab can
-        # carry the harness's own name -- two tabs both labelled "harness"
-        # would be ambiguous to the nvim bridge, which finds panes by label.
-        kind=$("$HARNESS" --print)
-        [[ -n ${kind:-} ]] || exit 0
-        open_tab "$kind" "$kind"
-        ;;
-esac
+# The picker IS the confirmation, so the header has to say what picking does.
+kind=$("$HARNESS" --print --header "replace $running")
+[[ -n ${kind:-} ]] || exit 0
+log "replacing $running with $kind in $pane"
+
+# SIGTERM the whole foreground process GROUP -- `claude` runs a caffeinate
+# child, and leaving it behind would hold the pane busy. The pane's shell has
+# its own pid and is not in that group, so the pane drops back to a prompt
+# rather than closing.
+pgid=$(herdr pane process-info --pane "$pane" 2>/dev/null \
+    | jget result process_info foreground_process_group_id)
+if [[ ${pgid:-0} -gt 1 ]]; then
+    kill -TERM "-$pgid" 2>/dev/null
+    # Give it a moment to shut down cleanly before insisting.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        kill -0 "-$pgid" 2>/dev/null || break
+        sleep 0.3
+    done
+    if kill -0 "-$pgid" 2>/dev/null; then
+        log "$pgid ignored SIGTERM; sending SIGKILL"
+        kill -KILL "-$pgid" 2>/dev/null
+        sleep 0.5
+    fi
+fi
+
+# Did that actually free the pane? If not, fall back to a new tab rather than
+# typing the harness name into whatever is still sitting there.
+still=$(pane_running "$pane")
+if [[ -n ${still:-} ]]; then
+    log "pane still busy with '$still' after signalling; opening a tab instead"
+    note "$still would not quit -- opened $kind in its own tab instead"
+    open_tab "$kind" "$kind"
+    exit 0
+fi
+
+herdr pane run "$pane" "$kind" >/dev/null 2>&1 \
+    || die "could not start $kind in $pane"
+herdr tab focus "$tab" >/dev/null 2>&1
 exit 0
