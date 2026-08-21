@@ -125,15 +125,24 @@ pick() {
     fi
 }
 
-# Tab 1 is the workspace root pane, so it only needs a name; tab 2 gets
-# lazygit on the CHECKOUT rather than on the source repo. Land on terminal.
+# Tab 1 is the workspace root pane, so it only needs a name; the rest open on
+# the CHECKOUT rather than on the source repo. Land on terminal.
+#
+# hunk watches the worktree and reloads as files change, which is the point of
+# a branch space: you see the change accumulate instead of reading it in one
+# lump at the end. It holds the pane open on a clean tree, so it is safe here
+# even before the branch has any work on it.
 layout() {
-    local ws=$1 tab1=$2 checkout=$3 tabj pane
+    local ws=$1 tab1=$2 checkout=$3 spec name cmd tabj pane
     [[ -n $tab1 ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
-    tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
-        --label lazygit --no-focus 2>/dev/null)
-    pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
-    [[ -n ${pane:-} ]] && herdr pane run "$pane" lazygit >/dev/null 2>&1
+    for spec in "lazygit:lazygit" "hunk:hunk diff --watch"; do
+        name=${spec%%:*}
+        cmd=${spec#*:}
+        tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
+            --label "$name" --no-focus 2>/dev/null)
+        pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+        [[ -n ${pane:-} ]] && herdr pane run "$pane" $cmd >/dev/null 2>&1
+    done
     [[ -n $tab1 ]] && herdr tab focus "$tab1" >/dev/null 2>&1
 }
 
