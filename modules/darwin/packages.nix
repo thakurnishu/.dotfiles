@@ -99,6 +99,13 @@ in
     zk-personal
     lazygit
 
+    # Diff viewer built for reading changes you did NOT write: a file sidebar,
+    # side-by-side panes, and `hunk diff --watch`, which reloads as the working
+    # tree changes -- so an agent's edits can be reviewed as they land rather
+    # than as one dump at the end. Not a replacement for lazygit's diff; the
+    # watch mode is the part lazygit has no answer to.
+    hunk
+
     # tmux status-right runs #(pomo)
     pomo
 
