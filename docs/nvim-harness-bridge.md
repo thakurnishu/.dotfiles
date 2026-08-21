@@ -150,17 +150,25 @@ Keeping the fingers `claude.lua` already trained:
 
 ### A5 — resolve the two existing files
 
-- **`claude.lua`:** delete its `herdr_provider` and delegate to the new module, so
-  tab logic has one owner. Keep `claudecode.nvim` itself — its in-editor diffs are
-  real and Phase A does not replace them.
-- **`opencode.lua`:** decide. It is dead under herdr and is holding `<C-a>`/`<C-x>`
-  hostage. **Recommend retiring it** — deleting the file restores normal
-  increment/decrement, and the new module covers opencode the same as any other
-  harness. Porting it to herdr is Phase B work, if ever, since its value is its
-  server protocol.
+- **`claude.lua`:** its `herdr_provider` now delegates to the new module, so tab
+  logic has one owner and the file is 28 lines shorter.
+- **Both plugins disabled for the duration of Phase A**, via `enabled = false` on
+  their lazy specs in `lua/config/lazy.lua`.
 
-**This is a decision, not a mechanical step.** Retiring `opencode.lua` gives up
-`opencode.nvim`'s richer integration for opencode specifically.
+Disabling at the spec rather than editing the `after/plugin` files is what makes
+this reversible: both files open with `pcall(require, ...)` and return when the
+plugin is absent, so one flag takes their keymaps *and* claudecode's websocket
+IDE server with them, leaving the files untouched for Phase B.
+
+**Why isolate at all:** `<leader>a*` was two namespaces wearing one prefix -- `ac`,
+`ab`, `as` working for any harness while `af`, `ar`, `am`, `aa`, `ad` worked only
+for Claude, with nothing in the key to tell you which. A new harness would
+silently inherit five dead keys. With claudecode off, `<leader>a*` is uniformly
+herdr-harness, and **that uniformity is the property Phase A exists to test.**
+
+Disabling `opencode.nvim` also gives back `<C-a>`/`<C-x>`: it had remapped
+increment and decrement to `+`/`-` to free them for a tmux-only path that has not
+worked since the herdr switch.
 
 ### A6 — test against all three harnesses
 
@@ -268,8 +276,10 @@ the `claudecode.nvim` feature otherwise lost), `notify`.
 
 ### B5 — decide about claudecode.nvim
 
-Delete its provider code, or keep it for Claude's native diffs. **Deliberately
-deferred to here** — decide with evidence.
+Flip `enabled = true` on its lazy spec, compare its native diffs against
+`propose_diff`, then either keep it -- under its OWN prefix, never sharing
+`<leader>a*` again -- or delete it. **Deliberately deferred to here:** decide
+with evidence, once there is something to compare against.
 
 ## Risks
 
