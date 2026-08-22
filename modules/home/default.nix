@@ -112,6 +112,12 @@ in
   #                  tool.execute.before/after), so ITS state is authoritative
   #                  where claude's is inference.
   #
+  # codex is installed for the SESSION ID alone. Without it herdr never learns
+  # codex's conversation, and codex becomes the one harness that cannot be
+  # switched away from and back to -- `harness` has nothing to hand `codex
+  # resume <id>`. Adding a harness to packages.nix means adding it here too if
+  # it should survive a swap.
+  #
   # WHY THIS IS IMPERATIVE, in an otherwise declarative file: herdr owns the
   # installed files and stamps them with its own version --
   #   ~/.claude/hooks/herdr-agent-state.sh          (HERDR_INTEGRATION_VERSION)
@@ -128,7 +134,7 @@ in
   # place. Failure is swallowed: a missing herdr must not abort activation.
   home.activation.herdrIntegrations =
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      for target in claude opencode; do
+      for target in claude codex opencode; do
         run ${pkgs.herdr}/bin/herdr integration install "$target" ||           echo "herdr: could not install the $target integration (continuing)"
       done
     '';

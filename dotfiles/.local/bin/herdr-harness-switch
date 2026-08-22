@@ -10,8 +10,9 @@
 #
 # A harness ALREADY RUNNING is replaced, not worked around: pick a new one and
 # the old one is signalled away and the new one started in the same pane. That
-# ends the running agent's session, which is the point -- escaping the picker
-# is the way to change nothing.
+# ends the running agent's PROCESS -- but not its conversation. The session id
+# is recorded first, so coming back to that harness reopens where you left it
+# rather than starting cold. Escaping the picker still changes nothing.
 #
 # In the SAME PANE, not a fresh tab: a new tab is cheap to place correctly but
 # the running harness's tab id is what the nvim bridge and your muscle memory
@@ -24,7 +25,11 @@ set -uo pipefail
 
 export PATH="/run/current-system/sw/bin:${HOME:-}/.nix-profile/bin:$PATH"
 
-HARNESS="$HOME/.local/bin/harness"
+# Absolute, and overridable. Absolute because a pane's PATH is not this
+# script's; overridable because otherwise the only way to exercise a change is
+# to switch first, and testing the INSTALLED copy while editing the repo one
+# is a trap that has cost real debugging time here.
+HARNESS="${HERDR_HARNESS_BIN:-$HOME/.local/bin/harness}"
 
 LOG="$HOME/.cache/herdr-harness-switch.log"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null
@@ -215,7 +220,7 @@ open_tab() {
 
 # --- no harness tab at all (worktree spaces are laid out without one) ------
 if [[ -z $tab ]]; then
-    open_tab harness harness after-terminal
+    open_tab harness "$HARNESS" after-terminal
     exit 0
 fi
 
@@ -253,7 +258,7 @@ log "running='${running:-<shell>}'"
 
 # --- the pane is free: reopen the picker right where it belongs -----------
 if [[ -z ${running:-} ]]; then
-    herdr pane run "$pane" harness >/dev/null 2>&1 \
+    herdr pane run "$pane" "$HARNESS" >/dev/null 2>&1 \
         || die "could not start the picker in $pane"
     herdr tab focus "$tab" >/dev/null 2>&1
     exit 0
@@ -267,8 +272,23 @@ if [[ -n ${HERDR_PANE_ID:-} && ${HERDR_PANE_ID} == "$pane" ]]; then
     die "$pane is this pane -- switching it would kill the caller"
 fi
 
+# Record the outgoing agent's conversation BEFORE anything is signalled.
+# herdr keeps one session slot per pane, and the new harness overwrites it the
+# moment it reports in, so this is the only window where the id is still
+# readable. Losing it is what made every switch-back a cold start.
+"$HARNESS" --remember --pane "$pane" >/dev/null 2>&1 \
+    || log "could not record the session for $pane; a switch back will start fresh"
+
 # The picker IS the confirmation, so the header has to say what picking does.
-kind=$("$HARNESS" --print --header "replace $running")
+# Rendered here rather than by `harness` because only this side knows the pane
+# being replaced -- the resume marks are per pane, and the popup is not in it.
+menu=$("$HARNESS" --list --pane "$pane" 2>/dev/null | awk -F'\t' '{
+    d = $2
+    if ($3 != "") d = (d == "" ? "· resume" : d "  · resume")
+    printf "%-10s %s\t%s\n", $1, d, $1
+}')
+[[ -n ${menu:-} ]] || die "no agent CLI found on PATH"
+kind=$(printf '%s\n' "$menu" | pick "replace $running" 10)
 [[ -n ${kind:-} ]] || exit 0
 log "replacing $running with $kind in $pane"
 
@@ -298,11 +318,14 @@ still=$(pane_running "$pane")
 if [[ -n ${still:-} ]]; then
     log "pane still busy with '$still' after signalling; opening a tab instead"
     note "$still would not quit -- opened $kind in its own tab instead"
-    open_tab "$kind" "$kind"
+    open_tab "$kind" "$HARNESS --kind $kind"
     exit 0
 fi
 
-herdr pane run "$pane" "$kind" >/dev/null 2>&1 \
+# Through `harness`, not the bare kind: harness is what knows how to turn a
+# remembered id into --resume/--session/`resume <id>`, and it is the same path
+# the in-pane picker takes.
+herdr pane run "$pane" "$HARNESS" --kind "$kind" >/dev/null 2>&1 \
     || die "could not start $kind in $pane"
 herdr tab focus "$tab" >/dev/null 2>&1
 exit 0
