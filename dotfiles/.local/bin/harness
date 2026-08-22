@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Pick which agent harness to run in this pane, then become it.
+# Pick which agent harness to run in this pane, then become it -- resuming the
+# conversation that was last in this pane, if there was one.
 #
 # The tab used to be hard-wired to `claude`. It is now labelled `harness`
 # because the choice is per-pane: claude here, codex in the next space, both
@@ -13,15 +14,20 @@
 #   * the names are herdr's CANONICAL kinds, so the sidebar keeps detecting
 #     agent state (working/idle/blocked) for whichever one you pick.
 #
+# SESSION MEMORY. Switching harness used to be a cold start every time: quit
+# claude for codex, come back, and claude opened a blank conversation even
+# though the transcript was still sitting on disk. Nothing was ever lost -- we
+# simply never asked for it back. Now the id is remembered per pane AND per
+# kind, so claude -> codex -> claude returns to the claude you left.
+#
+# Per KIND matters. herdr records a session id per pane, but only ONE slot, so
+# after two swaps it holds the middle agent's id and the first is gone. Its
+# slot is still useful as a fallback: it survives the process dying, which
+# covers quitting a harness by hand where nothing got the chance to record.
+#
 # `exec` on purpose: the harness replaces this script rather than nesting
 # under it, so quitting drops you at the pane's shell, where running `harness`
 # again picks a different one.
-#
-# --print offers the same menu but writes the choice to stdout instead of
-# becoming it. That is how herdr-harness-switch reuses this menu from a POPUP,
-# where exec would replace the popup rather than the harness pane.
-# --header retitles it, so the popup can say what the choice will DO -- picking
-# from a list headed "replace claude" is the confirmation step.
 #
 # PATH is prepended for the same reason as the other herdr scripts: a tab
 # spawned by herdr does not reliably inherit the interactive login PATH.
@@ -30,15 +36,49 @@ set -uo pipefail
 
 export PATH="/run/current-system/sw/bin:${HOME:-}/.nix-profile/bin:$PATH"
 
-print_only=0
-header='  harness'
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/herdr-harness"
+
+mode=pick
+kind=''
+pane_arg=''
 while true; do
     case ${1:-} in
-        --print)  print_only=1; shift ;;
-        --header) header="  ${2:-}"; shift 2 ;;
-        *)        break ;;
+        --kind)     kind=${2:-}; shift 2 ;;
+        --list)     mode=list; shift ;;
+        --remember) mode=remember; shift ;;
+        --pane)     pane_arg=${2:-}; shift 2 ;;
+        *)          break ;;
     esac
 done
+
+# Which pane are we talking about, and what is ITS cwd?
+#
+# Not always the pane we are running in: herdr-harness-switch calls this from
+# a popup, which has no HERDR_PANE_ID and whose $PWD is unrelated to the
+# pane's. Getting this wrong is silent -- every cwd check fails and resume
+# just never happens.
+pane_cwd() {
+    herdr api snapshot 2>/dev/null | python3 -c '
+import json, sys
+pane = sys.argv[1]
+try:
+    panes = json.load(sys.stdin)["result"]["snapshot"]["panes"]
+except Exception:
+    sys.exit(0)
+for p in panes:
+    if p.get("pane_id") == pane:
+        print(p.get("cwd") or "")
+        break
+' "$1" 2>/dev/null
+}
+
+if [[ -n ${pane_arg:-} ]]; then
+    PANE=$pane_arg
+    CWD=$(pane_cwd "$pane_arg")
+else
+    PANE=${HERDR_PANE_ID:-}
+    CWD=$PWD
+fi
 
 # herdr agent start --kind, as of 0.x. Anything not installed is skipped, so
 # this list costs nothing to keep long.
@@ -62,63 +102,207 @@ for k in "${KINDS[@]}"; do
     command -v "$k" >/dev/null 2>&1 && available+=("$k")
 done
 
+# --- session memory -------------------------------------------------------
+
+# One file per pane, holding a {kind: {id, cwd, ts}} map. Keyed by herdr
+# session as well, because pane ids restart at p1 in every session.
+state_file() {
+    local pane=${1:-${PANE:-}}
+    [[ -n $pane ]] || return 1
+    printf '%s/%s/%s.json' "$STATE_DIR" "${HERDR_SESSION:-default}" "${pane//:/-}"
+}
+
+# What session is herdr holding for this pane right now? Prints three LINES
+# -- agent, id, cwd -- or nothing.
+#
+# One field per line rather than one delimited line: a cwd can contain spaces,
+# and `read a b c` collapses empty leading fields no matter what IFS says,
+# because tab and space are both IFS *whitespace*.
+herdr_pane_agent() {
+    local pane=$1
+    herdr agent list 2>/dev/null | python3 -c '
+import json, sys
+pane = sys.argv[1]
+try:
+    agents = json.load(sys.stdin)["result"]["agents"]
+except Exception:
+    sys.exit(0)
+for a in agents:
+    if a.get("pane_id") != pane:
+        continue
+    s = a.get("agent_session") or {}
+    if s.get("kind") == "id" and s.get("value") and s.get("agent"):
+        print(s["agent"])
+        print(s["value"])
+        print(a.get("cwd") or "")
+    break
+' "$pane" 2>/dev/null
+}
+
+# Record whatever herdr currently holds for a pane, before we kill it.
+# Idempotent and silent -- a pane with no agent simply writes nothing.
+#
+# The cwd comes from HERDR, not from $PWD: this runs in a popup, whose working
+# directory is not the pane's. Recording the popup's cwd would make every
+# entry fail the cwd check at resume time and quietly do nothing.
+remember() {
+    local pane=$1 agent id cwd file
+    {
+        IFS= read -r agent
+        IFS= read -r id
+        IFS= read -r cwd
+    } < <(herdr_pane_agent "$pane")
+    [[ -n ${agent:-} && -n ${id:-} && -n ${cwd:-} ]] || return 0
+    file=$(state_file "$pane") || return 0
+    mkdir -p "$(dirname "$file")" 2>/dev/null
+    python3 - "$file" "$agent" "$id" "$cwd" <<'PY'
+import json, os, sys, time
+path, agent, sid, cwd = sys.argv[1:5]
+try:
+    with open(path) as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        data = {}
+except Exception:
+    data = {}
+data[agent] = {"id": sid, "cwd": cwd, "ts": int(time.time())}
+tmp = path + ".tmp"
+with open(tmp, "w") as fh:
+    json.dump(data, fh)
+os.replace(tmp, path)
+PY
+}
+
+# The id to resume for this kind in this pane, or nothing.
+#
+# The cwd check is the whole safety story: pane ids get recycled when a space
+# is closed and another opened, and resuming a conversation about a different
+# repo is worse than starting fresh.
+remembered_id() {
+    local k=$1 file
+    file=$(state_file) || return 0
+    [[ -f $file ]] || return 0
+    python3 - "$file" "$k" "$CWD" <<'PY'
+import json, sys
+path, kind, cwd = sys.argv[1:4]
+try:
+    with open(path) as fh:
+        data = json.load(fh)
+except Exception:
+    raise SystemExit(0)
+entry = (data or {}).get(kind)
+if isinstance(entry, dict) and entry.get("cwd") == cwd and entry.get("id"):
+    print(entry["id"])
+PY
+}
+
+# Fall back to whatever herdr still holds for this pane. Its record outlives
+# the process -- a pane running codex was observed still carrying the opencode
+# id from before the swap -- so this covers quitting a harness by hand, where
+# nothing was around to record the id.
+fallback_id() {
+    local k=$1 agent id cwd
+    [[ -n ${PANE:-} ]] || return 0
+    {
+        IFS= read -r agent
+        IFS= read -r id
+        IFS= read -r cwd
+    } < <(herdr_pane_agent "$PANE")
+    [[ ${agent:-} == "$k" && -n ${id:-} && ${cwd:-} == "$CWD" ]] || return 0
+    printf '%s' "$id"
+}
+
+# How each harness is told to reopen a conversation. codex is the odd one --
+# a SUBCOMMAND rather than a flag, so it changes argv[1], not just the tail.
+resume_argv() {
+    local k=$1 id=$2
+    case $k in
+        claude)   printf '%s\n--resume\n%s\n' "$k" "$id" ;;
+        opencode) printf '%s\n--session\n%s\n' "$k" "$id" ;;
+        codex)    printf '%s\nresume\n%s\n' "$k" "$id" ;;
+        *)        printf '%s\n' "$k" ;;   # no known resume flag; start fresh
+    esac
+}
+
+# --- modes ----------------------------------------------------------------
+
+if [[ $mode == remember ]]; then
+    [[ -n ${PANE:-} ]] || exit 0
+    remember "$PANE"
+    exit 0
+fi
+
 if [[ ${#available[@]} -eq 0 ]]; then
     printf '\n  \033[31mharness:\033[0m no agent CLI found on PATH.\n' >&2
     printf '  Add one to modules/darwin/packages.nix and switch.\n\n' >&2
     exit 1
 fi
 
-# A menu of one is just a slower way to start it.
-if [[ ${#available[@]} -eq 1 ]]; then
-    if [[ $print_only == 1 ]]; then
-        printf '%s\n' "${available[0]}"
-        exit 0
-    fi
-    exec "${available[0]}" "$@"
+# `--list` is the menu's DATA, so that whoever renders it -- this script in
+# the pane, or herdr-harness-switch in a popup -- offers the same set. Each
+# line is "kind<TAB>description<TAB>resumable-id", the id empty when there is
+# nothing to resume.
+if [[ $mode == list ]]; then
+    for k in "${available[@]}"; do
+        printf '%s\t%s\t%s\n' "$k" "$(describe "$k")" "$(remembered_id "$k")"
+    done
+    exit 0
 fi
 
-choice=''
-if command -v gum >/dev/null 2>&1; then
-    # DO NOT ADD `2>/dev/null` HERE. gum draws the list on STDERR whenever
-    # stdout is captured, so silencing stderr renders an invisible menu.
-    items=()
-    for k in "${available[@]}"; do
-        d=$(describe "$k")
-        if [[ -n $d ]]; then
-            items+=("$(printf '%-10s %s\t%s' "$k" "$d" "$k")")
-        else
-            items+=("$(printf '%-10s\t%s' "$k" "$k")")
-        fi
-    done
-    choice=$(printf '%s\n' "${items[@]}" | gum choose \
-        --header="$header" \
-        --header.foreground='#928374' \
-        --label-delimiter=$'\t' \
-        --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
-        --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
-        --height=10)
-elif command -v fzf >/dev/null 2>&1; then
-    choice=$(printf '%s\n' "${available[@]}" | fzf --prompt='harness > ' \
-        --layout=reverse --height=100%)
-else
-    # Last resort: no TUI tool, so a numbered prompt on the builtin read.
-    printf '\n' >&2
-    for i in "${!available[@]}"; do
-        printf '  %d) %s\n' "$((i+1))" "${available[$i]}" >&2
-    done
-    printf '\n  choose [1-%d]: ' "${#available[@]}" >&2
-    read -r n
-    [[ $n =~ ^[0-9]+$ ]] && [[ $n -ge 1 && $n -le ${#available[@]} ]] &&
-        choice=${available[$((n-1))]}
+# --- pick -----------------------------------------------------------------
+if [[ -z ${kind:-} ]]; then
+    if [[ ${#available[@]} -eq 1 ]]; then
+        # A menu of one is just a slower way to start it.
+        kind=${available[0]}
+    elif command -v gum >/dev/null 2>&1; then
+        # DO NOT ADD `2>/dev/null` HERE. gum draws the list on STDERR whenever
+        # stdout is captured, so silencing stderr renders an invisible menu.
+        items=()
+        for k in "${available[@]}"; do
+            d=$(describe "$k")
+            [[ -n $(remembered_id "$k") ]] && d="${d:+$d  }· resume"
+            if [[ -n $d ]]; then
+                items+=("$(printf '%-10s %s\t%s' "$k" "$d" "$k")")
+            else
+                items+=("$(printf '%-10s\t%s' "$k" "$k")")
+            fi
+        done
+        kind=$(printf '%s\n' "${items[@]}" | gum choose \
+            --header='  harness' \
+            --header.foreground='#928374' \
+            --label-delimiter=$'\t' \
+            --cursor='  ❯ ' --cursor.foreground='#fabd2f' \
+            --selected.foreground='#fabd2f' --item.foreground='#ebdbb2' \
+            --height=10)
+    elif command -v fzf >/dev/null 2>&1; then
+        kind=$(printf '%s\n' "${available[@]}" | fzf --prompt='harness > ' \
+            --layout=reverse --height=100%)
+    else
+        # Last resort: no TUI tool, so a numbered prompt on the builtin read.
+        printf '\n' >&2
+        for i in "${!available[@]}"; do
+            printf '  %d) %s\n' "$((i+1))" "${available[$i]}" >&2
+        done
+        printf '\n  choose [1-%d]: ' "${#available[@]}" >&2
+        read -r n
+        [[ $n =~ ^[0-9]+$ ]] && [[ $n -ge 1 && $n -le ${#available[@]} ]] &&
+            kind=${available[$((n-1))]}
+    fi
 fi
 
 # Escaping the menu leaves you at the shell rather than starting something you
 # did not ask for.
-[[ -n ${choice:-} ]] || exit 0
+[[ -n ${kind:-} ]] || exit 0
 
-if [[ $print_only == 1 ]]; then
-    printf '%s\n' "$choice"
-    exit 0
+# --- become it ------------------------------------------------------------
+sid=$(remembered_id "$kind")
+[[ -n ${sid:-} ]] || sid=$(fallback_id "$kind")
+
+argv=()
+if [[ -n ${sid:-} ]]; then
+    while IFS= read -r a; do argv+=("$a"); done < <(resume_argv "$kind" "$sid")
+else
+    argv=("$kind")
 fi
 
-exec "$choice" "$@"
+exec "${argv[@]}" "$@"
