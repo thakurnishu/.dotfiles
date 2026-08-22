@@ -60,6 +60,15 @@ roots_depth0=(
 roots_depth1=(
     "$HOME/src/github.com"
     "$HOME/src/github.com/personal"
+    # personal/ holds a MIX, so its grouping directories are listed here
+    # individually rather than putting personal/ itself at depth 2. zk/ and
+    # second_brain/ are repos and are already covered by the line above;
+    # learning/ and projects/ are containers whose contents are the real
+    # projects. A blanket depth-2 on personal/ would also walk INTO the two
+    # repos and offer zk/cmd, second_brain/.obsidian and nine more like them.
+    # Add a line here when a new container appears under personal/.
+    "$HOME/src/github.com/personal/learning"
+    "$HOME/src/github.com/personal/projects"
     "$HOME/src/github.com/work"
     "$HOME/src/gitlab.com"
     "$HOME/go/src/github.com/thakurnishu"
