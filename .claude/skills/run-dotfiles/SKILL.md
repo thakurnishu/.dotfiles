@@ -83,6 +83,10 @@ Where things go: **CLI tools → Nix** (`modules/darwin/packages.nix`),
 **GUI apps → Homebrew casks** (`modules/darwin/homebrew.nix`). One deliberate
 exception, `displayplacer`, is a brew *formula* because it is not in nixpkgs.
 
+Adding an **agent CLI** (claude, codex, gemini, amp, ...) is more than a
+package: it also has to appear in the `harness` picker, get state detection,
+and survive a harness swap. Use the `add-harness` skill for that.
+
 ## Run (human path)
 
 ```bash
