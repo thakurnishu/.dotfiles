@@ -22,8 +22,9 @@ Paths below are relative to the repo root (`~/.dotfiles`).
 for sudo (`security.pam.services.sudo_local` in `hosts/macbook/default.nix`) and
 `pam_tid` authenticates through the Security framework rather than the terminal —
 so `sudo` works from a non-interactive tool call and the human's entire job is to
-touch the sensor. Everything except `switch`, `aerospace-reload` and
-`herdr-reload` is read-only.
+touch the sensor. Everything except `switch` and the `*-reload` subcommands
+(`aerospace-reload`, `herdr-reload`, `ghostty-reload`, `tmux-reload`) is
+read-only.
 
 ## Prerequisites
 
@@ -55,7 +56,9 @@ Runs `doctor`, `lint`, `build`, `pending`, `links`, `stale`, `drift`. Takes
 | `aerospace` | what the **running** WM actually has bound right now |
 | `aerospace-reload` | re-read `~/.aerospace.toml` (the running instance is stale after a switch) |
 | `herdr-reload` | re-read `herdr/config.toml` in **every running herdr session**, not just the default one |
-| `switch` | **applies the config** (sudo → Touch ID prompt), then reloads AeroSpace and herdr. No-op if already applied; `switch force` re-applies anyway |
+| `ghostty-reload` | SIGUSR2 the running Ghostty so it re-reads `ghostty/config`. Keybinds/theme/font apply live; a changed `background-opacity` **value** still needs a full cmd+Q |
+| `tmux-reload` | `source-file ~/.tmux.conf` in **every running tmux server**, one per socket. Adds settings; cannot remove them (see Gotchas) |
+| `switch` | **applies the config** (sudo → Touch ID prompt), then reloads AeroSpace, herdr, Ghostty and tmux. No-op if already applied; `switch force` re-applies anyway |
 
 `lint`, `pending`, `stale` and `drift` were each verified to **fail** on a
 deliberately broken repo, not just to print ok.
@@ -114,6 +117,17 @@ Not run while authoring this skill, so treat as documented-but-unverified:
   `herdr/config.toml` is an out-of-store symlink, so editing the repo file
   changes the deployed file immediately: a reload is all that is needed, and a
   full switch is not.
+
+- **tmux reloads are ONE-WAY.** `source-file` applies what the file says; tmux
+  has no "unset on re-source". So uncommenting a setting and running
+  `driver.sh tmux-reload` works, while commenting one **out** and reloading
+  changes nothing — the old value is still set in the server. Removing a
+  setting needs `tmux kill-server` (which kills every session) or simply a new
+  server. Note also that tmux keeps its sockets under `TMUX_TMPDIR` or `/tmp`,
+  **not** `$TMPDIR` — on macOS those are different directories, and a socket
+  file outlives its server, so liveness is `has-session`, not `test -S`.
+  Unlike `herdr/config.toml`, `.tmux.conf` is a plain store symlink, so a repo
+  edit needs a **switch before** the reload means anything.
 
 - **Two kinds of symlink, and the difference is load-bearing.** Most configs are
   read-only Nix store symlinks. But `~/.config/nvim` and `~/.claude/{settings.json,

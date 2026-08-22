@@ -6,8 +6,10 @@
 # what the repo says, and did anyone forget to switch?
 #
 # Everything here is READ-ONLY except `switch` (which applies the config via
-# sudo -- Touch ID, so the human just touches the sensor) and `aerospace-reload`
-# (which reloads the running WM). Everything else is safe to run anytime.
+# sudo -- Touch ID, so the human just touches the sensor) and the *-reload
+# subcommands, which tell a running program to re-read its config:
+# aerospace-reload, herdr-reload, ghostty-reload, tmux-reload. Everything else
+# is safe to run anytime.
 #
 # Usage:  .claude/skills/run-dotfiles/driver.sh [subcommand]
 # Run with no subcommand for the full preflight.
@@ -292,6 +294,83 @@ cmd_aerospace_reload() {
     "$AEROSPACE" reload-config && pass "reloaded" || fail "reload failed"
 }
 
+# ------------------------------------------------------ ghostty-reload -----
+# Ghostty caches its config at launch, like AeroSpace and herdr. It has no
+# reload subcommand -- the documented trigger is SIGUSR2 to the running
+# process. Send ONLY SIGUSR2: Ghostty installs no handler for the other
+# signals, so anything else terminates it, and since every herdr session and
+# agent lives inside these windows that would take the whole desktop down.
+#
+# NOT everything reloads. Keybinds, theme and font changes apply on the spot;
+# `background-opacity` does not -- on macOS the window's alpha is fixed when
+# the window is created, so a changed VALUE needs a full quit (cmd+Q, not just
+# closing a window). Toggling the configured opacity on and off at runtime is
+# a separate thing, bound to cmd+shift+T in dotfiles/ghostty/config.
+cmd_ghostty_reload() {
+    head_ "ghostty reload (SIGUSR2)"
+    if ! pgrep -x ghostty >/dev/null 2>&1; then
+        warn "ghostty is not running -- nothing to reload"
+        return 0
+    fi
+    if pkill -USR2 -x ghostty; then
+        pass "SIGUSR2 sent"
+        echo "       keybinds/theme/font apply now; a changed background-opacity"
+        echo "       VALUE still needs a full restart (cmd+Q)"
+    else
+        fail "could not signal ghostty"
+    fi
+}
+
+# ---------------------------------------------------------- tmux-reload -----
+# tmux caches config in its SERVER, the same shape as AeroSpace and herdr, and
+# like herdr there can be more than one -- one server per socket. A bare
+# `tmux source-file` only reaches the default socket, so iterate.
+#
+# Sockets live under TMUX_TMPDIR or /tmp -- NOT $TMPDIR. On macOS those are
+# different directories (/private/tmp/tmux-501 vs /var/folders/...), so using
+# $TMPDIR finds nothing and reports a false "nothing to reload".
+#
+# A socket FILE outlives its server, so liveness is `has-session`, not
+# `test -S`. Measured on this machine with no tmux running: the socket was
+# still sitting there from a previous server.
+#
+# ASYMMETRIC, and this is the part that surprises: source-file only ever
+# APPLIES settings. tmux has no "unset on re-source", so uncommenting a line
+# and reloading works, while commenting one OUT and reloading does nothing --
+# that needs `tmux kill-server` (which kills every session) or a fresh server.
+cmd_tmux_reload() {
+    head_ "tmux config reload"
+    if ! command -v tmux >/dev/null 2>&1; then
+        warn "tmux not installed, skipped"
+        return 0
+    fi
+
+    local dir sock live=0
+    dir="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
+    if [[ ! -d "$dir" ]]; then
+        warn "no tmux server running, nothing to reload"
+        return 0
+    fi
+
+    for sock in "$dir"/*; do
+        [[ -S "$sock" ]] || continue
+        tmux -S "$sock" has-session >/dev/null 2>&1 || continue
+        live=1
+        if tmux -S "$sock" source-file "$HOME/.tmux.conf" 2>/dev/null; then
+            pass "reloaded server: $(basename "$sock")"
+        else
+            warn "reload failed for server: $(basename "$sock")"
+        fi
+    done
+
+    if [[ $live -eq 0 ]]; then
+        warn "no tmux server running, nothing to reload"
+        return 0
+    fi
+    echo "       source-file only ADDS settings; removing one needs a new"
+    echo "       server (tmux kill-server)"
+}
+
 # -------------------------------------------------------------- doctor -----
 cmd_doctor() {
     head_ "prerequisites"
@@ -343,6 +422,8 @@ cmd_switch() {
                 || warn "aerospace reload failed (is it running?)"
         fi
         cmd_herdr_reload
+        cmd_ghostty_reload
+        cmd_tmux_reload
         echo
         echo "  .zshrc changes need a new shell:  exec zsh"
     else
@@ -434,9 +515,11 @@ case "${1:-check}" in
     aerospace)        cmd_aerospace;;
     aerospace-reload) cmd_aerospace_reload;;
     herdr-reload)     cmd_herdr_reload;;
+    tmux-reload)      cmd_tmux_reload;;
+    ghostty-reload)   cmd_ghostty_reload;;
     switch)           cmd_switch "$@";;
     *)
-        echo "usage: $(basename "$0") {check|doctor|lint|build|pending|links|stale|drift|zsh|aerospace|aerospace-reload|herdr-reload|switch}"
+        echo "usage: $(basename "$0") {check|doctor|lint|build|pending|links|stale|drift|zsh|aerospace|aerospace-reload|herdr-reload|ghostty-reload|tmux-reload|switch}"
         exit 2;;
 esac
 exit $FAILED
