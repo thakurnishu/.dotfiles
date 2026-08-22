@@ -90,6 +90,7 @@ require("lazy").setup({
       -- terminal agree. Base stays mocha's #1E1E2E.
       opts = {
         flavour = "mocha",
+        transparent_background = true,
         color_overrides = {
           mocha = {
             base   = "#262626", -- neutral grey, not mocha's blue-tinted #1E1E2E

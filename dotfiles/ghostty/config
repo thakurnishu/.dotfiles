@@ -1,50 +1,12 @@
-# Ghostty — macOS. Replaces .alacritty.toml.
-#
-# Alacritty equivalents:
-#   [font] size/family        -> font-family / font-size
-#   [window] decorations=none -> window-decoration = false
-#   import catppuccin.toml    -> theme (built in, no file to vendor)
-#   [terminal.shell] program  -> command
-
-font-family = JetBrainsMono Nerd Font Mono
+FOnt-family = JetBrainsMono Nerd Font Mono
 font-size = 23
 
-# Theme identifiers are the display name WITH spaces — "gruvbox-dark" fails
-# with "theme not found". Ghostty ships these built in, so there's no theme
-# file to vendor (unlike .alacritty.toml, which imported one).
-# Other variants available: Gruvbox Dark Hard, Gruvbox Material Dark.
 theme = Gruvbox Dark
 
 window-decoration = false
 
-# ABSOLUTE PATH REQUIRED. Ghostty launches via:
-#   /usr/bin/login -flp <user> /bin/bash --noprofile --norc -c exec -l <command>
-# `login` reseeds PATH from /etc/paths (no Nix entries), and --noprofile
-# --norc stops bash sourcing anything that would add them. Nix's PATH setup
-# lives in /etc/zshenv and the profile scripts, none of which run here — so a
-# bare command fails with "exec: not found" even though it is installed.
-# /run/current-system is a stable symlink maintained across generations.
-#
-# A picker script, not a multiplexer directly -- it offers herdr work / herdr
-# personal / plain zsh / tmux, defaulting to work on Enter. The plain-zsh entry
-# is the escape hatch: this command is the only way a new window starts, so if
-# herdr ever fails to launch you still need a route to a shell.
-#
-# Absolute /Users path matches the convention in .aerospace.toml; ghostty does
-# not expand ~ or $HOME here.
-#
-# herdr is the default for the trial (see modules/darwin/packages.nix). Unlike
-# the tmux line below, every window attaches to the SAME herdr session --
-# there is one server per session name, and `herdr` with no --session always
-# means "default". So a second window is another view of the same workspaces,
-# not a fresh one. Use prefix+shift+N for a new workspace instead of a new
-# window; use `herdr --session <name>` if you genuinely want an isolated one.
 command = /Users/nishantsingh/.local/bin/session-picker
 
-# PREVIOUS DEFAULT, kept for rollback. Plain `tmux`, matching .alacritty.toml's
-# `[terminal.shell] program = "tmux"`. Each window gets its OWN new session
-# (`-A -s main` was tried, attaching every window to one shared session, but
-# caused problems in practice) -- the opposite of herdr's behaviour above.
-# command = /run/current-system/sw/bin/tmux
-
-# Not set, matching .alacritty.toml: window padding (Alacritty defaults to 0).
+background-opacity = 0.85
+background-blur = 20
+background-opacity-cells = true
