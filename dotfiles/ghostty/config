@@ -1,4 +1,4 @@
-FOnt-family = JetBrainsMono Nerd Font Mono
+font-family = JetBrainsMono Nerd Font Mono
 font-size = 23
 
 theme = Gruvbox Dark
@@ -10,3 +10,6 @@ command = /Users/nishantsingh/.local/bin/session-picker
 background-opacity = 0.85
 background-blur = 20
 background-opacity-cells = true
+
+# ⌘⇧T flips between 0.85 and opaque live; changing the *value* still needs ⌘Q.
+keybind = super+shift+t=toggle_background_opacity
