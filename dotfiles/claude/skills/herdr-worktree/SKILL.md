@@ -1,6 +1,6 @@
 ---
 name: herdr-worktree
-description: Create or open a git-worktree-backed herdr workspace so an agent gets its own isolated checkout of a branch, laid out as terminal + lazygit tabs. Use when the user asks to work on a branch in a separate workspace, to spin up an isolated checkout, to open an existing worktree as a space, or when parallel work on two branches of one repo would otherwise collide in a single checkout. Requires running inside herdr (HERDR_ENV=1).
+description: Create or open a git-worktree-backed herdr workspace so an agent gets its own isolated checkout of a branch, laid out as terminal / harness / lazygit / hunk tabs, and bind your own session to that checkout with EnterWorktree. Use when the user asks to work on a branch in a separate workspace, to spin up an isolated checkout, to open an existing worktree as a space, when parallel work on two branches of one repo would otherwise collide in a single checkout, or when you need to reach the agent running in another herdr space. Requires running inside herdr (HERDR_ENV=1).
 ---
 
 # herdr worktree spaces
@@ -47,6 +47,77 @@ herdr worktree create --workspace "$WS" --branch feat/thing --base main \
 ```
 
 The checkout lands in `~/.herdr/worktrees/<repo>/<branch with / as ->`.
+
+## Bind YOUR OWN session to the checkout
+
+Creating the space is not enough, and the gap is easy to miss because the
+sidebar looks right. `herdr-worktreeizer` gives the **user** a visible
+workspace; it does not move **your** working directory.
+
+Your Bash cwd resets between calls, so without this step every command needs
+its own `cd` and one omission writes to the source branch — exactly what the
+worktree existed to prevent. That happened in a real session before it was
+caught.
+
+Immediately after create/open:
+
+```
+EnterWorktree(path="~/.herdr/worktrees/<repo>/<branch with / as ->")
+```
+
+The path must appear in `git worktree list` for the repo that owns it, which
+it does — herdr just created it. Once bound, cwd persists across Bash calls
+and git operations outside the worktree are refused.
+
+`ExitWorktree` will NOT delete a worktree entered this way. Use
+`action: "keep"` to return to the original directory; real teardown is the
+`herdr workspace close` / `herdr worktree remove` commands below.
+
+### One entry only, for herdr worktrees
+
+You get **one** EnterWorktree into a herdr checkout per session. Entering
+another is rejected.
+
+The reason is a mismatch worth understanding rather than memorising: the
+first entry only requires the path to be in `git worktree list`, which a
+herdr worktree satisfies. But **switching** from one worktree to another
+additionally requires the target to live under the repo's
+`.claude/worktrees/`, and herdr puts its checkouts in `~/.herdr/worktrees/`.
+So the second hop has nowhere legal to land.
+
+Practical consequence: decide which branch this session owns before binding.
+To work a second branch, that is a second session — which is the model herdr
+spaces already assume.
+
+### While bound
+
+- **Write plain, single-purpose commands.** The harness must be able to prove
+  statically that a command stays inside the worktree, and refuses when it
+  cannot. A heredoc with a redirect, or `cd ../.. && git ...`, are both
+  rejected even when harmless.
+
+- **A fresh checkout has no build artifacts.** Dependencies, `node_modules`,
+  virtualenvs and the like belong to the source checkout — and container
+  volumes usually bind there too, so nothing is shared. Install inside the
+  worktree before trusting any verification step. (On this machine `pnpm` is
+  not on PATH; `corepack pnpm install` works.)
+
+## Talking to the agent in another space
+
+`ListAgents` lists peers by **session name**, which has nothing to do with the
+herdr **space label**. The agent in the `_dotfiles` space registers as
+`herdr-implementation`; sessions show up as `carestackone-d9` and
+`refactor-rename-providers-to-doctors-e3` while their spaces are labelled
+`carestackone` and `refactor-rename-providers-to-doctors`.
+
+Matching a space label against that list concludes "no agent there" while an
+agent is sitting right in it. Two separate namespaces.
+
+`herdr api snapshot` gives the other half — `.result.snapshot.agents` carries
+`cwd`, `workspace_id` and `pane_id` for every live agent, so that is how you
+find WHICH space has an agent. It does not carry the peer's session name, so
+there is no mechanical join between the two; use the cwd to work out who you
+mean, then address them by the session name `ListAgents` shows.
 
 ## Open a branch that ALREADY has a worktree
 
@@ -95,21 +166,39 @@ in a perfectly good one.
 
 ## Laying out tabs
 
-`workspace create`, `tab create` and `worktree create` all return
-`result.root_pane.pane_id` and `result.tab.tab_id`. Tab 1 already exists as the
-workspace root; it only needs renaming.
+You almost certainly do not need to. `herdr-worktreeizer` calls
+`herdr-space-layout`, which is the ONE place that decides what a space looks
+like -- shared with `herdr-sessionizer` so the two cannot drift. A worktree
+space comes out as:
+
+```
+1:terminal | 2:harness | 3:lazygit | 4:hunk
+```
+
+and lands on **harness**, whose agent is named after the branch's last segment
+(`feat/vault-rotation` -> `vault-rotation`) and opens with the branch and
+checkout already in its prompt. `--harness <kind>` picks which one without
+prompting; without a TTY the picker is skipped and the menu is left in the
+pane.
+
+No gh-dash tab: a worktree's PRs are the parent repo's PRs, so a second
+dashboard on the same query is noise.
+
+If you are building a space by hand anyway, `workspace create`, `tab create`
+and `worktree create` all return `result.root_pane.pane_id` and
+`result.tab.tab_id`, and tab 1 already exists as the workspace root:
 
 ```bash
 herdr tab rename "$TAB1" terminal
 TJ=$(herdr tab create --workspace "$WS" --cwd "$CHECKOUT" --label lazygit --no-focus)
 PANE=$(printf '%s' "$TJ" | jq -r .result.root_pane.pane_id)
 herdr pane run "$PANE" lazygit
-herdr tab focus "$TAB1"        # land on terminal, not on the last tab created
 ```
 
 Use `pane run` rather than launching the tool as the pane's command: it types
 into the tab's shell, so quitting lazygit leaves a usable shell instead of
-closing the tab.
+closing the tab. Creation order IS tab order, so create tabs in the order you
+want them.
 
 ## Labels
 
