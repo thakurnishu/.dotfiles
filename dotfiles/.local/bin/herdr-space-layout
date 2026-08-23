@@ -71,6 +71,12 @@ print(d)
 }
 
 # Returns the new tab's "tab_id pane_id", or nothing.
+#
+# The TRAILING NEWLINE is load-bearing. `read` returns 1 at EOF-without-
+# delimiter even though it has already assigned the variables, and the caller
+# below guards with `|| continue` -- so without it every tab was created and
+# then skipped before its command ran. lazygit, gh-dash and hunk came up as
+# bare shells. The harness tab survived only because it guards with `|| true`.
 make_tab() {
     local label=$1 tabj t p
     tabj=$(herdr tab create --workspace "$ws" --cwd "$cwd" \
@@ -78,7 +84,7 @@ make_tab() {
     t=$(printf '%s' "$tabj" | jget result tab tab_id)
     p=$(printf '%s' "$tabj" | jget result root_pane pane_id)
     [[ -n ${p:-} ]] || return 1
-    printf '%s %s' "$t" "$p"
+    printf '%s %s\n' "$t" "$p"
 }
 
 is_worktree=0
