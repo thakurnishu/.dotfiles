@@ -160,7 +160,7 @@ pick_harness() {
 # even before the branch has any work on it.
 layout() {
     local ws=$1 tab1=$2 checkout=$3 branch=$4 kind=${5:-}
-    local spec name cmd tabj pane hpane agent_name
+    local spec name cmd tabj pane hpane htab agent_name
 
     [[ -n $tab1 ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
 
@@ -168,6 +168,7 @@ layout() {
     tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
         --label harness --no-focus 2>/dev/null)
     hpane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+    htab=$(printf '%s' "$tabj" | jget result tab tab_id)
     if [[ -n ${hpane:-} ]]; then
         if [[ -n ${kind:-} ]]; then
             # The branch's last segment: feat/vault-rotation -> vault-rotation.
@@ -202,7 +203,19 @@ layout() {
         pane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
         [[ -n ${pane:-} ]] && herdr pane run "$pane" $cmd >/dev/null 2>&1
     done
-    [[ -n $tab1 ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+    # Land on HARNESS, not terminal. This is where worktreeizer parts company
+    # with sessionizer, on purpose: a project space opens its harness tab on a
+    # picker, and dropping you there would force a harness choice before you
+    # have done anything. A worktree space has already asked, and the agent is
+    # sitting there with the branch context typed in -- making you go find it
+    # is the whole thing this was meant to save.
+    #
+    # Falls back to terminal if the harness tab could not be created.
+    if [[ -n ${htab:-} ]]; then
+        herdr tab focus "$htab" >/dev/null 2>&1
+    elif [[ -n $tab1 ]]; then
+        herdr tab focus "$tab1" >/dev/null 2>&1
+    fi
 }
 
 # --- mode menu ------------------------------------------------------------
