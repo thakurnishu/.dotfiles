@@ -106,13 +106,15 @@ if [[ -n ${hpane:-} ]]; then
         # typing spent none. Correctness wins: a lost session beats a spent
         # turn.
         ctx="You are working in the git worktree for branch $branch, checked out at $cwd.${source_repo:+ The main checkout is $source_repo.}"
+        # The SHAPE of the argument differs, which is the trap here: claude
+        # and codex take a POSITIONAL prompt, while opencode's positional is a
+        # project DIRECTORY and its prompt is a named flag. Passing a sentence
+        # positionally to opencode would be wrong in a way that looks right.
         start_args=()
         case $kind in
-            # Both take a positional prompt. opencode's positional is a
-            # PROJECT DIRECTORY, so passing a sentence there would be wrong in
-            # a way that looks right -- it gets no opening prompt.
             claude|codex) start_args=(-- "$ctx") ;;
-            *)            log "$kind takes no opening prompt; starting bare" ;;
+            opencode)     start_args=(-- --prompt "$ctx") ;;
+            *)            log "$kind: no known opening-prompt flag; starting bare" ;;
         esac
 
         # Generous timeout: three harnesses starting at once contended badly

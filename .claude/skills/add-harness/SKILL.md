@@ -84,9 +84,14 @@ it as a **launch argument**, so add the harness here if it takes one:
 
 | harness | opening prompt |
 |---|---|
-| claude | `claude "<text>"` |
-| codex | `codex "<text>"` |
-| opencode | **none** — its positional argument is a PROJECT DIRECTORY |
+| claude | `claude "<text>"` (positional) |
+| codex | `codex "<text>"` (positional) |
+| opencode | `opencode --prompt "<text>"` (named flag) |
+
+Read the WHOLE `--help`, not a grep of the first screen. opencode's positional
+argument is a project DIRECTORY and its prompt is a named flag further down the
+page; grepping the top of the output produced a confident, wrong "opencode has
+no opening prompt".
 
 Never send it by typing into the pane instead. A harness meeting a directory
 for the first time asks whether you trust it, and herdr reports codex as
