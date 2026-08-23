@@ -191,37 +191,10 @@ if [[ -z ${ws_id:-} ]]; then
     die "workspace create failed (is this running inside herdr?)"
 fi
 
-# Tab 1 already exists as the workspace root; it just needs a name.
-[[ -n ${tab1:-} ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
-
-# The remaining tabs. `tab create` spawns a shell in the pane; `pane run` then
-# types the command into it, so the tool owns the pane and exiting it leaves you
-# a usable shell rather than closing the tab.
-#
-# Plain directories are a common pick here (~/.config/*, ~/src/github.com/work),
-# and lazygit and gh-dash have nothing to show outside a repo. `rev-parse`
-# rather than a `.git` test: it is also true in subdirectories and in worktree
-# checkouts, where `.git` is a file or absent entirely.
-# hunk goes LAST so the existing tab numbers do not move: terminal, harness,
-# lazygit, gh-dash are already muscle memory at prefix+1..4.
-tab_specs=("harness:harness")
-if git -C "$selected" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    tab_specs+=("lazygit:lazygit" "gh-dash:gh-dash-session" "hunk:hunk diff --watch")
-    log "git repo: $selected -- creating lazygit, gh-dash and hunk tabs"
-else
-    log "not a git repo: $selected -- skipping lazygit, gh-dash and hunk tabs"
-fi
-
-for spec in "${tab_specs[@]}"; do
-    name=${spec%%:*}
-    # First colon, not last: the command may carry flags of its own.
-    cmd=${spec#*:}
-    tab_json=$(herdr tab create --workspace "$ws_id" --cwd "$selected" \
-        --label "$name" --no-focus 2>/dev/null)
-    pane=$(printf '%s' "$tab_json" | jget result root_pane pane_id)
-    [[ -n ${pane:-} ]] && herdr pane run "$pane" $cmd >/dev/null 2>&1
-done
-
-# Land on the terminal tab, not on whichever was created last.
-[[ -n ${tab1:-} ]] && herdr tab focus "$tab1" >/dev/null 2>&1
+# The SHAPE of a space -- which tabs, in which order, and where you land --
+# lives in herdr-space-layout, shared with herdr-worktreeizer. It also decides
+# what a non-git directory gets, so the check that used to live here moved
+# with it.
+"${HERDR_LAYOUT_BIN:-$HOME/.local/bin/herdr-space-layout}" \
+    --workspace "$ws_id" --cwd "$selected" ${tab1:+--tab1 "$tab1"}
 exit 0

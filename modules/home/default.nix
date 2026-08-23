@@ -180,6 +180,14 @@ in
     executable = true;
   };
 
+  # The shape of a herdr space -- which tabs, in which order, where you land.
+  # Shared by herdr-sessionizer and herdr-worktreeizer, which each grew their
+  # own copy of it and drifted.
+  home.file.".local/bin/herdr-space-layout" = {
+    source = ../../dotfiles/.local/bin/herdr-space-layout;
+    executable = true;
+  };
+
   # The "harness" tab in every space: offers whichever agent CLIs are actually
   # installed and becomes the one you pick. Discovery is dynamic, so adding a
   # harness to modules/darwin/packages.nix is the whole job -- the script does

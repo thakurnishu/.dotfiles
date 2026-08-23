@@ -77,6 +77,24 @@ resume_argv() {                               # required for session memory
         *)        printf '%s\n' "$k" ;;        # no resume flag -> starts fresh
 ```
 
+### Opening prompts differ too
+
+`herdr-space-layout` gives a new worktree's agent an opening prompt by passing
+it as a **launch argument**, so add the harness here if it takes one:
+
+| harness | opening prompt |
+|---|---|
+| claude | `claude "<text>"` |
+| codex | `codex "<text>"` |
+| opencode | **none** — its positional argument is a PROJECT DIRECTORY |
+
+Never send it by typing into the pane instead. A harness meeting a directory
+for the first time asks whether you trust it, and herdr reports codex as
+`idle` while that dialog is up (claude reports `blocked`), so a state check
+does not save you. Typed text went into a yes/no dialog and killed the
+session. As an argument the CLI owns the string and it stays queued behind the
+prompt.
+
 Find the flag with:
 
 ```bash
