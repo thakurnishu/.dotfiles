@@ -12,6 +12,9 @@
 #   herdr-worktreeizer <branch> [base]     create (agent path, no prompts)
 #   herdr-worktreeizer --open [branch]     open an existing worktree
 #   ... --harness <kind>                   skip the harness prompt
+#   ... --context "<why>"                  extra sentence for the agent's
+#                                          opening prompt -- what the branch is
+#                                          FOR, not just where it lives
 #
 # PATH is prepended for the same reason as herdr-sessionizer: a herdr popup
 # does not reliably inherit the interactive login PATH.
@@ -62,18 +65,38 @@ print(d)
 # legitimately named "open" still creates a branch.
 mode=""
 harness_arg=""
-while true; do
-    case ${1:-} in
-        --open)    mode=open;         shift ;;
-        --create)  mode=create;       shift ;;
+context_arg=""
+positional=()
+# ONE PASS, collecting positionals rather than stopping at the first one.
+#
+# The old loop broke out of the case on the first non-flag argument, so every
+# documented form -- including the two in this file's own --help -- silently
+# dropped its flags:
+#
+#   --open feat/x --harness claude   ->  branch=feat/x  base=--harness
+#                                        harness=<EMPTY>
+#
+# base literally became the string "--harness", and the layout ran with no
+# --kind, so the harness tab fell back to the picker and any --context was
+# discarded. Exit code 0 throughout. Flag ORDER is now irrelevant, which is
+# the only version of this that survives being written down in a skill.
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --open)    mode=open;          shift ;;
+        --create)  mode=create;        shift ;;
         # Skips the prompt entirely. This is the path an agent or a test uses.
         --harness) harness_arg=${2:-}; shift 2 ;;
-        *)         break ;;
+        # The TASK, in the caller's words. Only ever set by a caller who knows
+        # why the branch exists -- the interactive path does not ask for it,
+        # because a human opening a worktree is about to type the task anyway.
+        --context) context_arg=${2:-}; shift 2 ;;
+        # Everything after -- is a positional, for a branch named like a flag.
+        --)        shift; positional+=("$@"); break ;;
+        *)         positional+=("$1"); shift ;;
     esac
 done
-
-branch=${1:-}
-base=${2:-}
+branch=${positional[0]-}
+base=${positional[1]-}
 
 # A bare branch argument means the agent path: create, no prompts.
 [[ -z $mode && -n $branch ]] && mode=create
@@ -186,10 +209,15 @@ pick_harness() {
 # herdr-sessionizer so the two can never drift apart again.
 layout() {
     local ws=$1 tab1=$2 checkout=$3 branch=$4 kind=${5:-}
+    # The quotes INSIDE ${var:+...} are retained as quoting, so a multi-word
+    # --context stays one argument -- verified against values containing
+    # spaces, tabs, globs, $ and trailing whitespace. It looks like it should
+    # word-split and does not; leave it alone.
     "$LAYOUT" --workspace "$ws" --cwd "$checkout" \
         ${tab1:+--tab1 "$tab1"} \
         --branch "$branch" --source "$src" \
-        ${kind:+--kind "$kind"}
+        ${kind:+--kind "$kind"} \
+        ${context_arg:+--context "$context_arg"}
 }
 
 # --- mode menu ------------------------------------------------------------

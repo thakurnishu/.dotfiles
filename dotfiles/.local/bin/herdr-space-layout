@@ -15,6 +15,9 @@
 #     --source PATH     the main checkout, named in the agent's opening prompt
 #     --kind HARNESS    start this harness instead of leaving the picker, and
 #                       name the agent after --branch
+#     --context TEXT    appended to the agent's opening prompt -- WHY this
+#                       worktree exists, in the caller's words. Without it the
+#                       agent knows where it is and nothing about what to do.
 #
 # Two rules differ between the two kinds of space, and both are deliberate:
 #
@@ -36,7 +39,7 @@ LOG="$HOME/.cache/herdr-space-layout.log"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG" 2>/dev/null; }
 
-ws='' cwd='' tab1='' branch='' source_repo='' kind=''
+ws='' cwd='' tab1='' branch='' source_repo='' kind='' extra=''
 while [[ $# -gt 0 ]]; do
     case $1 in
         --workspace) ws=${2:-};          shift 2 ;;
@@ -45,6 +48,7 @@ while [[ $# -gt 0 ]]; do
         --branch)    branch=${2:-};      shift 2 ;;
         --source)    source_repo=${2:-}; shift 2 ;;
         --kind)      kind=${2:-};        shift 2 ;;
+        --context)   extra=${2:-};       shift 2 ;;
         *)           shift ;;
     esac
 done
@@ -85,7 +89,7 @@ is_worktree=0
 # --- harness, always, and always at slot 2 --------------------------------
 # Created FIRST so it lands next to terminal: tabs append, so creation order
 # is tab order.
-htab='' hpane='' ctx='' start_args=()
+htab='' hpane='' ctx='' start_out='' start_args=()
 read -r htab hpane < <(make_tab harness) || true
 if [[ -n ${hpane:-} ]]; then
     if [[ -n ${kind:-} && $is_worktree -eq 1 ]]; then
@@ -105,7 +109,11 @@ if [[ -n ${hpane:-} ]]; then
         # The cost is that it SUBMITS on launch, spending one agent turn where
         # typing spent none. Correctness wins: a lost session beats a spent
         # turn.
-        ctx="You are working in the git worktree for branch $branch, checked out at $cwd.${source_repo:+ The main checkout is $source_repo.}"
+        # Where it is, then WHY it is there. --context is last so the task
+        # is the freshest thing in the prompt, and omitted cleanly when the
+        # caller had nothing to add -- an empty tail would read as a truncated
+        # sentence to a model that has to act on it.
+        ctx="You are working in the git worktree for branch $branch, checked out at $cwd.${source_repo:+ The main checkout is $source_repo.}${extra:+ $extra}"
         # The SHAPE of the argument differs, which is the trap here: claude
         # and codex take a POSITIONAL prompt, while opencode's positional is a
         # project DIRECTORY and its prompt is a named flag. Passing a sentence
@@ -120,14 +128,26 @@ if [[ -n ${hpane:-} ]]; then
         # Generous timeout: three harnesses starting at once contended badly
         # enough for opencode to miss the 30s default, though it needs only
         # ~3s on its own.
-        if herdr agent start "$agent_name" --kind "$kind" --pane "$hpane" \
-            --timeout 90000 "${start_args[@]+"${start_args[@]}"}" >/dev/null 2>&1; then
+        # Capture the failure rather than discarding it. "agent start failed"
+        # with no reason cost an hour of guessing at timing and contention
+        # when the answer was in the message all along.
+        if start_out=$(herdr agent start "$agent_name" --kind "$kind" \
+            --pane "$hpane" --timeout 90000 \
+            "${start_args[@]+"${start_args[@]}"}" 2>&1); then
             log "agent '$agent_name' ($kind) started in $hpane"
         else
-            log "agent start failed for $kind in $hpane; leaving the picker"
+            log "agent start failed for $kind in $hpane: ${start_out:0:300}"
             herdr pane run "$hpane" "$HARNESS" >/dev/null 2>&1
         fi
     else
+        # Starting bare is normal -- the interactive path leaves the picker on
+        # purpose. But a caller who supplied --context clearly expected an
+        # agent, and the picker will throw that text away, so say so. This
+        # exact combination went unnoticed for a day because it was
+        # indistinguishable from a deliberate bare start.
+        if [[ -n ${extra:-} ]]; then
+            log "WARNING: --context given but no --kind; the picker discards it"
+        fi
         herdr pane run "$hpane" "$HARNESS" >/dev/null 2>&1
     fi
 fi
@@ -168,5 +188,5 @@ elif [[ -n $tab1 ]]; then
     herdr tab focus "$tab1" >/dev/null 2>&1
 fi
 
-log "laid out ws=$ws cwd=$cwd worktree=$is_worktree kind='${kind:-}' tabs=$((1 + ${#specs[@]}))"
+log "laid out ws=$ws cwd=$cwd worktree=$is_worktree kind='${kind:-}' context=${extra:+yes} tabs=$((1 + ${#specs[@]}))"
 exit 0

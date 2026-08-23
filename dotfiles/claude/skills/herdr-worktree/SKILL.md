@@ -27,12 +27,118 @@ drive someone else's session from outside.
 **Never run bare `herdr`** — it launches or attaches the TUI, and with no TTY
 it panics with `failed to initialize terminal`. Always use a subcommand.
 
+## Say WHY the worktree exists
+
+The agent in the new space opens with a prompt the layout script builds:
+
+> You are working in the git worktree for branch refactor/rename-providers-to-doctors, checked out at /Users/nishantsingh/.herdr/worktrees/carestackone/refactor-rename-providers-to-doctors. The main checkout is /Users/nishantsingh/src/github.com/personal/projects/carestackone.
+
+That is orientation and nothing else. It tells the agent where it is standing
+and leaves it with no idea what it is standing there for, so it opens by asking
+— or worse, guesses from the branch name. The branch name is a slug, not a
+brief.
+
+`--context` appends your sentences to that same prompt:
+
+```bash
+herdr-worktreeizer refactor/rename-providers-to-doctors main \
+  --harness claude \
+  --context "Rename the Provider model and everything that references it to Doctor, across the API and the web app. Keep the DB column names for now; a migration comes later. Start by mapping every usage before changing anything."
+```
+
+which the agent receives as one prompt:
+
+> You are working in the git worktree for branch ... The main checkout is ... Rename the Provider model and everything that references it to Doctor, across the API and the web app. Keep the DB column names for now; a migration comes later. Start by mapping every usage before changing anything.
+
+**Always pass it when you know the task**, which is almost always — the user
+just told you why they want the worktree. Omit it only when you genuinely do
+not know, and say that you did.
+
+What belongs in it, given the agent starts with no other context:
+
+- the goal in a sentence or two, in the user's terms
+- the constraints and non-goals you were given — what NOT to touch is the part
+  a fresh agent cannot infer and will get wrong
+- where to start, if the user named a file, a ticket or an approach
+- anything the user said that the branch name does not carry
+
+What does not: the branch, the checkout path or the source repo — the first
+sentence already states all three, and repeating them wastes the turn.
+
+Mind the mechanics, all three inherited from how the prompt is delivered:
+
+- **It submits on launch.** The context is the harness's own argument, not
+  typed into the pane, so the agent spends a turn on it immediately. Write it
+  as an instruction you actually want acted on, not as a note to be read later.
+- **One shell argument, so quote it.** Newlines survive; an unquoted string
+  loses everything after the first space. Keep it prose — no heredocs.
+- **Only claude, codex and opencode carry it.** Any other kind starts bare and
+  `--context` is silently dropped (the layout log says so). If the user picked
+  one of those, tell them the space has no task in it.
+
+`--context` also works on the open path, where it is the way to hand an
+existing branch a fresh assignment:
+
+```bash
+herdr-worktreeizer --open refactor/rename-providers-to-doctors \
+  --harness claude --context "Pick up where the last session stopped: the API is done, the web app is not."
+```
+
+## Ask which harness BEFORE you create the space
+
+The harness is not a detail you can fix afterwards. `herdr-space-layout` starts
+the chosen agent in the harness tab with the branch context as its opening
+prompt, so the choice is baked in at creation time — changing your mind later
+means `prefix+shift+a` in that space, which ends the running agent's process.
+
+So unless the user already named one, **ask** with AskUserQuestion. The options
+are the harnesses this dotfiles repo actually configures — one directory each
+under `dotfiles/` — plus `none`:
+
+```
+AskUserQuestion(questions=[{
+  header: "Harness",
+  question: "Which harness should run in the <branch> worktree space?",
+  multiSelect: false,
+  options: [
+    {label: "claude",   description: "Claude Code — config tracked in dotfiles/claude"},
+    {label: "codex",    description: "OpenAI Codex — config tracked in dotfiles/codex"},
+    {label: "opencode", description: "OpenCode — config tracked in dotfiles/opencode"},
+    {label: "none",     description: "Leave the picker in the pane; choose in the space"},
+  ],
+}])
+```
+
+Then pass the answer straight through as `--harness <kind>`. "none" means omit
+the flag entirely.
+
+Re-derive the list rather than trusting this snippet — `ls dotfiles/` is the
+source of truth for which harnesses are configured here, and a fourth may have
+been added since. AskUserQuestion takes at most four options, so a fifth
+configured harness means dropping `none` and letting the user type it under
+"Other".
+
+`harness --list` is the other half of the picture: it prints one
+`kind<TAB>label` per line for every recognised CLI actually on PATH, and that
+list is longer (`pi`, `gemini`, `cursor`, `amp`, `droid`, `copilot`, ... are
+all recognised kinds). Installed-but-unconfigured harnesses are legitimate
+answers; they just start with stock settings, so they belong under "Other"
+rather than in the offered options.
+
+Only the three configured ones get an opening prompt: `claude` and `codex` take
+it positionally, `opencode` needs `--prompt`. Any other kind starts bare and
+the branch context is not typed in for it, so say so if the user picks one.
+
+Skip the question when the user has already said which harness they want, or
+when they asked for no agent at all.
+
 ## Create a space for a NEW branch
 
 Preferred — one command, creates worktree + space + tabs:
 
 ```bash
-herdr-worktreeizer <branch> [base]      # e.g. herdr-worktreeizer feat/thing main
+herdr-worktreeizer <branch> [base] --harness <kind> --context "<why>"
+# e.g. herdr-worktreeizer feat/thing main --harness claude --context "Add ..."
 ```
 
 Non-interactive when given arguments, which is the agent path. Without
@@ -125,6 +231,7 @@ mean, then address them by the session name `ListAgents` shows.
 
 ```bash
 herdr-worktreeizer --open <branch>      # branch name, or the checkout's directory name
+# --harness and --context apply here too; see the two sections above.
 ```
 
 Same two-tab layout as create, and it is a no-op-plus-focus when the worktree is
@@ -177,8 +284,9 @@ space comes out as:
 
 and lands on **harness**, whose agent is named after the branch's last segment
 (`feat/vault-rotation` -> `vault-rotation`) and opens with the branch and
-checkout already in its prompt. `--harness <kind>` picks which one without
-prompting; without a TTY the picker is skipped and the menu is left in the
+checkout already in its prompt, plus whatever `--context` added.
+`--harness <kind>` picks which one without prompting — pass the answer from the
+question above; without a TTY the picker is skipped and the menu is left in the
 pane.
 
 No gh-dash tab: a worktree's PRs are the parent repo's PRs, so a second
