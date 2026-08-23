@@ -19,6 +19,9 @@ set -uo pipefail
 
 export PATH="/run/current-system/sw/bin:$HOME/.nix-profile/bin:$PATH"
 
+# Absolute, and overridable so the repo copy can be exercised before a switch.
+HARNESS="${HERDR_HARNESS_BIN:-$HOME/.local/bin/harness}"
+
 LOG="$HOME/.cache/herdr-worktreeizer.log"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG" 2>/dev/null; }
@@ -132,9 +135,65 @@ pick() {
 # a branch space: you see the change accumulate instead of reading it in one
 # lump at the end. It holds the pane open on a clean tree, so it is safe here
 # even before the branch has any work on it.
+# Ask which harness before building anything, so the picker is not interleaved
+# with tabs appearing. Escaping is allowed and means "just leave me the menu in
+# the pane", which is what prefix+shift+a does when a space has no harness.
+pick_harness() {
+    local menu
+    menu=$("$HARNESS" --list 2>/dev/null | awk -F'\t' '{
+        printf "%-10s %s\t%s\n", $1, $2, $1
+    }')
+    [[ -n ${menu:-} ]] || return 0
+    printf '%s\n' "$menu" | pick "harness for this worktree" 10
+}
+
+# Tab 1 is the workspace root pane, so it only needs a name; the rest open on
+# the CHECKOUT rather than on the source repo. Land on terminal.
+#
+# harness is created FIRST so it lands at slot 2, next to terminal, matching
+# every other space. Tabs append, so creation order IS tab order -- no
+# repositioning needed here, unlike prefix+shift+a which arrives late.
+#
+# hunk watches the worktree and reloads as files change, which is the point of
+# a branch space: you see the change accumulate instead of reading it in one
+# lump at the end. It holds the pane open on a clean tree, so it is safe here
+# even before the branch has any work on it.
 layout() {
-    local ws=$1 tab1=$2 checkout=$3 spec name cmd tabj pane
+    local ws=$1 tab1=$2 checkout=$3 branch=$4 kind=${5:-}
+    local spec name cmd tabj pane hpane agent_name
+
     [[ -n $tab1 ]] && herdr tab rename "$tab1" terminal >/dev/null 2>&1
+
+    # --- harness ----------------------------------------------------------
+    tabj=$(herdr tab create --workspace "$ws" --cwd "$checkout" \
+        --label harness --no-focus 2>/dev/null)
+    hpane=$(printf '%s' "$tabj" | jget result root_pane pane_id)
+    if [[ -n ${hpane:-} ]]; then
+        if [[ -n ${kind:-} ]]; then
+            # The branch's last segment: feat/vault-rotation -> vault-rotation.
+            # That is what shows in herdr's agent panel, so several worktrees
+            # of one repo stay tellable apart.
+            agent_name=${branch##*/}
+            if herdr agent start "$agent_name" --kind "$kind" \
+                --pane "$hpane" >/dev/null 2>&1; then
+                log "agent '$agent_name' ($kind) ready in $hpane"
+                # TYPED, not submitted. The context is the part worth not
+                # retyping; making it a turn of its own would spend an agent
+                # round trip on "understood" every time a worktree is made.
+                # Add the task after it and press enter.
+                herdr pane send-text "$hpane" \
+                    "You are working in the git worktree for branch $branch, checked out at $checkout. The main checkout is $src. " \
+                    >/dev/null 2>&1
+            else
+                log "agent start failed for $kind in $hpane; leaving the picker"
+                herdr pane run "$hpane" "$HARNESS" >/dev/null 2>&1
+            fi
+        else
+            herdr pane run "$hpane" "$HARNESS" >/dev/null 2>&1
+        fi
+    fi
+
+    # --- the rest ---------------------------------------------------------
     for spec in "lazygit:lazygit" "hunk:hunk diff --watch"; do
         name=${spec%%:*}
         cmd=${spec#*:}
@@ -216,7 +275,12 @@ for w in d.get("result", {}).get("worktrees", []):
     [[ -n ${ws:-} ]] || die "worktree open failed: $(printf '%s' "$out" | head -c 200)"
     log "opened ws=$ws checkout=$checkout"
 
-    layout "$ws" "${tab1:-}" "$checkout"
+    # Only when a human is driving: an agent calling this has stdin on
+    # /dev/null, gum has nothing to draw on, and leaving the picker in the pane
+    # is the right answer there anyway.
+    kind=''
+    [[ -t 0 ]] && kind=$(pick_harness)
+    layout "$ws" "${tab1:-}" "$checkout" "$wt_branch" "${kind:-}"
     exit 0
 fi
 
@@ -263,5 +327,7 @@ checkout=$(printf '%s' "$out" | jget result workspace worktree checkout_path)
 [[ -n ${ws:-} ]] || die "worktree create failed: $(printf '%s' "$out" | head -c 200)"
 log "created ws=$ws checkout=$checkout"
 
-layout "$ws" "${tab1:-}" "$checkout"
+kind=''
+[[ -t 0 ]] && kind=$(pick_harness)
+layout "$ws" "${tab1:-}" "$checkout" "$branch" "${kind:-}"
 exit 0

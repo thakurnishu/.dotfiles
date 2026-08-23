@@ -182,5 +182,6 @@ so check the **content** comes back:
 | `dotfiles/.local/bin/herdr-harness-switch` | `prefix+shift+a`: record → signal → relaunch |
 | `dotfiles/herdr/config.toml` | the `prefix+shift+a` binding |
 | `dotfiles/.local/bin/herdr-sessionizer` | creates the `harness` tab in new spaces |
+| `dotfiles/.local/bin/herdr-worktreeizer` | same for worktree spaces, and starts a NAMED agent pre-seeded with the branch context |
 | `modules/home/default.nix` | installs the scripts; runs `herdr integration install` |
 | `modules/darwin/packages.nix` | the CLIs themselves |
