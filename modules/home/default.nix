@@ -79,6 +79,30 @@ in
     config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/.dotfiles/dotfiles/claude/CLAUDE.md";
 
+  # codex and opencode, the same arrangement as claude's settings.json and for
+  # the same reason: THE TOOL WRITES TO THIS FILE, so a read-only store path
+  # would make its own saves fail.
+  #
+  # Expect these to go dirty on their own, more than a normal dotfile does.
+  # codex in particular keeps preferences and BOOKKEEPING in one file --
+  # `model` and `model_reasoning_effort` next to per-directory trust decisions,
+  # a model-migration notice, and a sha256 of the herdr hook it has agreed to
+  # run. There is no way to track the first without the rest.
+  #
+  # A consequence worth understanding before this lands on a second machine:
+  # the committed `[projects."..."] trust_level = "trusted"` entries mean those
+  # paths arrive PRE-TRUSTED. Harmless while the paths do not exist there, but
+  # it is a real decision, not an accident -- prune them if you would rather
+  # answer codex's prompt per machine.
+  home.file.".codex/config.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/codex/config.toml";
+
+  # Only opencode.jsonc. The rest of ~/.config/opencode is node_modules, a
+  # lockfile, and herdr's own plugin -- opencode's own .gitignore excludes the
+  # first three, and herdr owns the last.
+  xdg.configFile."opencode/opencode.jsonc".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/opencode/opencode.jsonc";
+
   # Skills are read-only content; a normal store symlink is fine.
   xdg.configFile."opencode/skills".source = ../../dotfiles/opencode/skills;
 

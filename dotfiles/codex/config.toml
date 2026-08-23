@@ -1,0 +1,20 @@
+model = "gpt-5.6-luna"
+model_reasoning_effort = "medium"
+[projects."/Users/nishantsingh/src/github.com/personal"]
+trust_level = "trusted"
+
+
+[projects."/Users/nishantsingh/.dotfiles"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.4-mini" = "gpt-5.6-luna"
+
+[features]
+hooks = true
+
+[hooks.state]
+
+[hooks.state."/Users/nishantsingh/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:c9983a9cd998e2a542bd4e99d87b0f0c2366a7ea334547672baff754f9608241"
+enabled = true
