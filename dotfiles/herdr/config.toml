@@ -60,8 +60,29 @@ tab_bar_position = "top"
 # Show which agent is in each split without opening the sidebar.
 show_agent_labels_on_pane_borders = true
 
-# lazygit is already in packages.nix; popup = session-modal, no layout change.
 agent_panel_sort = "spaces"
+
+# 26 is herdr's default and it truncated real space names --
+# "feat-print-templates" showed as "feat-print-...". 34 fits the longest
+# branch-derived label in use; 36 is the hard maximum.
+sidebar_width = 34
+
+# Drop the `tab` field, which herdr includes by default.
+#
+# Every space here lays out its agent in a tab called `harness`, so that field
+# printed the same word on every row and spent a third of the width saying
+# nothing -- while the space name, the ONE thing that tells two claudes apart,
+# was the part getting truncated.
+#
+# Other tokens available if this ever needs more: state_text, pane,
+# terminal_title, terminal_title_stripped (the session's own title, e.g.
+# "Review prescription and bills handling process"), and $name for anything
+# reported through `herdr pane report-metadata`. Per-agent overrides live in
+# [ui.sidebar.agents.rows_by_agent].
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace"], ["agent"]]
+
+# lazygit is already in packages.nix; popup = session-modal, no layout change.
 [[keys.command]]
 key = "prefix+alt+g"
 type = "popup"
