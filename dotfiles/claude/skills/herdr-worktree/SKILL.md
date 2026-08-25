@@ -38,21 +38,59 @@ and leaves it with no idea what it is standing there for, so it opens by asking
 — or worse, guesses from the branch name. The branch name is a slug, not a
 brief.
 
-`--context` appends your sentences to that same prompt:
+`--context` appends your sentences to that same prompt. **Put the brief in a
+file and make `--context` a one-line pointer to it.** Write the file first —
+the worktree does not exist yet, so it has to live outside:
 
 ```bash
+mkdir -p ~/.cache/herdr-briefs
+cat > ~/.cache/herdr-briefs/rename-providers-to-doctors.md <<'BRIEF'
+# Rename Provider -> Doctor
+
+Rename the Provider model and everything that references it to Doctor, across
+the API and the web app.
+
+## Constraints
+- Keep the DB column names for now; a migration comes later.
+- Do not touch the billing serializers; they are mid-review on another branch.
+
+## Where to start
+Map every usage before changing anything.
+BRIEF
+
 herdr-worktreeizer refactor/rename-providers-to-doctors main \
   --harness claude \
-  --context "Rename the Provider model and everything that references it to Doctor, across the API and the web app. Keep the DB column names for now; a migration comes later. Start by mapping every usage before changing anything."
+  --context "Read ~/.cache/herdr-briefs/rename-providers-to-doctors.md in full — it is your task brief — then carry it out."
 ```
 
 which the agent receives as one prompt:
 
-> You are working in the git worktree for branch ... The main checkout is ... Rename the Provider model and everything that references it to Doctor, across the API and the web app. Keep the DB column names for now; a migration comes later. Start by mapping every usage before changing anything.
+> You are working in the git worktree for branch ... The main checkout is ... Read ~/.cache/herdr-briefs/rename-providers-to-doctors.md in full — it is your task brief — then carry it out.
 
 **Always pass it when you know the task**, which is almost always — the user
 just told you why they want the worktree. Omit it only when you genuinely do
 not know, and say that you did.
+
+Why a file rather than the prose inline, given inline is fewer keystrokes:
+
+- **Long inline context breaks agent startup.** The whole brief becomes one
+  shell-quoted argument to `herdr agent start`, and a paragraphs-long one has
+  been observed to blow the 90s startup timeout. The failure is the silent kind
+  described below — you get a pane with the command sitting in it unexecuted and
+  no agent at all. A one-line pointer never gets near that.
+- **It survives quoting.** Apostrophes, `$`, backticks and quotes in your brief
+  all have to run the gauntlet of a shell argument; in a heredoc'd file they are
+  just text. `'BRIEF'` quoted as above disables interpolation entirely.
+- **It can have structure.** Headings, bullets and a constraints section read
+  far better to a fresh agent than one undifferentiated paragraph, and the file
+  stays on disk as a reference the agent can re-read mid-task instead of
+  scrolling back to turn one.
+- **You can hand it more later.** Append to the file and tell the agent to
+  re-read it, rather than restating everything in a message.
+
+Keep the pointer sentence itself short and imperative, and give the path in
+full. "Read X, then carry it out" is doing real work: without it an agent may
+treat the path as trivia and open by asking what to do.
 
 What belongs in it, given the agent starts with no other context:
 
@@ -71,18 +109,69 @@ Mind the mechanics, all three inherited from how the prompt is delivered:
   typed into the pane, so the agent spends a turn on it immediately. Write it
   as an instruction you actually want acted on, not as a note to be read later.
 - **One shell argument, so quote it.** Newlines survive; an unquoted string
-  loses everything after the first space. Keep it prose — no heredocs.
+  loses everything after the first space. With the brief in a file the pointer
+  is short enough that this stops being a hazard.
 - **Only claude, codex and opencode carry it.** Any other kind starts bare and
   `--context` is silently dropped (the layout log says so). If the user picked
   one of those, tell them the space has no task in it.
+
+### The branch name IS the agent name
+
+`herdr-space-layout` names the agent after the branch's last segment
+(`agent_name=${branch##*/}`) and passes it to `herdr agent start` unchanged — no
+truncation, no sanitising. `herdr` then rejects anything that is not
+
+> lowercase letters, digits, `-` or `_`, starting with a letter, **1–32 chars**
+
+So `fix/devsh-migrate-against-stale-api-image` fails: the last segment is 37
+characters. Pick the last segment to fit *before* you create anything —
+`fix/devsh-stale-api-image` is the same branch, 21 characters, and works. The
+name must also be **unique across live agents**, so two worktrees ending in the
+same segment collide with `agent_name_taken` even in different repos.
+
+### Verify the agent actually started
+
+None of these failures reach your terminal. `herdr-worktreeizer` prints nothing
+on success *or* on this kind of failure, **exits 0 either way**, and the sidebar
+still shows a healthy-looking space with three tabs — so "I created it and
+passed the context" is a claim you cannot make from the exit code. On failure
+the layout falls back to `herdr pane run "$hpane" "$HARNESS"`, which leaves the
+bare harness picker in the pane and throws your `--context` away.
+
+The log is the only place it is recorded, so read it every time:
+
+```bash
+tail -2 ~/.cache/herdr-space-layout.log
+```
+
+You want the pair:
+
+```
+agent 'devsh-stale-api-image' (claude) started in w1T:p2
+laid out ws=w1T cwd=... worktree=1 kind='claude' context=yes tabs=3
+```
+
+`context=yes` alone is not success — it only means the string reached the layout
+script. Without a preceding `agent ... started` line, no agent exists and the
+brief went nowhere. Cross-check with
+
+```bash
+herdr api snapshot | jq -r '.result.snapshot.agents[]? | "\(.name) \(.workspace_id) \(.cwd)"'
+```
+
+and if the space is empty, `herdr worktree remove --workspace <ws>`, delete the
+branch, fix the name, and create it again.
 
 `--context` also works on the open path, where it is the way to hand an
 existing branch a fresh assignment:
 
 ```bash
 herdr-worktreeizer --open refactor/rename-providers-to-doctors \
-  --harness claude --context "Pick up where the last session stopped: the API is done, the web app is not."
+  --harness claude --context "Read ~/.cache/herdr-briefs/rename-providers-to-doctors.md — the handover section at the bottom is new — then carry on."
 ```
+
+Same file, appended to rather than rewritten: the agent picking the branch up
+gets the original brief and the handover in one read.
 
 ## Ask which harness BEFORE you create the space
 
