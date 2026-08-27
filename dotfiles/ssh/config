@@ -1,0 +1,128 @@
+# ssh client config. TRACKED, and ~/.dotfiles is a PUBLIC repo -- so what may
+# and may not go in this file is a security decision, not a style one.
+#
+# WHAT BELONGS HERE: settings, and hosts whose existence is already public.
+# The github.com blocks qualify -- github.com is not a secret and neither are
+# the NAMES of the key files, only the keys themselves, which live in ~/.ssh
+# and are never tracked.
+#
+# WHAT DOES NOT: anything that describes a network. Private addresses, public
+# addresses, internal host naming, or a domain that names an organisation are
+# all free reconnaissance once pushed, and git history keeps them even after a
+# later cleanup. Those live in the two files included below, split by where the
+# host actually is:
+#
+#   ~/.ssh/config.homelab   the machines on the home network. A SYMLINK into
+#                           the homelab repo, so not machine-local, and that
+#                           repo is also PUBLIC:
+#                             -> homelab/homelab-setup/ssh/config.homelab
+#                           A deliberate exception to the rule above, taken
+#                           knowingly rather than by accident: those addresses
+#                           are RFC1918 and unreachable from the internet, and
+#                           that repo already exposed the subnet through its
+#                           MetalLB pool and terraform provider. Editing it
+#                           edits the repo's copy -- commit it there.
+#
+#   ~/.ssh/config.local     everything else off-network -- cloud boxes, and
+#                           anything whose hostname names an organisation.
+#                           Genuinely machine-local and untracked. Public
+#                           addresses and org names go HERE, never in the
+#                           homelab file.
+#
+# When adding a host there are now two tests. First: is it on the home network?
+# That picks the file. Second, for a homelab host: is this line fine to publish,
+# because it will be? Anything that fails belongs in config.local regardless of
+# where the machine physically sits. Both are included ahead of `Host *`, so
+# only the exposure differs, never the behaviour.
+#
+# ORDER IS LOAD-BEARING. ssh_config is FIRST-MATCH-WINS, unlike almost every
+# other config format -- the first value obtained for a keyword is used and
+# later ones are ignored. So:
+#
+#   Includes go FIRST, or the `Host *` block below would answer for the hosts
+#           inside them before they were ever consulted.
+#   `Host *` goes LAST, for the same reason.
+#
+# DEPLOYED OUT OF STORE (writable). Something on this machine already rewrites
+# ~/.ssh/config -- colima, which manages its own Include line and leaves a
+# config.bak.<timestamp> behind when it does. A read-only store path would make
+# that rewrite fail; out-of-store it lands in the repo and shows up as a normal
+# git diff. Same arrangement as herdr/config.toml and codex/config.toml, and
+# the same reason.
+
+# --- includes, first -------------------------------------------------------
+# The hosts themselves: cloud, and anything naming an org.
+Include ~/.ssh/config.local
+
+# --- includes, second ------------------------------------------------------
+# The hosts themselves: homelab. Symlink into the homelab repo, so the guest
+# inventory is versioned alongside the thing that creates the guests. Adding or
+# destroying a VM/CT is supposed to update it -- see that repo's
+# .claude/skills/proxmox-{vm,ct}/SKILL.md.
+#
+# THIS LINE DEPENDS ON A PATH IN ANOTHER REPO:
+#   ~/src/github.com/personal/homelab/homelab-setup/ssh/config.homelab
+# Move, rename or re-checkout that repo and the symlink dangles. ssh SKIPS a
+# dangling or missing Include silently -- tested, exit 0, nothing on stderr --
+# so the failure is not "ssh is broken" but "the homelab aliases stopped
+# resolving", while git and everything else keep working and point at nothing.
+# Diagnose with `ls -l ~/.ssh/config.homelab` and `ssh -G pihole | head -2`:
+# a hostname that comes back as the alias itself means the Include went away.
+#
+# Fixing it is re-pointing the symlink, not editing this file.
+Include ~/.ssh/config.homelab
+
+# colima's own generated block for the docker VM. Machine state, written by
+# colima on every `colima start`, so it is included rather than copied.
+Include ~/.colima/ssh_config
+
+# --- github, one identity per account --------------------------------------
+# Three accounts on one host, told apart by the ALIAS in the remote URL:
+#   git@github.com:...        personal
+#   git@jbbkj.github.com:...  jbbkj
+#   git@sp.github.com:...     solytics
+#
+# `HostName github.com` is what makes the aliases resolve -- ssh connects to
+# github.com either way and only the key differs. Clone with the alias and the
+# right identity is picked automatically; clone with the real hostname and you
+# get the personal key.
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/github_personal
+
+Host jbbkj.github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/nishant_jbbkj_github
+
+Host sp.github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/github_solytics
+
+# --- defaults for everything, last -----------------------------------------
+Host *
+  # UseKeychain is macOS-only and OpenSSH ERRORS on unknown keywords rather
+  # than skipping them, which would break every ssh invocation on the
+  # ubuntu-config branch. IgnoreUnknown is the supported way to say "skip this
+  # if you do not know it", and must name the keyword BEFORE it is used.
+  IgnoreUnknown UseKeychain
+  UseKeychain yes
+
+  # Load a key into the agent the first time it is used, so a passphrase is
+  # typed once per boot rather than once per connection.
+  AddKeysToAgent yes
+
+  # Offer ONLY the IdentityFile that matched, not every key the agent holds.
+  # Without this, ssh walks the agent key by key and a host that rate-limits
+  # auth attempts can reject you before reaching the right one -- the usual
+  # cause of "Too many authentication failures" once you have several keys.
+  # Every host above and in config.local names its own IdentityFile, and
+  # colima's generated block sets this itself, so nothing depends on the walk.
+  IdentitiesOnly yes
+
+  # Keep NAT and idle timeouts from silently dropping long sessions -- a
+  # k9s port-forward or an ssh into a VM left open between tasks.
+  ServerAliveInterval 60
+  ServerAliveCountMax 3

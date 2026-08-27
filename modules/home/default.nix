@@ -71,6 +71,33 @@ in
   xdg.configFile."k9s/skins/gruvbox-transparent.yaml".source =
     ../../dotfiles/k9s/skins/gruvbox-transparent.yaml;
 
+  # ssh. Out-of-store because colima REWRITES ~/.ssh/config to manage its own
+  # Include line (it leaves a config.bak.<timestamp> behind when it does), and
+  # a read-only store path would make that rewrite fail.
+  #
+  # Only the settings and the github accounts are in the repo -- it is PUBLIC.
+  # The hosts arrive through two Includes at the top of that file, and they are
+  # NOT the same kind of thing:
+  #
+  #   ~/.ssh/config.homelab   a symlink into the homelab repo, which is also
+  #                           public. RFC1918 only, and a deliberate exception
+  #                           -- that repo already published the subnet.
+  #   ~/.ssh/config.local     genuinely untracked and machine-local. Routable
+  #                           addresses and org-named hosts go here, only here.
+  #
+  # dotfiles/ssh/config carries the full reasoning and the test for deciding
+  # which half a new host belongs in.
+  #
+  # Neither Include is required for ssh to work: a missing or dangling Include
+  # is skipped silently (verified, not assumed), so a machine without the
+  # homelab repo cloned loses those hosts and nothing else.
+  #
+  # NOTE this deliberately does NOT manage ~/.ssh itself. The private keys are
+  # in that directory and home-manager taking ownership of it is one glob away
+  # from putting them in the store, which is world-readable.
+  home.file.".ssh/config".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/ssh/config";
+
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
 

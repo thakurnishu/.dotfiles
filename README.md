@@ -105,9 +105,15 @@ Shell: `Ctrl-F` opens the fzf directory jumper, `Ctrl-L` clears.
 - **Code lives in `~/src/github.com/{personal,work}`** (Linux used
   `~/Desktop/src/...`). The `sb`/`dof`/`homelab`/`blog` aliases, zk paths,
   obsidian workspace and gitconfig `includeIf` all follow this.
-- **`~/.ssh/config` is deliberately not tracked** — this repo is public and
-  the config lists LAN addresses, an EC2 host and an employer GitLab.
-  Recreate it by hand on a new machine.
+- **`~/.ssh/config` is tracked, but only the half that is safe to publish.**
+  This repo is public, so the file here holds the github accounts and the
+  global defaults and nothing else. The hosts come from two `Include`s:
+  `~/.ssh/config.homelab`, a symlink into the (also public) homelab repo,
+  carrying only RFC1918 addresses that repo already exposes; and
+  `~/.ssh/config.local`, untracked and machine-local, which is where the
+  EC2 host and the employer GitLab live. On a new machine the tracked half
+  arrives with home-manager and `config.local` is the part to recreate by
+  hand, along with the keys.
 - **`colima start`** before using docker or kind; macOS has no native Docker
   daemon.
 - GUI apps come from Homebrew casks rather than Nix: `.app` bundles don't

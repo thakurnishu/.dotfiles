@@ -76,8 +76,16 @@ cat <<'EOF'
       System Settings -> Privacy & Security -> Accessibility
   * Grant Ghostty Screen Recording if you want `screenshot` to work when
     run from a terminal (it already works via the AeroSpace keybinding).
-  * ~/.ssh/config is NOT managed here (this repo is public). Recreate it
-    and copy your keys across by hand.
+  * ~/.ssh/config IS managed here, but only the publishable half -- github
+    accounts and global defaults. Do not hand-write it; home-manager has
+    already symlinked it. What you must recreate by hand:
+      - ~/.ssh/config.local   off-network hosts (EC2, employer GitLab).
+                              Untracked on purpose -- nothing routable or
+                              org-named goes in a public repo.
+      - your private keys     never tracked, in any repo.
+    ~/.ssh/config.homelab is a symlink into the homelab repo and appears
+    once that is cloned. Until then those hosts just do not resolve -- ssh
+    skips a missing Include silently, so nothing else breaks.
   * In nvim, run :Lazy restore to pin plugins to lazy-lock.json.
   * `colima start` before using docker or kind.
 EOF
