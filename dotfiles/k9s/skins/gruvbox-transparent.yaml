@@ -1,0 +1,136 @@
+# -----------------------------------------------------------------------------
+# k9s skin: gruvbox dark, on the terminal's own background.
+#
+# k9s ships 35 skins (see `<k9s-store-path>/share/k9s/skins`), including
+# gruvbox-dark.yaml and transparent.yaml -- but not one that is both, and both
+# is the point here:
+#
+#   gruvbox      to match ghostty/config's `theme = Gruvbox Dark` and
+#                herdr/config.toml's `[theme] name = "gruvbox"`.
+#   transparent  because ghostty runs at `background-opacity = 0.85` with
+#                blur, and a skin that paints its own solid background punches
+#                an opaque rectangle through it.
+#
+# Transparency here is not a setting so much as an ABSENCE: every bgColor is
+# `default`, meaning "do not paint, let the terminal show through". So it
+# follows ghostty automatically -- super+shift+t toggles ghostty's opacity and
+# k9s comes with it, with nothing to keep in sync.
+#
+# The palette is canonical gruvbox dark, NOT the values in the bundled
+# gruvbox-dark.yaml -- that one is off in places (its `cyan` is a green, and
+# its `charts.bgColor` says `background` where it means `*background`, so the
+# anchor never expands and k9s gets a literal string).
+# -----------------------------------------------------------------------------
+
+foreground:  &foreground  "#ebdbb2"  # fg1
+comment:     &comment     "#928374"  # gray  -- same grey session-picker uses
+selection:   &selection   "#3c3836"  # bg1
+subtle:      &subtle      "#504945"  # bg2
+red:         &red         "#fb4934"
+green:       &green       "#b8bb26"
+yellow:      &yellow      "#fabd2f"
+blue:        &blue        "#83a598"
+purple:      &purple      "#d3869b"
+aqua:        &aqua        "#8ec07c"
+orange:      &orange      "#fe8019"
+
+# `default` is k9s's keyword for "inherit the terminal", not a color name.
+# Every background in this file is this and only this -- adding a real color
+# to any one of them puts an opaque patch back on screen.
+transparent: &transparent default
+
+k9s:
+  body:
+    fgColor: *foreground
+    bgColor: *transparent
+    logoColor: *yellow
+  prompt:
+    fgColor: *foreground
+    bgColor: *transparent
+    suggestColor: *comment
+  info:
+    fgColor: *purple
+    sectionColor: *foreground
+  help:
+    fgColor: *foreground
+    bgColor: *transparent
+    keyColor: *yellow
+    numKeyColor: *blue
+    sectionColor: *green
+  dialog:
+    fgColor: *foreground
+    bgColor: *transparent
+    buttonFgColor: *foreground
+    buttonBgColor: *purple
+    buttonFocusFgColor: "#282828"
+    buttonFocusBgColor: *yellow
+    labelFgColor: *orange
+    fieldFgColor: *foreground
+  frame:
+    border:
+      fgColor: *subtle
+      focusColor: *yellow
+    menu:
+      fgColor: *foreground
+      keyColor: *yellow
+      numKeyColor: *yellow
+    crumbs:
+      fgColor: "#282828"
+      # The ONE deliberate exception to the transparency rule. Crumbs are
+      # reverse-video breadcrumb chips -- dark text on a colored pill -- and
+      # `default` here gives dark-on-transparent, i.e. invisible.
+      bgColor: *comment
+      activeColor: *yellow
+    status:
+      newColor: *aqua
+      modifyColor: *blue
+      addColor: *green
+      errorColor: *red
+      highlightColor: *orange
+      killColor: *comment
+      completedColor: *comment
+    title:
+      fgColor: *foreground
+      bgColor: *transparent
+      highlightColor: *orange
+      counterColor: *blue
+      filterColor: *purple
+  views:
+    charts:
+      bgColor: *transparent
+      defaultDialColors:
+        - *blue
+        - *red
+      defaultChartColors:
+        - *blue
+        - *red
+    table:
+      fgColor: *foreground
+      bgColor: *transparent
+      # The cursor row is the other place a real background is REQUIRED: it is
+      # the only thing marking which row you are on, and `default` would erase
+      # the highlight entirely.
+      cursorFgColor: "#282828"
+      cursorBgColor: *yellow
+      header:
+        fgColor: *aqua
+        bgColor: *transparent
+        sorterColor: *orange
+    xray:
+      fgColor: *foreground
+      bgColor: *transparent
+      cursorColor: *yellow
+      graphicColor: *blue
+      showIcons: false
+    yaml:
+      keyColor: *purple
+      colonColor: *blue
+      valueColor: *foreground
+    logs:
+      fgColor: *foreground
+      bgColor: *transparent
+      indicator:
+        fgColor: *foreground
+        bgColor: *transparent
+        toggleOnColor: *green
+        toggleOffColor: *comment

@@ -51,6 +51,26 @@ in
   # that is the signal to move it out of store like the herdr one.
   xdg.configFile."gh-dash/config.yml".source = ../../dotfiles/gh-dash/config.yml;
 
+  # k9s, the one tab in the `tools` space. Out-of-store because k9s REWRITES
+  # its whole config on exit -- omitted keys come back filled in with defaults
+  # -- and a read-only store path would make that save fail. Same reason as
+  # herdr's config.toml and codex's config.toml.
+  #
+  # Note this lands in ~/.config/k9s, which macOS k9s does NOT read by default
+  # (it wants ~/Library/Application Support/k9s). K9S_CONFIG_DIR in
+  # dotfiles/.zshrc is what makes this path the live one; the two go together.
+  xdg.configFile."k9s/config.yaml".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/k9s/config.yaml";
+
+  # The skin, unlike the config, is read-only content k9s only ever loads --
+  # so a plain store symlink is right here, as with opencode/skins.
+  #
+  # Deployed as a single FILE, not the skins directory: k9s resolves a skin
+  # name against this directory, and owning the whole thing would hide the
+  # other 35 bundled skins if one were ever dropped in by hand.
+  xdg.configFile."k9s/skins/gruvbox-transparent.yaml".source =
+    ../../dotfiles/k9s/skins/gruvbox-transparent.yaml;
+
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
 
@@ -188,6 +208,15 @@ in
   # ghostty/config names it literally.
   home.file.".local/bin/session-picker" = {
     source = ../../dotfiles/.local/bin/session-picker;
+    executable = true;
+  };
+
+  # Run by session-picker just before it execs herdr: gives work and personal
+  # alike a `tools` space with a k9s tab. It has to run BEFORE the client so
+  # the space lands at number 1 -- spaces cannot be reordered, only created in
+  # the order you want them.
+  home.file.".local/bin/herdr-tools-space" = {
+    source = ../../dotfiles/.local/bin/herdr-tools-space;
     executable = true;
   };
 

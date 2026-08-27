@@ -35,6 +35,10 @@ in
 
     # --- kubernetes -------------------------------------------------------
     kubectl
+    # Cluster TUI. Not optional the way the other kube tools are: the `tools`
+    # space that .local/bin/herdr-tools-space builds on every session start
+    # runs `k9s` in its one tab, so dropping this leaves that tab erroring.
+    k9s
     kind
     kubebuilder
     fluxcd

@@ -1,0 +1,116 @@
+# k9s. Run `k9s info` to see which paths it is actually using.
+#
+# WHERE THIS FILE HAS TO LIVE. k9s is XDG-native on Linux but on macOS it
+# defaults to ~/Library/Application Support/k9s -- so a file dropped in
+# ~/.config/k9s is silently ignored there, skin and all. `K9S_CONFIG_DIR` in
+# dotfiles/.zshrc points it back here, which also means ONE config works on
+# both this branch and ubuntu-config instead of two copies drifting apart.
+#
+# The consequence of that: k9s launched from somewhere that never sources
+# .zshrc falls back to Library and this file does nothing. Every path that
+# matters here -- a herdr pane, a plain zsh window -- is an interactive zsh,
+# so this is a corner case rather than a live problem, but it is the first
+# thing to check if the skin does not take.
+#
+# EXPECT THIS FILE TO GO DIRTY ON ITS OWN. k9s rewrites its whole config on
+# exit, so keys omitted here come back filled in with defaults -- screenDumpDir
+# in particular gets an absolute path baked in. That is why it is deployed
+# out-of-store (writable): a read-only store path would make k9s's own saves
+# fail. Same arrangement, and the same reason, as codex/config.toml.
+#
+# Per-CONTEXT state -- current namespace, view, favourites -- is not here. It
+# lives in clusters/<cluster>/<context>/config.yaml under the same directory,
+# written by k9s and deliberately untracked.
+
+k9s:
+  ui:
+    # dotfiles/k9s/skins/gruvbox-transparent.yaml. Named WITHOUT the .yaml
+    # extension -- k9s appends it, and a name with the extension resolves to
+    # `<name>.yaml.yaml` and silently falls back to the stock skin.
+    #
+    # Any of the 35 bundled skins can go here instead; they are in
+    # `share/k9s/skins` inside the k9s store path, and one in this directory's
+    # skins/ shadows a bundled one of the same name.
+    skin: gruvbox-transparent
+
+    # herdr captures the mouse but passes it through to panes that ask for it,
+    # so this does work inside a herdr tab. Off because the trade is bad:
+    # k9s grabbing the mouse takes drag-select away from the terminal, and
+    # copying a pod name is more common than clicking one.
+    enableMouse: false
+
+    # The startup splash. Off -- this tab is opened by
+    # .local/bin/herdr-tools-space on every session start, so the animation is
+    # something you would sit through daily rather than once.
+    splashless: true
+
+    headless: false
+    logoless: false
+    crumbsless: false
+    reactive: false
+    noIcons: false
+    invert: false
+    defaultsToFullScreen: false
+    useFullGVRTitle: false
+
+  # Seconds between refreshes. 2 is the stock value and it is a reasonable
+  # floor -- lower makes k9s noticeably chattier against the API server.
+  refreshRate: 2
+  apiServerTimeout: 2m0s
+  maxConnRetry: 5
+
+  # Nix owns this binary and flake.lock pins it, so the check can only ever
+  # nag about a version it cannot install. Same reasoning as
+  # `version_check = false` in herdr/config.toml.
+  skipLatestRevCheck: true
+
+  # ctrl-c quits. Left at stock: the tools tab is a shell with k9s typed into
+  # it, so quitting drops you at a prompt rather than closing anything.
+  noExitOnCtrlC: false
+
+  readOnly: false
+  liveViewAutoRefresh: false
+  portForwardAddress: localhost
+  disablePodCounting: false
+  defaultView: ""
+  gpuVendors: {}
+
+  logger:
+    # 100 is stock and it is short enough to miss the start of a crashloop.
+    tail: 500
+    buffer: 5000
+    sinceSeconds: -1
+    # Timestamps on, because the reason you are in the logs is usually to line
+    # them up against something else.
+    showTime: true
+    # Wrapping off: long structured log lines are far more readable scrolled
+    # sideways than reflowed into a wall.
+    textWrap: false
+    disableAutoscroll: false
+    columnLock: false
+
+  # Percentages at which the CPU/MEM gauges turn orange, then red.
+  thresholds:
+    cpu:
+      critical: 90
+      warn: 70
+    memory:
+      critical: 90
+      warn: 70
+
+  # The throwaway pod `s` drops you into. busybox is stock; swap the image for
+  # nicolaka/netshoot if you are debugging networking and want real tools.
+  shellPod:
+    image: busybox:1.37.0
+    namespace: default
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+  # Vulnerability scanning of running images. Off by default and left off --
+  # it shells out per image and is slow on a busy cluster.
+  imageScans:
+    enable: false
+    exclusions:
+      namespaces: []
+      labels: {}

@@ -21,6 +21,7 @@ HERDR=/run/current-system/sw/bin/herdr
 TMUX=/run/current-system/sw/bin/tmux
 ZSH=/run/current-system/sw/bin/zsh
 GUM=/run/current-system/sw/bin/gum
+TOOLS_SPACE=$HOME/.local/bin/herdr-tools-space
 
 # Testing hooks, used by `driver.sh picker`. Harmless when unset.
 DRY=${SESSION_PICKER_DRY_RUN:+echo}
@@ -68,11 +69,24 @@ else
     read -r choice
 fi
 
+# Give the session its `tools` space (one tab: k9s) BEFORE the client starts.
+# That ordering is the whole trick -- spaces have no reorder command, so being
+# space 1 means being created first, and the client creates its own default
+# space the moment it attaches. herdr-tools-space explains it at length.
+#
+# Idempotent and bounded: on an already-running session it finds the space and
+# returns, and every failure path in it exits 0 rather than costing you the
+# window. Skipped entirely under DRY, which is testing the exec line, not this.
+launch_herdr() {
+    [ -z "$DRY" ] && [ -x "$TOOLS_SPACE" ] && "$TOOLS_SPACE" "$1"
+    exec $DRY "$HERDR" --session "$1"
+}
+
 case "${choice:-work}" in
-    2 | p | personal) exec $DRY "$HERDR" --session personal ;;
+    2 | p | personal) launch_herdr personal ;;
     3 | z | zsh | shell) exec $DRY "$ZSH" -l ;;
     4 | t | tmux) exec $DRY "$TMUX" ;;
     # Anything unrecognised falls through to work rather than erroring --
     # a typo should not cost you the window.
-    *) exec $DRY "$HERDR" --session work ;;
+    *) launch_herdr work ;;
 esac

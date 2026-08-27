@@ -1,0 +1,176 @@
+#!/bin/bash
+# Ensure the `tools` space exists in a herdr session, laid out as one tab
+# running k9s. Called by session-picker BEFORE it execs herdr, so every new
+# session -- work or personal -- comes up with it already there.
+#
+#   herdr-tools-space <session-name>
+#
+# WHY THIS RUNS BEFORE THE CLIENT, NOT AFTER.
+#
+# A fresh headless server has ZERO workspaces; the default one you see on a
+# new session is created by the CLIENT when it attaches. Spaces have no
+# reorder command -- `herdr workspace` is list/create/get/focus/rename/close
+# -- so a space's number, and therefore its position in the sidebar and its
+# prefix+shift+<n>, is fixed by CREATION ORDER and nothing else.
+#
+# So "at the top" is not a property you can set; it is a race you have to win.
+# This script wins it by starting the server ITSELF and creating `tools`
+# before session-picker execs the client, which makes `tools` space 1 every
+# time. Backgrounding this and letting the client start the server would tie
+# the outcome to whichever of the two got there first.
+#
+# The cost is that session-picker now blocks on this. Hence the bounded waits
+# below and the rule that EVERY failure path exits 0: a broken tools space is
+# an annoyance, a Ghostty window that will not open is not.
+#
+# ABSOLUTE PATHS, for the reason session-picker documents at length: ghostty
+# launches that script through `login`, which reseeds PATH from /etc/paths,
+# and nothing Nix-installed is on it.
+
+set -uo pipefail
+
+HERDR=/run/current-system/sw/bin/herdr
+export PATH="/run/current-system/sw/bin:$HOME/.nix-profile/bin:$PATH"
+
+session=${1:-}
+[ -n "$session" ] || exit 0
+
+LOG="$HOME/.cache/herdr-tools-space.log"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null
+log() { printf '%s [%s] %s\n' "$(date '+%F %T')" "$session" "$*" >>"$LOG" 2>/dev/null; }
+
+[ -x "$HERDR" ] || { log "no herdr at $HERDR"; exit 0; }
+
+# Named sessions live under sessions/<name>/; the unnamed `default` session
+# keeps its socket one level up. session-picker only ever passes a name, but
+# getting this wrong would silently target the wrong server.
+if [ "$session" = default ]; then
+    sock="$HOME/.config/herdr/herdr.sock"
+else
+    sock="$HOME/.config/herdr/sessions/$session/herdr.sock"
+fi
+export HERDR_SOCKET_PATH="$sock"
+
+# Every Ghostty window runs session-picker, so two windows opened together run
+# this concurrently against the same session. Without a lock both would see no
+# `tools` space and both would create one.
+#
+# mkdir is the lock: it is atomic on every filesystem this could land on, and
+# unlike a lockfile there is no create-then-write window to lose a race in.
+# Losing the race is a normal outcome, not an error -- the winner is doing the
+# work, so just leave.
+lock="$HOME/.cache/herdr-tools-space.$session.lock"
+if ! mkdir "$lock" 2>/dev/null; then
+    # A lock older than a minute is a crashed run, not a live one. Without
+    # this, one killed window would suppress the tools space until reboot.
+    if [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+        log "breaking stale lock"
+        rmdir "$lock" 2>/dev/null
+        mkdir "$lock" 2>/dev/null || exit 0
+    else
+        log "another window holds the lock; leaving it to that one"
+        exit 0
+    fi
+fi
+trap 'rmdir "$lock" 2>/dev/null' EXIT
+
+# --- make sure a server is listening ---------------------------------------
+# `herdr --session X server` runs headless and detaches, and the client that
+# session-picker execs next attaches to it rather than starting a second one.
+if [ ! -S "$sock" ]; then
+    log "no server; starting one"
+    ("$HERDR" --session "$session" server >/dev/null 2>&1 &)
+fi
+
+# The socket file appears slightly before the server accepts on it, so poll
+# the API rather than the path. 10s is generous for a local process; blowing
+# through it means something is wrong and the window should open anyway.
+ready=0
+for _ in $(seq 1 50); do
+    if [ -S "$sock" ] && "$HERDR" workspace list >/dev/null 2>&1; then
+        ready=1
+        break
+    fi
+    sleep 0.2
+done
+[ "$ready" -eq 1 ] || { log "server not answering after 10s; skipping"; exit 0; }
+
+# --- create it, unless it is already there ---------------------------------
+# python3 rather than jq for the same reason herdr-sessionizer gives: python3
+# is already a dependency of this repo's tooling and jq is not on the path
+# this script inherits.
+jget() {
+    python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for k in sys.argv[1:]:
+    if not isinstance(d, dict) or k not in d:
+        sys.exit(0)
+    d = d[k]
+print(d)
+' "$@" 2>/dev/null
+}
+
+# Dedupe by label, matching herdr-sessionizer. This is also what makes the
+# script idempotent across the second, third and tenth window of a session
+# that is already running.
+if "$HERDR" workspace list 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+ws = d.get("result", {}).get("workspaces", [])
+sys.exit(0 if any(w.get("label") == "tools" for w in ws) else 1)
+'; then
+    log "tools space already present"
+    exit 0
+fi
+
+# --no-focus: on a warm session you are somewhere else and should stay there.
+# On a cold one it makes no difference -- the client has not attached yet and
+# will focus the space it creates for itself.
+#
+# $HOME rather than a repo: k9s talks to a cluster, not a checkout, and a
+# tools space anchored to whichever directory happened to be current would be
+# a lie about what it is for.
+ws_json=$("$HERDR" workspace create --cwd "$HOME" --label tools --no-focus 2>/dev/null)
+ws_id=$(printf '%s' "$ws_json" | jget result workspace workspace_id)
+tab1=$(printf '%s' "$ws_json" | jget result tab tab_id)
+pane1=$(printf '%s' "$ws_json" | jget result root_pane pane_id)
+
+if [ -z "${ws_id:-}" ] || [ -z "${pane1:-}" ]; then
+    log "workspace create failed: ${ws_json:0:200}"
+    exit 0
+fi
+
+[ -n "${tab1:-}" ] && "$HERDR" tab rename "$tab1" k9s >/dev/null 2>&1
+
+# `pane run` types the command into the shell the tab already spawned, so
+# quitting k9s leaves a usable shell instead of closing the tab -- the same
+# arrangement herdr-space-layout uses for lazygit and gh-dash.
+#
+# k9s exits immediately when there is no reachable cluster. That is fine and
+# deliberate: you get the error and a prompt, not a dead tab.
+#
+# THE `env` PREFIX IS NOT REDUNDANT with the same export in .zshrc. macOS k9s
+# reads ~/Library/Application Support/k9s unless K9S_CONFIG_DIR says otherwise,
+# so without it k9s silently ignores this repo's config and skin and comes up
+# stock -- a failure that looks like a broken skin, not a missing variable.
+#
+# .zshrc covers a shell it started, but a shell only sources its rc ONCE, at
+# start. A pane that predates a change to that export -- or any run where the
+# rc did not load -- keeps the old environment for as long as it lives, and
+# this tab is long-lived by design. Setting it on the command line puts it
+# after everything the shell could do and makes the tab independent of it.
+#
+# Note the ordering also matters the other way: `workspace create --env` was
+# tried first and does NOT work, because .zshrc's unconditional export runs
+# later in the shell's startup and overwrites whatever was inherited.
+"$HERDR" pane run "$pane1" env K9S_CONFIG_DIR="$HOME/.config/k9s" k9s >/dev/null 2>&1
+
+log "created tools space ws=$ws_id"
+exit 0

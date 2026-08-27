@@ -24,6 +24,15 @@ export PATH
 export EDITOR=nvim
 export VISUAL=nvim
 
+# ----------------------------------------------------------------- k9s -----
+# k9s is XDG-native on Linux but defaults to ~/Library/Application Support on
+# macOS, where nothing else in this repo lives. Pointing it at ~/.config/k9s
+# means dotfiles/k9s/ is one config for both this branch and ubuntu-config.
+#
+# This export is load-bearing, not cosmetic: without it k9s reads the Library
+# directory and the tracked config and gruvbox-transparent skin do nothing.
+export K9S_CONFIG_DIR="$HOME/.config/k9s"
+
 # ----------------------------------------------------------- vi keybinds ---
 # bash: set -o vi
 bindkey -v
