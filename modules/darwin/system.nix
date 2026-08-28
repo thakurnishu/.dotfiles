@@ -61,6 +61,35 @@
     };
   };
 
+  # ---- DNS ----------------------------------------------------------------
+  # Cloudflare rather than whatever DHCP hands out. The ISP resolvers
+  # (218.248.114.117 / 218.248.90.117) were caching negative answers well past
+  # their usefulness: a Route53 record confirmed live -- and resolving from
+  # both Route53's own nameservers and 8.8.8.8 -- kept returning NXDOMAIN
+  # locally for a while after creation. That bites every time external-dns
+  # creates a hostname for a Gateway/HTTPRoute and you try to reach it.
+  #
+  # nix-darwin runs `networksetup -setdnsservers <service> <dns...>` on every
+  # activation, so this is not a one-off that a later rebuild reverts -- the
+  # rebuild is what reasserts it. Survives reboots because it is stored in the
+  # network service itself, not in a running resolver.
+  #
+  # 1.0.0.1 is the secondary, not a fallback to the ISP: macOS treats the list
+  # as a set to race, so leaving an ISP address in it would keep serving the
+  # stale answers this is meant to avoid.
+  #
+  # Every service is listed because DNS is per-service on macOS -- setting only
+  # Wi-Fi would silently go back to the ISP the moment the LAN adapter is
+  # plugged in. Names must match `networksetup -listallnetworkservices`
+  # exactly; the module skips any that is not present, so an absent adapter is
+  # harmless rather than an activation failure.
+  networking.knownNetworkServices = [
+    "Wi-Fi"
+    "USB 10/100/1G/2.5G LAN"
+    "Thunderbolt Bridge"
+  ];
+  networking.dns = [ "1.1.1.1" "1.0.0.1" ];
+
   # Not declared, left under manual control:
   #   screencapture.location — macOS Cmd-Shift-3/4 keeps writing to Desktop.
   #     (Your alt-shift-p binding is clipboard-only and writes no file.)
