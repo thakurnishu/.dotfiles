@@ -12,16 +12,14 @@
 # later cleanup. Those live in the two files included below, split by where the
 # host actually is:
 #
-#   ~/.ssh/config.homelab   the machines on the home network. A SYMLINK into
-#                           the homelab repo, so not machine-local, and that
-#                           repo is also PUBLIC:
-#                             -> homelab/homelab-setup/ssh/config.homelab
-#                           A deliberate exception to the rule above, taken
-#                           knowingly rather than by accident: those addresses
-#                           are RFC1918 and unreachable from the internet, and
-#                           that repo already exposed the subnet through its
-#                           MetalLB pool and terraform provider. Editing it
-#                           edits the repo's copy -- commit it there.
+#   ~/.ssh/config.homelab   the machines on the home network. Tracked in THIS
+#                           repo, at dotfiles/ssh/config.homelab, so every file
+#                           this config Includes is owned by the repo the
+#                           config lives in. A deliberate exception to the rule
+#                           above, taken knowingly: those addresses are RFC1918
+#                           and unreachable from the internet, and the homelab
+#                           repo had already published the subnet through its
+#                           MetalLB pool and terraform provider.
 #
 #   ~/.ssh/config.local     everything else off-network -- cloud boxes, and
 #                           anything whose hostname names an organisation.
@@ -55,21 +53,22 @@
 Include ~/.ssh/config.local
 
 # --- includes, second ------------------------------------------------------
-# The hosts themselves: homelab. Symlink into the homelab repo, so the guest
-# inventory is versioned alongside the thing that creates the guests. Adding or
-# destroying a VM/CT is supposed to update it -- see that repo's
-# .claude/skills/proxmox-{vm,ct}/SKILL.md.
+# The hosts themselves: homelab. dotfiles/ssh/config.homelab in this repo,
+# deployed out of store like this file, so it stays writable -- the proxmox
+# skills in the homelab repo edit it when a guest is created or destroyed.
 #
-# THIS LINE DEPENDS ON A PATH IN ANOTHER REPO:
-#   ~/src/github.com/personal/homelab/homelab-setup/ssh/config.homelab
-# Move, rename or re-checkout that repo and the symlink dangles. ssh SKIPS a
-# dangling or missing Include silently -- tested, exit 0, nothing on stderr --
-# so the failure is not "ssh is broken" but "the homelab aliases stopped
-# resolving", while git and everything else keep working and point at nothing.
-# Diagnose with `ls -l ~/.ssh/config.homelab` and `ssh -G pihole | head -2`:
-# a hostname that comes back as the alias itself means the Include went away.
+# It briefly lived in the homelab repo and was symlinked in from there. That
+# made this Include depend on a path in ANOTHER repo, and ssh skips a dangling
+# Include silently -- exit 0, nothing on stderr -- so moving that repo would
+# have quietly stopped the homelab aliases resolving while git and everything
+# else carried on, with nothing pointing at the cause. Owning the file here
+# removes that failure entirely.
 #
-# Fixing it is re-pointing the symlink, not editing this file.
+# It can still go missing -- an incomplete checkout, a bad rebuild -- and the
+# silence is the same, so the diagnosis is worth keeping:
+#   ls -l ~/.ssh/config.homelab       is it there and does it resolve?
+#   ssh -G pihole | head -2           a hostname that comes back as the ALIAS
+#                                     itself means the Include did not load.
 Include ~/.ssh/config.homelab
 
 # colima's own generated block for the docker VM. Machine state, written by

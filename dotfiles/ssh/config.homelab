@@ -1,0 +1,80 @@
+# ssh hosts on the home network. Deployed by home-manager as
+# ~/.ssh/config.homelab, and pulled in by ~/.ssh/config with
+# `Include ~/.ssh/config.homelab`, ahead of its `Host *` block. ssh_config is
+# FIRST-MATCH-WINS, so that ordering is what lets these entries answer before
+# the catch-all defaults do.
+#
+# IT LIVES HERE, NOT IN THE HOMELAB REPO. It was briefly a symlink into
+# homelab/homelab-setup/ssh/, on the reasoning that the guest inventory belongs
+# beside the thing that creates the guests. That reasoning is sound and was
+# still dropped, because it bought one dependency that ssh cannot complain
+# about: the Include pointed at a path in another repo, and moving, renaming or
+# re-checking-out that repo would dangle it. ssh SKIPS a dangling Include
+# silently -- exit 0, nothing on stderr -- so the failure mode was "the homelab
+# aliases quietly stop resolving" while git and everything else kept working,
+# with nothing pointing at the cause. One repo owning every file it Includes
+# costs a little duplication of intent and removes that entire class of failure.
+#
+# NOTE: this repo is PUBLIC, so these addresses are public too. That is a
+# deliberate exception to ~/.ssh/config's own policy that network descriptions
+# stay untracked, and it is narrow: RFC1918 only, unreachable from the internet,
+# and this subnet was ALREADY published by the homelab repo through
+# infrastructure/configs/metallb/ipaddresspool.yaml and its terraform provider.
+# Nothing routable and nothing naming an organisation goes in this file --
+# those belong in ~/.ssh/config.local, which is untracked and stays that way.
+#
+# KEEP IN SYNC WITH REALITY. Creating a guest adds an entry here; destroying one
+# removes it (and needs `ssh-keygen -R <ip>` locally, which is machine state and
+# cannot live in git). The proxmox skills in the homelab repo drive that -- see
+# its .claude/skills/proxmox-{vm,ct}/SKILL.md, which point at this path.
+#
+# THOSE SKILLS COMMIT INTO THIS REPO, which they do not own, so they scope BOTH
+# git verbs and both are load-bearing:
+#
+#   git -C ~/.dotfiles add dotfiles/ssh/config.homelab
+#   git -C ~/.dotfiles commit -m "..." -- dotfiles/ssh/config.homelab
+#
+#   the `add`         because a bare `git commit` commits THE WHOLE INDEX, and
+#                     this repo has held a stale staged copy of an ssh file
+#                     where that would have published the stale version and
+#                     silently dropped the working-tree edit.
+#   the `-- <path>`   because a bare commit would still sweep up whatever else
+#                     happened to be staged here, under an unrelated message.
+#
+# Neither replaces the other. `commit -- <path>` ignores the rest of the index
+# but the pathspec must still resolve against a file git already knows -- on an
+# untracked one it fails with "did not match any file(s) known to git", tested.
+# It works here only because this file is tracked. Do not conclude the `add` is
+# optional and drop it: the next NEW file breaks, and the tempting fix is to
+# drop the scoping instead, which brings back the sweep.
+#
+# ABSENT ON PURPOSE, NOT LOST: four kubernetes VMs -- dev-master, dev-worker,
+# cks-master, cks-worker, 192.168.1.203-.206. They were removed before this file
+# was ever tracked anywhere, so no repo's history shows them leaving.
+# Verified at the time: all four fail to ping, their IdentityFile
+# ~/.ssh/remote_vm does not exist on this machine, and `qm list` / `pct list` on
+# the node show only template 9000 and CT 100. They are entries for guests that
+# exist nowhere reachable -- presumably they lived on the second cluster node,
+# which is powered off. Restoring them would give four Host blocks pointing at
+# nothing, with a missing key. This file is an inventory meant to match reality,
+# so they stay out rather than being commented back in: a commented block is a
+# claim about intent, and intent belongs in docs, not an ssh config.
+
+# --- hypervisor --------------------------------------------------------------
+# Proxmox VE node. `pve` is a synonym because the node calls itself that and the
+# docs use both. See .claude/skills/proxmox-{vm,ct}/SKILL.md.
+Host proxmox pve
+  HostName 192.168.1.110
+  User root
+  Port 22
+  IdentityFile ~/.ssh/proxmox
+
+# --- guests ------------------------------------------------------------------
+# CT 100 -- Pi-hole, network DNS + ad blocking. Static IP because it cannot get
+# its own address from the DHCP server it is meant to eventually replace.
+# See homelab-setup/pihole/.
+Host pihole
+  HostName 192.168.1.111
+  User root
+  Port 22
+  IdentityFile ~/.ssh/proxmox

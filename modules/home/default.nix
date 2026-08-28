@@ -79,9 +79,9 @@ in
   # The hosts arrive through two Includes at the top of that file, and they are
   # NOT the same kind of thing:
   #
-  #   ~/.ssh/config.homelab   a symlink into the homelab repo, which is also
-  #                           public. RFC1918 only, and a deliberate exception
-  #                           -- that repo already published the subnet.
+  #   ~/.ssh/config.homelab   tracked HERE, below. RFC1918 only, and a
+  #                           deliberate exception -- the homelab repo had
+  #                           already published the subnet.
   #   ~/.ssh/config.local     genuinely untracked and machine-local. Routable
   #                           addresses and org-named hosts go here, only here.
   #
@@ -97,6 +97,18 @@ in
   # from putting them in the store, which is world-readable.
   home.file.".ssh/config".source =
     config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/ssh/config";
+
+  # The homelab host inventory. Out of store rather than a store copy because
+  # it is EDITED BY TOOLING, not just read: the proxmox skills in the homelab
+  # repo add an entry when a guest is created and remove one when it is
+  # destroyed, and a read-only store path would make that fail.
+  #
+  # It used to be a symlink into the homelab repo. Moved here so that every
+  # file ~/.ssh/config Includes is owned by the repo that config lives in --
+  # ssh skips a dangling Include silently, so a cross-repo dependency failed
+  # invisibly. The homelab repo's README and proxmox skills point at this path.
+  home.file.".ssh/config.homelab".source =
+    config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/ssh/config.homelab";
 
   # ---- Phase 9: tmux -----------------------------------------------------
   home.file.".tmux.conf".source = ../../dotfiles/.tmux.conf;
