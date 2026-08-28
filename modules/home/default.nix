@@ -307,7 +307,9 @@ in
   # submit to claude, codex and opencode alike. The brief travels INLINE and
   # the reply is written into the recipient's own cwd -- both to stay inside
   # harness sandboxes, which is why the receiving agent needs no knowledge of
-  # this tool and no config of its own.
+  # this tool and no config of its own. It spans herdr SESSIONS too: each is a
+  # separate server with its own socket, so reaching one means
+  # `herdr --session <name>`, and pane ids collide across them.
   home.file.".local/bin/herdr-handoff" = {
     source = ../../dotfiles/.local/bin/herdr-handoff;
     executable = true;

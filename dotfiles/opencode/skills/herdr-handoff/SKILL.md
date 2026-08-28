@@ -1,6 +1,6 @@
 ---
 name: herdr-handoff
-description: Hand a task to the agent running in another herdr space, and optionally block until it answers — across harness kinds, so the other side can be claude, codex or opencode. Use when asked to send work to, message, delegate to, or get an answer from an agent in another space, pane, worktree or window; or when work belongs in a different repo or checkout than this one. Requires HERDR_ENV=1.
+description: Hand a task to the agent running in another herdr space, and optionally block until it answers — across harness kinds (claude, codex, opencode) and across herdr sessions. Use when asked to send work to, message, delegate to, or get an answer from an agent in another space, pane, worktree or window; or when work belongs in a different repo or checkout than this one. Requires HERDR_ENV=1.
 ---
 
 # herdr-handoff
@@ -18,9 +18,22 @@ Without it, `send` returns once the prompt is delivered.
 
 ## Addressing
 
-`herdr-handoff list` prints ADDRESS, NAME, KIND, STATE and WHERE for every live
-agent. Target by any of NAME, ADDRESS or WHERE, or a unique substring of one.
-Ambiguity is refused rather than guessed.
+`herdr-handoff list` prints SESSION, ADDRESS, NAME, KIND, STATE and WHERE for
+every live agent in **every running session**, not just this one. Target by any
+of NAME, ADDRESS or WHERE, or a unique substring. Ambiguity is refused rather
+than guessed.
+
+A bare target is matched across all sessions; qualify it when that is
+ambiguous:
+
+```bash
+herdr-handoff send work:fcc-monorepo "…"    # name or directory, one session
+herdr-handoff send work:w12:p2 "…"          # full address
+```
+
+**Pane ids collide across sessions** — `w12:p2` can exist in both `personal`
+and `work` and mean different agents — so an agent is identified by
+`(session, pane)`. Prefer names.
 
 Most panes are nameless because they came from the harness picker. Name this
 one with `herdr-handoff name <name>` so others can address it readably.

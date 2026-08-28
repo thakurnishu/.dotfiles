@@ -1,6 +1,6 @@
 ---
 name: herdr-handoff
-description: Hand a task to the agent running in another herdr space, and optionally block until it answers — across harness kinds, so the other side can be claude, codex or opencode. Use when the user asks to send work to, message, delegate to, ask, or get an answer from an agent in another space, pane, worktree or window; when work belongs in a different repo or checkout than the one you are in; or when you need to know what another agent is doing. Requires running inside herdr (HERDR_ENV=1).
+description: Hand a task to the agent running in another herdr space, and optionally block until it answers — across harness kinds (claude, codex, opencode) and across herdr sessions, so a personal-session agent can drive a work-session one. Use when the user asks to send work to, message, delegate to, ask, or get an answer from an agent in another space, pane, worktree or window; when work belongs in a different repo or checkout than the one you are in; or when you need to know what another agent is doing. Requires running inside herdr (HERDR_ENV=1).
 ---
 
 # herdr-handoff
@@ -20,7 +20,8 @@ returns as soon as the prompt is delivered.
 ## This is not `ListAgents`
 
 `ListAgents`/`SendMessage` is **claude-to-claude only**. A codex or opencode
-pane is not a peer, does not appear, and cannot be messaged that way. It also
+pane is not a peer, does not appear, and cannot be messaged that way. It is
+also confined to sessions it can see, where this reaches every running one. It also
 addresses by *session name*, a different namespace from the herdr space label —
 the agent in the `_dotfiles` space registers as `herdr-implementation`, and a
 space labelled `carestackone` shows up as `carestackone-d9`. Matching a space
@@ -32,13 +33,15 @@ claude subagents you spawned yourself.
 
 ## Addressing
 
-`herdr-handoff list` prints the roster:
+`herdr-handoff list` prints the roster of **every running session**, not just
+yours:
 
 ```
-ADDRESS      NAME                     KIND       STATE     WHERE
-w8:p2        -                        opencode   idle      personal
-w7:p2        -                        claude     working   .dotfiles   <- you
-w1W:p2       receptionist-ui-flow     claude     idle      chore-receptionist-ui-flow
+SESSION    ADDRESS    NAME                         KIND      STATE     WHERE
+personal   w8:p2      -                            opencode  idle      personal
+personal   w7:p2      -                            claude    working   .dotfiles   <- you
+work       wY:p2      -                            claude    idle      solytics
+work       w12:p2     separate-config-and-secrets  claude    idle      refactor-separate-config-and-secrets
 ```
 
 Any of NAME, ADDRESS or WHERE works as a target, plus a unique substring. Most
@@ -47,6 +50,29 @@ panes are nameless because they came from the harness picker rather than
 `herdr-handoff name <name>`, which is worth doing for anything long-lived.
 
 Ambiguity is refused, not guessed — two matches print both and exit.
+
+### Sessions
+
+A bare target is matched across all running sessions. Qualify it with a session
+name when that is ambiguous, or when you want to be explicit:
+
+```bash
+herdr-handoff send work:fcc-monorepo "…"    # by name/dir, in one session
+herdr-handoff send work:w12:p2 "…"          # the full address
+```
+
+The `<session>:` prefix is only stripped when it actually names a running
+session, so a plain pane id (`w12:p2`, which also contains a colon) is never
+mistaken for one.
+
+**Pane ids are minted per session and collide across them** — `w12:p2` can
+exist in both `personal` and `work` and mean two different agents. An agent is
+therefore identified by `(session, pane)`, and a bare pane id is only safe when
+one session has it. Prefer names.
+
+Each session is a separate herdr server with its own socket, which is why a
+plain `herdr agent list` sees only your own — `herdr --session <name>` is what
+crosses the boundary, and everything here carries it through.
 
 ## Writing the task
 

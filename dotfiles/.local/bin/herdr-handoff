@@ -8,6 +8,8 @@
 #
 #   herdr-handoff list
 #   herdr-handoff send <target> "<task>" [--file F] [--reply] [--wait]
+#     target: a name, a pane id, a directory, or any of those qualified by
+#     session -- work:fcc-monorepo, work:w12:p2
 #   herdr-handoff inbox [--all]
 #   herdr-handoff read <id>
 #   herdr-handoff reply <id> "<result>" [--file F]
@@ -31,6 +33,13 @@
 #             lying in anyone's repo.
 #
 # $HANDOFF_HOME is the sender-side archive. Only the sender reads it.
+#
+# It reaches every RUNNING herdr session, not just your own. Each session is a
+# separate server with its own socket, so `herdr agent list` on its own sees
+# only the session you happen to be sitting in -- `herdr --session <name>`
+# is what crosses the boundary. Pane ids are minted per session and collide
+# across them, so an agent is identified by (session, pane) and never by pane
+# alone.
 
 set -euo pipefail
 
@@ -49,6 +58,17 @@ command -v jq >/dev/null || die "jq not on PATH"
 mkdir -p "$MSG_DIR" "$REPLY_DIR"
 touch "$DB"
 
+# --------------------------------------------------------------- sessions ----
+
+# Every running session. A stopped one has no server to answer, so asking it
+# anything just hangs on a dead socket.
+sessions() {
+    herdr session list 2>/dev/null | awk 'NR>1 && $2 == "running" { print $1 }'
+}
+
+# Run a herdr subcommand against a named session rather than our own.
+hs() { local s=$1; shift; herdr --session "$s" "$@"; }
+
 # ---------------------------------------------------------------- roster ----
 
 # The live agent roster, one compact JSON object per agent. `name` is only set
@@ -56,30 +76,52 @@ touch "$DB"
 # herdr-space-layout does); anything started from the harness picker is
 # nameless and has to be addressed by pane id or matched by its directory.
 roster() {
-    herdr agent list 2>/dev/null | jq -c '
-        .result.agents[]?
-        | {
-            pane:  .pane_id,
-            name:  (.name // ""),
-            kind:  (.agent // "?"),
-            state: (.agent_status // "unknown"),
-            cwd:   (.cwd // ""),
-            dir:   ((.cwd // "") | split("/") | last),
-            title: (.terminal_title_stripped // ""),
-            ws:    .workspace_id
-          }'
+    local s
+    for s in $(sessions); do
+        hs "$s" agent list 2>/dev/null | jq -c --arg s "$s" '
+            .result.agents[]?
+            | {
+                session: $s,
+                pane:  .pane_id,
+                addr:  ($s + ":" + .pane_id),
+                name:  (.name // ""),
+                kind:  (.agent // "?"),
+                state: (.agent_status // "unknown"),
+                cwd:   (.cwd // ""),
+                dir:   ((.cwd // "") | split("/") | last),
+                title: (.terminal_title_stripped // ""),
+                ws:    .workspace_id
+              }'
+    done
 }
 
-# Resolve a user-supplied target to exactly one agent. Tried in order, because
-# a name is unambiguous and a substring is a guess: exact name, exact pane id,
-# exact directory basename, then a unique substring of name/dir/title.
+# Resolve a user-supplied target to exactly one agent. A target may be
+# session-qualified (`work:fcc-monorepo`, `work:w12:p2`); a bare one is matched
+# across every running session, which is usually what you want and occasionally
+# ambiguous -- ambiguity is refused, never guessed.
+#
+# Order matters: an exact name is unambiguous, a substring is a guess.
 resolve() {
-    local want=$1 all hit n
+    local want=$1 all hit n scope="" known
     all=$(roster)
+
+    # Strip a leading `<session>:` only if it really names a running session.
+    # Pane ids contain a colon too (`w12:p2`), so this cannot be a blind split.
+    known=$(sessions)
+    if [[ $want == *:* ]]; then
+        local head=${want%%:*}
+        if grep -qxF "$head" <<<"$known"; then
+            scope=$head
+            want=${want#*:}
+            all=$(jq -c --arg s "$scope" 'select(.session == $s)' <<<"$all")
+            [[ -n $all ]] || die "session '$scope' has no agents"
+        fi
+    fi
 
     for filter in \
         '.name == $w' \
         '.pane == $w' \
+        '.addr == $w' \
         '.dir  == $w'
     do
         hit=$(jq -c --arg w "$want" "select($filter)" <<<"$all")
@@ -88,25 +130,30 @@ resolve() {
         [[ $n -gt 1 ]] && break
     done
 
-    hit=$(jq -c --arg w "$want" '
-        select((.name + " " + .dir + " " + .title) | ascii_downcase | contains($w | ascii_downcase))
-    ' <<<"$all")
-    n=$(grep -c . <<<"${hit:-}" || true)
+    if [[ ${n:-0} -le 1 ]]; then
+        hit=$(jq -c --arg w "$want" '
+            select((.name + " " + .dir + " " + .title) | ascii_downcase | contains($w | ascii_downcase))
+        ' <<<"$all")
+        n=$(grep -c . <<<"${hit:-}" || true)
+    fi
 
     case $n in
         1) printf '%s\n' "$hit" ;;
-        0) die "no agent matches '$want' — run: herdr-handoff list" ;;
+        0) die "no agent matches '${scope:+$scope:}$want' — run: herdr-handoff list" ;;
         *) { note "'$want' matches $n agents:"
-             jq -r '"  \(.pane)  \(if .name == "" then .dir else .name end)"' <<<"$hit" >&2
-             die "be more specific, or use the pane id"; } ;;
+             jq -r '"  \(.addr)  \(if .name == "" then .dir else .name end)"' <<<"$hit" >&2
+             die "be more specific, or use the full address (session:pane)"; } ;;
     esac
 }
 
 # How this agent signs its messages.
 me_pane() { printf '%s\n' "${HERDR_PANE_ID:?HERDR_PANE_ID is unset}"; }
+me_session() { printf '%s\n' "${HERDR_SESSION:-default}"; }
+# Pane ids repeat across sessions, so this pair is the only safe identity.
+me_addr() { printf '%s:%s\n' "$(me_session)" "$(me_pane)"; }
 me_label() {
     local self
-    self=$(roster | jq -c --arg p "$(me_pane)" 'select(.pane == $p)')
+    self=$(roster | jq -c --arg a "$(me_addr)" 'select(.addr == $a)')
     if [[ -n $self ]]; then
         # Leading dot stripped: a signature reading ".dotfiles" looks like a
         # path fragment rather than a sender.
@@ -119,19 +166,20 @@ me_label() {
 # ------------------------------------------------------------------ list ----
 
 cmd_list() {
-    local self; self=$(me_pane)
-    printf '%-12s %-24s %-10s %-9s %s\n' ADDRESS NAME KIND STATE WHERE
+    local self; self=$(me_addr)
+    printf '%-10s %-10s %-28s %-9s %-9s %s\n' SESSION ADDRESS NAME KIND STATE WHERE
     roster | jq -r --arg self "$self" '
-        [ .pane,
+        [ .session, .pane,
           (if .name == "" then "-" else .name end),
           .kind,
           .state,
-          (.dir + (if .pane == $self then "   <- you" else "" end))
+          (.dir + (if .addr == $self then "   <- you" else "" end))
         ] | @tsv' |
-    while IFS=$'\t' read -r pane name kind state where; do
-        printf '%-12s %-24s %-10s %-9s %s\n' "$pane" "$name" "$kind" "$state" "$where"
+    while IFS=$'\t' read -r sess pane name kind state where; do
+        printf '%-10s %-10s %-28s %-9s %-9s %s\n' "$sess" "$pane" "$name" "$kind" "$state" "$where"
     done
-    printf '\nAddress an agent by its NAME, its ADDRESS, or its directory.\n' >&2
+    printf '\nTarget by NAME, ADDRESS or WHERE. Qualify with the session when a\n' >&2
+    printf 'bare target is ambiguous across sessions: work:fcc-monorepo, work:w12:p2.\n' >&2
     printf 'Nameless agents can be given one from their own pane: herdr-handoff name <name>\n' >&2
 }
 
@@ -160,15 +208,16 @@ cmd_send() {
     fi
     [[ -n ${body//[[:space:]]/} ]] || die "empty task — pass text, --file, or pipe it in"
 
-    local agent pane name kind state tcwd
+    local agent pane name kind state tcwd tsess
     agent=$(resolve "$target")
     pane=$(jq -r .pane <<<"$agent")
+    tsess=$(jq -r .session <<<"$agent")
     name=$(jq -r 'if .name == "" then .dir else .name end' <<<"$agent")
     kind=$(jq -r .kind <<<"$agent")
     state=$(jq -r .state <<<"$agent")
     tcwd=$(jq -r .cwd <<<"$agent")
 
-    [[ $pane != "$(me_pane)" ]] || die "that is you ($pane)"
+    [[ "$tsess:$pane" != "$(me_addr)" ]] || die "that is you ($(me_addr))"
 
     # `blocked` means a permission or trust dialog is up. Submitting into that
     # is how you answer someone else's yes/no prompt by accident.
@@ -183,17 +232,19 @@ cmd_send() {
     local from; from=$(me_label)
     {
         printf '# handoff %s\n\n' "$id"
-        printf 'From: %s (%s)\n' "$from" "$(me_pane)"
-        printf 'To: %s (%s, %s)\n' "$name" "$pane" "$kind"
+        printf 'From: %s (%s)\n' "$from" "$(me_addr)"
+        printf 'To: %s (%s:%s, %s)\n' "$name" "$tsess" "$pane" "$kind"
         printf 'Sent: %s\n' "$ts"
         printf 'Reply expected: %s\n\n---\n\n' "$([[ $want_reply -eq 1 ]] && echo yes || echo no)"
         printf '%s\n' "$body"
     } > "$MSG_DIR/$id.md"
 
     jq -cn --arg id "$id" --arg ts "$ts" --arg from "$from" \
-           --arg from_pane "$(me_pane)" --arg to "$name" --arg to_pane "$pane" \
+           --arg from_addr "$(me_addr)" --arg from_sess "$(me_session)" \
+           --arg to "$name" --arg to_addr "$tsess:$pane" --arg to_sess "$tsess" \
            --arg kind "$kind" --argjson reply "$want_reply" \
-        '{id:$id,ts:$ts,from:$from,from_pane:$from_pane,to:$to,to_pane:$to_pane,kind:$kind,wants_reply:($reply==1)}' \
+        '{id:$id,ts:$ts,from:$from,from_addr:$from_addr,from_sess:$from_sess,
+          to:$to,to_addr:$to_addr,to_sess:$to_sess,kind:$kind,wants_reply:($reply==1)}' \
         >> "$DB"
 
     # The brief travels inline. Keep the framing imperative -- an agent handed
@@ -222,12 +273,12 @@ $carried"
 When you are done, write what you did to $drop — creating that file IS how the sender receives your answer, so do it as your last action rather than only printing it. The path is inside your working directory; the sender collects and removes it."
     fi
 
-    note "→ $name ($kind, $pane)  handoff $id"
+    note "→ $name ($kind, $tsess:$pane)  handoff $id"
 
     local args=(agent prompt "$pane" "$prompt")
     [[ $wait -eq 1 ]] && args+=(--wait --until idle --until blocked --timeout "$timeout")
 
-    if ! herdr "${args[@]}" >/dev/null 2>"$HANDOFF_HOME/.last-error"; then
+    if ! hs "$tsess" "${args[@]}" >/dev/null 2>"$HANDOFF_HOME/.last-error"; then
         note "delivery failed: $(cat "$HANDOFF_HOME/.last-error")"
         die "the brief is still at $MSG_DIR/$id.md"
     fi
@@ -252,8 +303,8 @@ When you are done, write what you did to $drop — creating that file IS how the
             # labelled, because scraped output is not a reply the agent chose
             # to send and may be truncated mid-thought.
             note "$name settled without writing a reply file; showing its last pane output instead"
-            printf '\n--- unconfirmed: last output from %s (%s) ---\n' "$name" "$pane"
-            herdr agent read "$pane" 2>/dev/null | tail -40 ||
+            printf '\n--- unconfirmed: last output from %s (%s) ---\n' "$name" "$tsess:$pane"
+            hs "$tsess" agent read "$pane" 2>/dev/null | tail -40 ||
                 note "could not read $pane — the brief is at $MSG_DIR/$id.md"
             return 1
         fi
@@ -267,11 +318,11 @@ When you are done, write what you did to $drop — creating that file IS how the
 cmd_inbox() {
     local all=0
     [[ ${1:-} == --all ]] && all=1
-    local self; self=$(me_pane)
+    local self; self=$(me_addr)
 
     local rows
-    rows=$(jq -c --arg p "$self" --argjson all "$all" \
-        'select($all == 1 or .to_pane == $p)' "$DB" | tail -40)
+    rows=$(jq -c --arg a "$self" --argjson all "$all" \
+        'select($all == 1 or .to_addr == $a)' "$DB" | tail -40)
     [[ -n $rows ]] || { note "no handoffs$([[ $all -eq 0 ]] && echo " addressed to you")"; return 0; }
 
     printf '%-22s %-9s %-18s %-10s %s\n' ID STATUS FROM WANTS SUBJECT
@@ -319,18 +370,22 @@ cmd_reply() {
     [[ -n ${body//[[:space:]]/} ]] || die "empty reply"
 
     {
-        printf 'From: %s (%s)\nAt: %s\n\n' "$(me_label)" "$(me_pane)" "$(date -Iseconds)"
+        printf 'From: %s (%s)\nAt: %s\n\n' "$(me_label)" "$(me_addr)" "$(date -Iseconds)"
         printf '%s\n' "$body"
     } > "$REPLY_DIR/$id.md"
 
     # Nudge the sender only if it is still alive; a reply on disk is the record
-    # either way, so a dead sender is not an error.
-    local sender_pane
-    sender_pane=$(jq -r --arg id "$id" 'select(.id == $id) | .from_pane' "$DB" | tail -1)
-    if [[ -n $sender_pane ]] && roster | jq -e --arg p "$sender_pane" 'select(.pane == $p)' >/dev/null; then
-        herdr agent prompt "$sender_pane" \
+    # either way, so a dead sender is not an error. The sender may be in a
+    # different session, so the notify has to be aimed at that one.
+    local rec sender_addr sender_pane sender_sess
+    rec=$(jq -c --arg id "$id" 'select(.id == $id)' "$DB" | tail -1)
+    sender_addr=$(jq -r '.from_addr // ""' <<<"${rec:-{\}}")
+    sender_sess=${sender_addr%%:*}
+    sender_pane=${sender_addr#*:}
+    if [[ -n $sender_addr ]] && roster | jq -e --arg a "$sender_addr" 'select(.addr == $a)' >/dev/null; then
+        hs "$sender_sess" agent prompt "$sender_pane" \
             "[handoff $id answered] The agent you handed handoff $id to has replied. Read $REPLY_DIR/$id.md." \
-            >/dev/null 2>&1 || note "reply saved, but could not notify $sender_pane"
+            >/dev/null 2>&1 || note "reply saved, but could not notify $sender_addr"
     fi
     note "replied to handoff $id"
 }
@@ -342,7 +397,7 @@ cmd_name() {
     # herdr's own constraint, worth failing on here rather than in its error.
     [[ $name =~ ^[a-z][a-z0-9_-]{0,31}$ ]] ||
         die "name must be lowercase letters/digits/-/_, start with a letter, 1-32 chars"
-    herdr agent rename "$(me_pane)" "$name"
+    hs "$(me_session)" agent rename "$(me_pane)" "$name"
     note "this agent is now addressable as '$name'"
 }
 
