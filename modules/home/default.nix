@@ -230,6 +230,10 @@ in
 
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
+  # core.excludesfile in that .gitconfig points here. Carries the ignore for
+  # herdr-handoff reply drops, which by design land inside whatever repo the
+  # receiving agent is working in.
+  home.file.".gitignore_global".source = ../../dotfiles/.gitignore_global;
   # dotfiles/gitwork/<org> -> ~/.gitwork-<org>.
   home.file.".gitwork-solytics".source = ../../dotfiles/gitwork/solytics;
 

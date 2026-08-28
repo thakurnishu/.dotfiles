@@ -1,0 +1,10 @@
+# Global ignores, wired via core.excludesfile in .gitconfig.
+
+# herdr-handoff reply drops. A handoff asks the receiving agent to write its
+# answer into its OWN working directory, because that is the one place every
+# harness writes without a sandbox prompt -- which means these land inside
+# whatever repo that agent is working in. The sender normally collects and
+# deletes them, but it cannot if it gave up first (the recipient stalled on a
+# permission dialog, say), and one such orphan reached a commit before this
+# line existed. Ignoring them globally makes that unrepeatable.
+.herdr-reply-*.md

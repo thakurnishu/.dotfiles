@@ -13,6 +13,7 @@
 
 [core]
 	compression = 1
+	excludesfile = ~/.gitignore_global
 
 [includeIf "gitdir:~/src/github.com/work/solytics/"]
 	path = ~/.gitwork-solytics

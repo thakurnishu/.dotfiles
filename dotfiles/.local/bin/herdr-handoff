@@ -14,6 +14,7 @@
 #   herdr-handoff read <id>
 #   herdr-handoff reply <id> "<result>" [--file F]
 #   herdr-handoff name <name>
+#   herdr-handoff sweep                 collect reply drops left in repos
 #
 # Both directions have to respect harness sandboxes, which is the whole reason
 # this is shaped the way it is:
@@ -242,9 +243,11 @@ cmd_send() {
     jq -cn --arg id "$id" --arg ts "$ts" --arg from "$from" \
            --arg from_addr "$(me_addr)" --arg from_sess "$(me_session)" \
            --arg to "$name" --arg to_addr "$tsess:$pane" --arg to_sess "$tsess" \
+           --arg to_cwd "$tcwd" \
            --arg kind "$kind" --argjson reply "$want_reply" \
         '{id:$id,ts:$ts,from:$from,from_addr:$from_addr,from_sess:$from_sess,
-          to:$to,to_addr:$to_addr,to_sess:$to_sess,kind:$kind,wants_reply:($reply==1)}' \
+          to:$to,to_addr:$to_addr,to_sess:$to_sess,to_cwd:$to_cwd,
+          kind:$kind,wants_reply:($reply==1)}' \
         >> "$DB"
 
     # The brief travels inline. Keep the framing imperative -- an agent handed
@@ -313,9 +316,36 @@ When you are done, write what you did to $drop — creating that file IS how the
     fi
 }
 
+# ----------------------------------------------------------------- sweep ----
+
+# Collect reply drops left behind in recipients' working directories.
+#
+# `send --reply` normally collects its own, but it stops waiting after a while
+# and a recipient that was slow -- or stalled on a permission dialog and only
+# answered once a human cleared it -- writes its file after we have gone. That
+# file then sits in someone's repo. One reached a commit that way.
+#
+# Cheap enough to run on every inbox/read, so orphans surface as answers rather
+# than as litter. .gitignore_global keeps them uncommittable in the meantime.
+sweep() {
+    local rec id cwd drop n=0
+    while IFS= read -r rec; do
+        [[ -n $rec ]] || continue
+        id=$(jq -r .id <<<"$rec")
+        cwd=$(jq -r '.to_cwd // ""' <<<"$rec")
+        [[ -n $cwd ]] || continue
+        drop="$cwd/.herdr-reply-$id.md"
+        [[ -s $drop && ! -s $REPLY_DIR/$id.md ]] || continue
+        mv -f "$drop" "$REPLY_DIR/$id.md" && n=$((n + 1))
+    done < <(jq -c 'select(.wants_reply)' "$DB" 2>/dev/null | tail -100)
+    [[ $n -gt 0 ]] && note "collected $n late repl$([[ $n -eq 1 ]] && echo y || echo ies)"
+    return 0
+}
+
 # ----------------------------------------------------------------- inbox ----
 
 cmd_inbox() {
+    sweep
     local all=0
     [[ ${1:-} == --all ]] && all=1
     local self; self=$(me_addr)
@@ -340,6 +370,7 @@ cmd_inbox() {
 }
 
 cmd_read() {
+    sweep
     local id=${1:?usage: herdr-handoff read <id>}
     [[ -r $MSG_DIR/$id.md ]] || die "no such handoff: $id"
     cat "$MSG_DIR/$id.md"
@@ -410,6 +441,7 @@ case ${1:-} in
     read)  shift; cmd_read "$@" ;;
     reply) shift; cmd_reply "$@" ;;
     name)  shift; cmd_name "$@" ;;
+    sweep) shift; sweep ;;
     ""|-h|--help)
         sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "unknown command '$1' — try --help" ;;
