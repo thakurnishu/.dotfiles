@@ -1,0 +1,361 @@
+#!/usr/bin/env bash
+# herdr-handoff — pass a task from the agent in one herdr space to the agent in
+# another, whatever harness each of them is running.
+#
+# The delivery primitive is `herdr agent prompt`, which knows how to submit to
+# each harness kind. Everything here is the part herdr does not do: addressing,
+# carrying the brief, and a reply path.
+#
+#   herdr-handoff list
+#   herdr-handoff send <target> "<task>" [--file F] [--reply] [--wait]
+#   herdr-handoff inbox [--all]
+#   herdr-handoff read <id>
+#   herdr-handoff reply <id> "<result>" [--file F]
+#   herdr-handoff name <name>
+#
+# Both directions have to respect harness sandboxes, which is the whole reason
+# this is shaped the way it is:
+#
+#   outbound  the brief is INLINE in the prompt. A pointer to a file under
+#             ~/.cache made opencode stop and ask for permission to read
+#             outside its working directory, which stalls the handoff on a
+#             dialog no one is watching. Inline needs no permission at all.
+#             (The launch-time warning against long context does not apply
+#             here: that is about `herdr agent start --context` racing a 90s
+#             startup, whereas `herdr agent prompt` goes to a live agent over
+#             the socket API.)
+#
+#   inbound   the reply is written under the RECIPIENT'S OWN cwd, the one
+#             directory every harness can write to unprompted. We copy it to
+#             the central archive and delete the local one, so nothing is left
+#             lying in anyone's repo.
+#
+# $HANDOFF_HOME is the sender-side archive. Only the sender reads it.
+
+set -euo pipefail
+
+HANDOFF_HOME=${HANDOFF_HOME:-$HOME/.cache/herdr-handoff}
+MSG_DIR=$HANDOFF_HOME/msg
+REPLY_DIR=$HANDOFF_HOME/reply
+DB=$HANDOFF_HOME/db.jsonl
+
+die() { printf 'herdr-handoff: %s\n' "$*" >&2; exit 1; }
+note() { printf '%s\n' "$*" >&2; }
+
+[[ ${HERDR_ENV:-} == 1 ]] || die "not running inside herdr (HERDR_ENV is not 1)"
+command -v herdr >/dev/null || die "herdr not on PATH"
+command -v jq >/dev/null || die "jq not on PATH"
+
+mkdir -p "$MSG_DIR" "$REPLY_DIR"
+touch "$DB"
+
+# ---------------------------------------------------------------- roster ----
+
+# The live agent roster, one compact JSON object per agent. `name` is only set
+# for agents started via `herdr agent start --name` (which is what
+# herdr-space-layout does); anything started from the harness picker is
+# nameless and has to be addressed by pane id or matched by its directory.
+roster() {
+    herdr agent list 2>/dev/null | jq -c '
+        .result.agents[]?
+        | {
+            pane:  .pane_id,
+            name:  (.name // ""),
+            kind:  (.agent // "?"),
+            state: (.agent_status // "unknown"),
+            cwd:   (.cwd // ""),
+            dir:   ((.cwd // "") | split("/") | last),
+            title: (.terminal_title_stripped // ""),
+            ws:    .workspace_id
+          }'
+}
+
+# Resolve a user-supplied target to exactly one agent. Tried in order, because
+# a name is unambiguous and a substring is a guess: exact name, exact pane id,
+# exact directory basename, then a unique substring of name/dir/title.
+resolve() {
+    local want=$1 all hit n
+    all=$(roster)
+
+    for filter in \
+        '.name == $w' \
+        '.pane == $w' \
+        '.dir  == $w'
+    do
+        hit=$(jq -c --arg w "$want" "select($filter)" <<<"$all")
+        n=$(grep -c . <<<"${hit:-}" || true)
+        [[ $n -eq 1 ]] && { printf '%s\n' "$hit"; return 0; }
+        [[ $n -gt 1 ]] && break
+    done
+
+    hit=$(jq -c --arg w "$want" '
+        select((.name + " " + .dir + " " + .title) | ascii_downcase | contains($w | ascii_downcase))
+    ' <<<"$all")
+    n=$(grep -c . <<<"${hit:-}" || true)
+
+    case $n in
+        1) printf '%s\n' "$hit" ;;
+        0) die "no agent matches '$want' — run: herdr-handoff list" ;;
+        *) { note "'$want' matches $n agents:"
+             jq -r '"  \(.pane)  \(if .name == "" then .dir else .name end)"' <<<"$hit" >&2
+             die "be more specific, or use the pane id"; } ;;
+    esac
+}
+
+# How this agent signs its messages.
+me_pane() { printf '%s\n' "${HERDR_PANE_ID:?HERDR_PANE_ID is unset}"; }
+me_label() {
+    local self
+    self=$(roster | jq -c --arg p "$(me_pane)" 'select(.pane == $p)')
+    if [[ -n $self ]]; then
+        # Leading dot stripped: a signature reading ".dotfiles" looks like a
+        # path fragment rather than a sender.
+        jq -r 'if .name != "" then .name else (.dir | sub("^\\.+"; "")) end' <<<"$self"
+    else
+        printf '%s\n' "$(basename "$PWD")"
+    fi
+}
+
+# ------------------------------------------------------------------ list ----
+
+cmd_list() {
+    local self; self=$(me_pane)
+    printf '%-12s %-24s %-10s %-9s %s\n' ADDRESS NAME KIND STATE WHERE
+    roster | jq -r --arg self "$self" '
+        [ .pane,
+          (if .name == "" then "-" else .name end),
+          .kind,
+          .state,
+          (.dir + (if .pane == $self then "   <- you" else "" end))
+        ] | @tsv' |
+    while IFS=$'\t' read -r pane name kind state where; do
+        printf '%-12s %-24s %-10s %-9s %s\n' "$pane" "$name" "$kind" "$state" "$where"
+    done
+    printf '\nAddress an agent by its NAME, its ADDRESS, or its directory.\n' >&2
+    printf 'Nameless agents can be given one from their own pane: herdr-handoff name <name>\n' >&2
+}
+
+# ------------------------------------------------------------------ send ----
+
+cmd_send() {
+    local target="" body="" file="" want_reply=0 wait=0 force=0 timeout=900000
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --file)    file=$2; shift 2 ;;
+            --reply)   want_reply=1; wait=1; shift ;;
+            --wait)    wait=1; shift ;;
+            --force)   force=1; shift ;;
+            --timeout) timeout=$2; shift 2 ;;
+            -*)        die "unknown flag $1" ;;
+            *)         if [[ -z $target ]]; then target=$1; else body="${body:+$body$'\n'}$1"; fi; shift ;;
+        esac
+    done
+    [[ -n $target ]] || die "usage: herdr-handoff send <target> \"<task>\" [--file F] [--reply]"
+
+    if [[ -n $file ]]; then
+        [[ -r $file ]] || die "cannot read $file"
+        body=$(cat "$file")
+    elif [[ -z $body && ! -t 0 ]]; then
+        body=$(cat)
+    fi
+    [[ -n ${body//[[:space:]]/} ]] || die "empty task — pass text, --file, or pipe it in"
+
+    local agent pane name kind state tcwd
+    agent=$(resolve "$target")
+    pane=$(jq -r .pane <<<"$agent")
+    name=$(jq -r 'if .name == "" then .dir else .name end' <<<"$agent")
+    kind=$(jq -r .kind <<<"$agent")
+    state=$(jq -r .state <<<"$agent")
+    tcwd=$(jq -r .cwd <<<"$agent")
+
+    [[ $pane != "$(me_pane)" ]] || die "that is you ($pane)"
+
+    # `blocked` means a permission or trust dialog is up. Submitting into that
+    # is how you answer someone else's yes/no prompt by accident.
+    if [[ $state == blocked && $force -ne 1 ]]; then
+        die "$name is blocked (a dialog is waiting for a human) — clear it, or pass --force"
+    fi
+
+    local id ts
+    id=$(printf '%s-%s' "$(date +%Y%m%d-%H%M%S)" "$RANDOM")
+    ts=$(date -Iseconds)
+
+    local from; from=$(me_label)
+    {
+        printf '# handoff %s\n\n' "$id"
+        printf 'From: %s (%s)\n' "$from" "$(me_pane)"
+        printf 'To: %s (%s, %s)\n' "$name" "$pane" "$kind"
+        printf 'Sent: %s\n' "$ts"
+        printf 'Reply expected: %s\n\n---\n\n' "$([[ $want_reply -eq 1 ]] && echo yes || echo no)"
+        printf '%s\n' "$body"
+    } > "$MSG_DIR/$id.md"
+
+    jq -cn --arg id "$id" --arg ts "$ts" --arg from "$from" \
+           --arg from_pane "$(me_pane)" --arg to "$name" --arg to_pane "$pane" \
+           --arg kind "$kind" --argjson reply "$want_reply" \
+        '{id:$id,ts:$ts,from:$from,from_pane:$from_pane,to:$to,to_pane:$to_pane,kind:$kind,wants_reply:($reply==1)}' \
+        >> "$DB"
+
+    # The brief travels inline. Keep the framing imperative -- an agent handed
+    # a task with no instruction to act on it opens by asking whether to.
+    local carried=$body
+    # Past a point inlining stops being kind to the receiving pane. Hand over
+    # the archive path instead and say so, because that path may cost the
+    # recipient a sandbox prompt and the human should know why it stalled.
+    if [[ ${#body} -gt 8000 ]]; then
+        carried="Your brief is too long to inline. Read $MSG_DIR/$id.md in full — it is your brief. If your harness asks permission to read outside your working directory, that file is the reason; allow it."
+        note "brief is ${#body} chars — sent as a pointer to $MSG_DIR/$id.md, which may prompt for sandbox access"
+    fi
+    local prompt="[handoff $id from $from] The agent in another herdr space has handed you a task. Carry it out.
+
+$carried"
+
+    # Ask for a FILE, not a command. Told to run `herdr-handoff reply ...`,
+    # opencode ended its turn by printing the command as prose instead of
+    # executing it -- a harness that will not run our CLI will still write a
+    # file. The path is inside its own cwd so no sandbox dialog intervenes.
+    local drop="$tcwd/.herdr-reply-$id.md"
+    if [[ $want_reply -eq 1 ]]; then
+        prompt="$prompt
+
+--- reporting back ---
+When you are done, write what you did to $drop — creating that file IS how the sender receives your answer, so do it as your last action rather than only printing it. The path is inside your working directory; the sender collects and removes it."
+    fi
+
+    note "→ $name ($kind, $pane)  handoff $id"
+
+    local args=(agent prompt "$pane" "$prompt")
+    [[ $wait -eq 1 ]] && args+=(--wait --until idle --until blocked --timeout "$timeout")
+
+    if ! herdr "${args[@]}" >/dev/null 2>"$HANDOFF_HOME/.last-error"; then
+        note "delivery failed: $(cat "$HANDOFF_HOME/.last-error")"
+        die "the brief is still at $MSG_DIR/$id.md"
+    fi
+
+    if [[ $want_reply -eq 1 ]]; then
+        # The agent settles a moment before the write lands. Accept the reply
+        # from either drop point: its cwd (what we asked for) or the archive
+        # (if it used `herdr-handoff reply`, which is the nicer path for a
+        # harness that will run commands).
+        local i
+        for i in $(seq 1 60); do
+            [[ -s $drop ]] && { mv -f "$drop" "$REPLY_DIR/$id.md"; break; }
+            [[ -s $REPLY_DIR/$id.md ]] && break
+            sleep 1
+        done
+        if [[ -s $REPLY_DIR/$id.md ]]; then
+            printf '\n--- reply from %s ---\n' "$name"
+            cat "$REPLY_DIR/$id.md"
+        else
+            # It did the work and then described the reply instead of writing
+            # it. The answer is on screen, so show that rather than nothing --
+            # labelled, because scraped output is not a reply the agent chose
+            # to send and may be truncated mid-thought.
+            note "$name settled without writing a reply file; showing its last pane output instead"
+            printf '\n--- unconfirmed: last output from %s (%s) ---\n' "$name" "$pane"
+            herdr agent read "$pane" 2>/dev/null | tail -40 ||
+                note "could not read $pane — the brief is at $MSG_DIR/$id.md"
+            return 1
+        fi
+    else
+        note "delivered. Track it with: herdr-handoff read $id"
+    fi
+}
+
+# ----------------------------------------------------------------- inbox ----
+
+cmd_inbox() {
+    local all=0
+    [[ ${1:-} == --all ]] && all=1
+    local self; self=$(me_pane)
+
+    local rows
+    rows=$(jq -c --arg p "$self" --argjson all "$all" \
+        'select($all == 1 or .to_pane == $p)' "$DB" | tail -40)
+    [[ -n $rows ]] || { note "no handoffs$([[ $all -eq 0 ]] && echo " addressed to you")"; return 0; }
+
+    printf '%-22s %-9s %-18s %-10s %s\n' ID STATUS FROM WANTS SUBJECT
+    while IFS= read -r r; do
+        local id from wants status subject
+        id=$(jq -r .id <<<"$r")
+        from=$(jq -r .from <<<"$r")
+        wants=$([[ $(jq -r .wants_reply <<<"$r") == true ]] && echo reply || echo -)
+        if [[ -s $REPLY_DIR/$id.md ]]; then status=answered
+        elif [[ $wants == reply ]]; then status=open
+        else status=sent; fi
+        subject=$(sed -n '/^---$/,$p' "$MSG_DIR/$id.md" 2>/dev/null | sed -n '3p' | cut -c1-48)
+        printf '%-22s %-9s %-18s %-10s %s\n' "$id" "$status" "$from" "$wants" "${subject:-—}"
+    done <<<"$rows"
+}
+
+cmd_read() {
+    local id=${1:?usage: herdr-handoff read <id>}
+    [[ -r $MSG_DIR/$id.md ]] || die "no such handoff: $id"
+    cat "$MSG_DIR/$id.md"
+    [[ -s $REPLY_DIR/$id.md ]] && { printf '\n--- reply ---\n'; cat "$REPLY_DIR/$id.md"; }
+    return 0
+}
+
+# ----------------------------------------------------------------- reply ----
+
+cmd_reply() {
+    local id="" body="" file=""
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --file) file=$2; shift 2 ;;
+            -*)     die "unknown flag $1" ;;
+            *)      if [[ -z $id ]]; then id=$1; else body="${body:+$body$'\n'}$1"; fi; shift ;;
+        esac
+    done
+    [[ -n $id ]] || die "usage: herdr-handoff reply <id> \"<result>\" [--file F]"
+    [[ -r $MSG_DIR/$id.md ]] || die "no such handoff: $id"
+
+    if [[ -n $file ]]; then
+        [[ -r $file ]] || die "cannot read $file"
+        body=$(cat "$file")
+    elif [[ -z $body && ! -t 0 ]]; then
+        body=$(cat)
+    fi
+    [[ -n ${body//[[:space:]]/} ]] || die "empty reply"
+
+    {
+        printf 'From: %s (%s)\nAt: %s\n\n' "$(me_label)" "$(me_pane)" "$(date -Iseconds)"
+        printf '%s\n' "$body"
+    } > "$REPLY_DIR/$id.md"
+
+    # Nudge the sender only if it is still alive; a reply on disk is the record
+    # either way, so a dead sender is not an error.
+    local sender_pane
+    sender_pane=$(jq -r --arg id "$id" 'select(.id == $id) | .from_pane' "$DB" | tail -1)
+    if [[ -n $sender_pane ]] && roster | jq -e --arg p "$sender_pane" 'select(.pane == $p)' >/dev/null; then
+        herdr agent prompt "$sender_pane" \
+            "[handoff $id answered] The agent you handed handoff $id to has replied. Read $REPLY_DIR/$id.md." \
+            >/dev/null 2>&1 || note "reply saved, but could not notify $sender_pane"
+    fi
+    note "replied to handoff $id"
+}
+
+# ------------------------------------------------------------------ name ----
+
+cmd_name() {
+    local name=${1:?usage: herdr-handoff name <name>}
+    # herdr's own constraint, worth failing on here rather than in its error.
+    [[ $name =~ ^[a-z][a-z0-9_-]{0,31}$ ]] ||
+        die "name must be lowercase letters/digits/-/_, start with a letter, 1-32 chars"
+    herdr agent rename "$(me_pane)" "$name"
+    note "this agent is now addressable as '$name'"
+}
+
+# ------------------------------------------------------------------ main ----
+
+case ${1:-} in
+    list)  shift; cmd_list "$@" ;;
+    send)  shift; cmd_send "$@" ;;
+    inbox) shift; cmd_inbox "$@" ;;
+    read)  shift; cmd_read "$@" ;;
+    reply) shift; cmd_reply "$@" ;;
+    name)  shift; cmd_name "$@" ;;
+    ""|-h|--help)
+        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) die "unknown command '$1' — try --help" ;;
+esac

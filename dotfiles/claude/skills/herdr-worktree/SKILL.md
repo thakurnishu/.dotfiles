@@ -297,22 +297,51 @@ spaces already assume.
   worktree before trusting any verification step. (On this machine `pnpm` is
   not on PATH; `corepack pnpm install` works.)
 
-## Talking to the agent in another space
+## Handing a task to the agent in another space
 
-`ListAgents` lists peers by **session name**, which has nothing to do with the
-herdr **space label**. The agent in the `_dotfiles` space registers as
-`herdr-implementation`; sessions show up as `carestackone-d9` and
-`refactor-rename-providers-to-doctors-e3` while their spaces are labelled
-`carestackone` and `refactor-rename-providers-to-doctors`.
+`herdr-handoff` does this in one command, across harness kinds — the agent on
+the other side can be claude, codex or opencode and the call is the same,
+because delivery rides `herdr agent prompt` and herdr owns per-kind submission.
 
-Matching a space label against that list concludes "no agent there" while an
-agent is sitting right in it. Two separate namespaces.
+```bash
+herdr-handoff list                                   # who is out there
+herdr-handoff send homelab "Bump the k3s chart to 1.31 and push the branch."
+herdr-handoff send w8:p2 "Run the suite and tell me what fails." --reply
+```
 
-`herdr api snapshot` gives the other half — `.result.snapshot.agents` carries
-`cwd`, `workspace_id` and `pane_id` for every live agent, so that is how you
-find WHICH space has an agent. It does not carry the peer's session name, so
-there is no mechanical join between the two; use the cwd to work out who you
-mean, then address them by the session name `ListAgents` shows.
+`--reply` blocks until the other agent settles and prints what it wrote back,
+which turns a fire-and-forget nudge into an actual request/response. Address a
+target by name, by pane id, or by its directory basename.
+
+Two things it handles that hand-rolling `herdr agent prompt` does not:
+
+- **The brief goes inline, not as a path.** A pointer to a file under
+  `~/.cache` made opencode stop and ask permission to read outside its working
+  directory, and a handoff stalled on a dialog nobody was watching.
+- **The reply lands in the RECIPIENT'S cwd**, the one place every harness
+  writes unprompted; the sender collects it and deletes it, so no repo is
+  polluted. Asking the recipient to run a command instead does not work —
+  told to run `herdr-handoff reply ...`, opencode printed the command as prose
+  rather than executing it.
+
+It refuses to prompt an agent in the `blocked` state, because that means a
+permission dialog is up and a submitted prompt would answer someone else's
+yes/no question.
+
+### Why not just ListAgents
+
+`ListAgents` is claude-to-claude only — an opencode or codex pane is not a peer
+and cannot be messaged that way. It also lists peers by **session name**, which
+has nothing to do with the herdr **space label**: the agent in the `_dotfiles`
+space registers as `herdr-implementation`, and sessions show up as
+`carestackone-d9` while their space is labelled `carestackone`. Matching a
+space label against that list concludes "no agent there" while an agent is
+sitting right in it. Two separate namespaces, with no mechanical join.
+
+`herdr agent list` is the richer source for the herdr half — `name`, `agent`
+(the kind), `agent_status`, `cwd` and `pane_id` per live agent, which is more
+than `herdr api snapshot` reports. `herdr-handoff list` is a readable view of
+exactly that.
 
 ## Open a branch that ALREADY has a worktree
 

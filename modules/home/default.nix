@@ -156,6 +156,12 @@ in
   home.file.".codex/config.toml".source =
     config.lib.file.mkOutOfStoreSymlink "${repoRoot}/dotfiles/codex/config.toml";
 
+  # codex has no skills mechanism, so AGENTS.md is the only place it can learn
+  # about a local tool -- and it is unconditional context in every codex
+  # session, which is why it stays short. claude and opencode get the same
+  # material as an on-demand skill instead.
+  home.file.".codex/AGENTS.md".source = ../../dotfiles/codex/AGENTS.md;
+
   # Only opencode.jsonc. The rest of ~/.config/opencode is node_modules, a
   # lockfile, and herdr's own plugin -- opencode's own .gitignore excludes the
   # first three, and herdr owns the last.
@@ -293,6 +299,17 @@ in
   # picker back so you can swap claude for codex without leaving the keyboard.
   home.file.".local/bin/herdr-harness-switch" = {
     source = ../../dotfiles/.local/bin/herdr-harness-switch;
+    executable = true;
+  };
+
+  # Passes a task from the agent in one space to the agent in another, across
+  # harness kinds -- delivery rides `herdr agent prompt`, which knows how to
+  # submit to claude, codex and opencode alike. The brief travels INLINE and
+  # the reply is written into the recipient's own cwd -- both to stay inside
+  # harness sandboxes, which is why the receiving agent needs no knowledge of
+  # this tool and no config of its own.
+  home.file.".local/bin/herdr-handoff" = {
+    source = ../../dotfiles/.local/bin/herdr-handoff;
     executable = true;
   };
 
