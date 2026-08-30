@@ -61,6 +61,14 @@
       # affinity-photo/-designer/-publisher casks — those are Affinity 2,
       # discontinued upstream and due to be disabled on 2026-10-30.
       "affinity"
+
+      # --- media --------------------------------------------------------
+      # The cask is the same 3.0.23 arm64 build as the DMG on
+      # get.videolan.org, so there is nothing to gain by installing it by
+      # hand and a rebuild to lose. It is `auto_updates`, meaning VLC
+      # updates itself in place -- brew will not fight it, and `upgrade =
+      # false` above means we would not have moved it anyway.
+      "vlc"
     ];
 
     # CLI tools live in modules/darwin/packages.nix (Nix), not here.
