@@ -10,7 +10,7 @@
 #   ✗               bold yellow (1;33), preceded by a space; shown when the
 #                   tree is modified, staged, or has untracked files
 
-format = "$character$directory$python$git_branch${custom.git_dirty} "
+format = "$character$directory${custom.python_env}$git_branch${custom.git_dirty} "
 
 add_newline = false
 
@@ -44,9 +44,32 @@ truncation_length = 1
 truncate_to_repo = false
 truncation_symbol = ""
 
+# The built-in python module is NOT used, for two reasons.
+#
+# It renders whenever python files are DETECTED, not when a virtualenv is
+# active -- so in any repo containing .py files it printed an empty "🐍 py()".
+# The bash parse_python_env only ever printed for an active venv.
+#
+# Detecting those files also means READING THE CURRENT DIRECTORY, and that read
+# gets `scan_timeout` (30ms by default), not the command_timeout above. In a
+# directory with thousands of entries -- /nix/store has 7,013 -- a cold read
+# blows it and every prompt prints:
+#
+#   WARN - (starship::context): Scanning current directory timed out.
+#
+# It looked intermittent only because a warm page cache makes the second visit
+# fast. Raising scan_timeout would just make starship WAIT LONGER there; no
+# module in this prompt needs a directory listing at all, so the scan is
+# removed instead. $VIRTUAL_ENV is an environment variable, and reading it
+# costs nothing.
 [python]
-# parse_python_env — only rendered when a virtualenv is active.
-format = " [🐍 py\\(](bold purple)[$virtualenv](bold cyan)[\\)](bold purple)"
+disabled = true
+
+[custom.python_env]
+description = "🐍 py(venv) — only when a virtualenv is active"
+when = 'test -n "$VIRTUAL_ENV"'
+command = 'basename "$VIRTUAL_ENV"'
+format = " [🐍 py\\(](bold purple)[$output](bold cyan)[\\)](bold purple)"
 
 [git_branch]
 # parse_git_branch — parens blue, branch name red.
@@ -62,8 +85,20 @@ disabled = true
 description = "single ✗ when the working tree is dirty"
 # NOTE: do not set shell = ["sh", "-c"] — starship appends -c itself, so the
 # command becomes `sh -c -c '…'` and the module silently never renders.
-# The `git rev-parse` guard is essential: outside a repo `git diff --quiet`
-# exits 128, so the negation is true and ✗ would render in every directory.
-when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && { ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [ -n \"$(git ls-files --others --exclude-standard 2>/dev/null)\" ]; }"
+#
+# ONE git process, not four. This used to run `rev-parse`, then `diff`, then
+# `diff --cached`, then `ls-files --others` -- 73ms in fcc-monorepo, on every
+# prompt, in every pane. `git status --porcelain` reports all three kinds of
+# change in a single pass: 36ms for the same answer.
+#
+# The `rev-parse` guard is gone and is genuinely not needed here, though it WAS
+# needed for the old test. Outside a repo `git diff --quiet` exits 128, so the
+# negation was true and ✗ rendered everywhere; `git status` outside a repo
+# writes its error to stderr and prints NOTHING on stdout, so -n is false and
+# the module stays silent.
+#
+# Verified equal to the old test across clean, unstaged, staged, untracked,
+# ignored-only, and outside-a-repo.
+when = 'test -n "$(git status --porcelain 2>/dev/null)"'
 command = "printf '✗'"
 format = " [$output](bold yellow)"
