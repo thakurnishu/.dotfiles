@@ -60,7 +60,7 @@ tab_bar_position = "top"
 # Show which agent is in each split without opening the sidebar.
 show_agent_labels_on_pane_borders = true
 
-agent_panel_sort = "spaces"
+agent_panel_sort = "priority"
 
 # 26 is herdr's default and it truncated real space names --
 # "feat-print-templates" showed as "feat-print-...". 34 fits the longest

@@ -256,6 +256,7 @@ require("lazy").setup({
     -- copilot
     {
       "github/copilot.vim",
+      event = "InsertEnter",
     },
 
     -- helm-template
