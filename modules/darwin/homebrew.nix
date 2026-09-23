@@ -62,6 +62,19 @@
       # discontinued upstream and due to be disabled on 2026-10-30.
       "affinity"
 
+      # --- office -------------------------------------------------------
+      # Ships as a .pkg installer rather than a drag-in .app, so this one
+      # needs sudo at install time -- unlike every other cask here. It is
+      # `auto_updates` (via Microsoft AutoUpdate), so brew will not move it
+      # afterwards. Opening/printing decks is free; editing and saving
+      # require a Microsoft 365 sign-in.
+      #
+      # Note that its pkg also owns the SHARED com.microsoft.pkg.licensing
+      # receipt and the licensingV2 helper daemon, so `brew uninstall --cask`
+      # on this takes those out from under any other Office app too. Removing
+      # it is not as local as it looks.
+      "microsoft-powerpoint"
+
       # --- media --------------------------------------------------------
       # The cask is the same 3.0.23 arm64 build as the DMG on
       # get.videolan.org, so there is nothing to gain by installing it by
@@ -69,6 +82,23 @@
       # updates itself in place -- brew will not fight it, and `upgrade =
       # false` above means we would not have moved it anyway.
       "vlc"
+
+      # --- games --------------------------------------------------------
+      # Steam is a self-updating client: the cask only drops the initial
+      # .app, then Steam patches itself in place on every launch. That is
+      # why `upgrade = false` above costs nothing here -- brew would never
+      # be the thing moving it forward anyway.
+      "steam"
+
+      # --- vpn ----------------------------------------------------------
+      # OpenVPN client. The cask only drops the .app; Tunnelblick then asks
+      # for admin on FIRST LAUNCH to install its privileged helper and
+      # kexts/system extension -- that part cannot be declared here, so a
+      # fresh machine still needs one interactive launch. It is
+      # `auto_updates`, so it patches itself and `upgrade = false` costs
+      # nothing. Must live in /Applications (it refuses to run elsewhere and
+      # offers to move itself), which is where brew puts casks anyway.
+      "tunnelblick"
     ];
 
     # CLI tools live in modules/darwin/packages.nix (Nix), not here.
