@@ -87,5 +87,10 @@ cat <<'EOF'
     once that is cloned. Until then those hosts just do not resolve -- ssh
     skips a missing Include silently, so nothing else breaks.
   * In nvim, run :Lazy restore to pin plugins to lazy-lock.json.
-  * `colima start` before using docker or kind.
+  * `colima start --vz-rosetta --memory 8` before using docker or kind. Both
+    flags are only read when the VM is first created. --vz-rosetta is what
+    makes the amd64 images this repo builds by default
+    (DOCKER_DEFAULT_PLATFORM in .zshenv) run at native-ish speed; 8 GB beats
+    colima's 4 GB default for those builds. See modules/darwin/packages.nix
+    for why the VM stays aarch64 rather than being created as x86_64.
 EOF
