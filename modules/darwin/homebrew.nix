@@ -83,6 +83,43 @@
       # false` above means we would not have moved it anyway.
       "vlc"
 
+      # --- api client ---------------------------------------------------
+      # Bruno. nixpkgs DOES have it for aarch64-darwin, but it is the same
+      # Electron app either way and this repo keeps .app bundles in Homebrew
+      # (see the header) so it lands in /Applications and can be configured
+      # from its own UI. It is `auto_updates`, so it patches itself in place
+      # and `upgrade = false` above costs nothing.
+      #
+      # Collections are plain .bru files on disk under whatever folder you
+      # point it at -- no account, no cloud sync, nothing for this repo to
+      # own. If those folders should be version-controlled, that belongs in
+      # the project repo, not here.
+      "bruno"
+
+      # --- vms / containers ---------------------------------------------
+      # OrbStack: Docker containers + full Linux machines. nixpkgs DOES have
+      # it (2.2.3-20963, aarch64-darwin only, unfree -- and allowUnfree is
+      # already on in hosts/macbook/default.nix), so this is a deliberate
+      # choice of the cask over Nix, for two reasons:
+      #   1. It is `auto_updates` -- it patches ITSELF. From a read-only
+      #      /nix/store it cannot, which pins it to flake.lock and leaves the
+      #      app nagging about updates it is unable to apply.
+      #   2. It is a GUI .app with a menu-bar agent and a settings pane; see
+      #      the header for why those live here and not in the Nix store.
+      # Footprint is clean either way: the uninstall stanza has no launchctl
+      # or pkgutil entries, so there is no privileged daemon to strand.
+      #
+      # OVERLAPS colima + docker in packages.nix, which are still installed
+      # and deliberately left alone here. Both can be present, but only one
+      # should own the default docker context -- so this does not become the
+      # container runtime until that is settled. In particular the
+      # --vz-rosetta / amd64 reasoning in the colima comment block does NOT
+      # transfer: OrbStack has its own amd64 emulation and the work cluster's
+      # arch story needs re-checking against it before colima is dropped.
+      #
+      # Free for personal use; commercial use needs a paid subscription.
+      "orbstack"
+
       # --- games --------------------------------------------------------
       # Steam is a self-updating client: the cask only drops the initial
       # .app, then Steam patches itself in place on every launch. That is
