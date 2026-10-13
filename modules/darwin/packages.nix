@@ -120,6 +120,21 @@ in
     })
 
     # --- cloud / IaC ------------------------------------------------------
+    # This attribute IS ansible-core (the derivation is literally named
+    # python3.14-ansible-core), NOT the big community bundle -- so it ships
+    # only ansible.builtin. Everything else comes from `ansible-galaxy
+    # collection install`, which writes to ~/.ansible/collections: untracked
+    # machine-local state that Nix does not own and a rebuild never touches.
+    # ansible.posix and community.general are already installed there.
+    #
+    # Replaced a `uv tool install ansible-core` (2.21.5 -> 2.21.2 here, since
+    # versions now follow flake.lock). The uv shims in ~/.local/bin had to go:
+    # that directory comes BEFORE /run/current-system/sw/bin on PATH, so they
+    # would have kept winning over this.
+    #
+    # ansible-lint is deliberately not added -- it was not installed before
+    # either. `pkgs.ansible-lint` exists if it is ever wanted.
+    ansible
     terraform
     terragrunt
     awscli2
@@ -218,6 +233,12 @@ in
     python3
     gnupg
     curl
+    # Unlike curl, macOS ships no wget at all, so there is no system binary to
+    # shadow -- none of the coreutils trap above applies here. Kept alongside
+    # curl rather than instead of it: recursive mirroring (-r, -np) and
+    # retry/continue of a large download (-c) are the cases curl is awkward
+    # for.
+    wget
     bash-completion
 
     # Reaching a port by hand (`telnet host 5432`). See the let-binding above
