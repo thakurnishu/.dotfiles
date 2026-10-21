@@ -14,6 +14,39 @@ let
   # licensing caveat (NPDL-1.0, meta.license deliberately unset).
   llm-checker = pkgs.callPackage ../pkgs/llm-checker.nix { };
 
+  # `psql` only, not a Postgres install. The binary lives in the full
+  # postgresql derivation, whose bin/ also carries the SERVER side --
+  # postgres, initdb, pg_ctl, pg_upgrade, pg_resetwal. Nothing there shadows a
+  # macOS binary (unlike the coreutils/inetutils traps below), but putting a
+  # server on PATH invites starting a local cluster by accident when the only
+  # thing wanted is a client for remote databases. So link out the client
+  # tools, same shape as the telnet binding above. The store closure is
+  # identical either way -- this is about PATH, not disk.
+  #
+  # Version is pinned to 17 deliberately rather than tracking `postgresql`
+  # (18 in this nixpkgs): psql connects fine to older AND newer servers, but
+  # pg_dump REFUSES a server newer than itself, so the client major should not
+  # run ahead of the servers being dumped.
+  postgresql-client =
+    let
+      pg = pkgs.postgresql_17;
+      bins = [
+        "psql"
+        "pg_dump"
+        "pg_dumpall"
+        "pg_restore"
+        "pg_isready"
+        "createdb"
+        "dropdb"
+      ];
+    in
+    pkgs.runCommand "postgresql-client-${pg.version}" { } ''
+      mkdir -p $out/bin
+      for b in ${pkgs.lib.concatStringsSep " " bins}; do
+        ln -s ${pg}/bin/$b $out/bin/$b
+      done
+    '';
+
   # nixpkgs has no standalone `telnet`; the binary lives in GNU inetutils.
   # Installing inetutils outright is not safe here -- it also ships hostname,
   # ping, ping6, ifconfig, logger, traceroute and whois, every one of which
@@ -244,6 +277,10 @@ in
     # Reaching a port by hand (`telnet host 5432`). See the let-binding above
     # for why this is not plain `inetutils`.
     telnet
+
+    # `psql` and the other Postgres CLIENT tools. See the let-binding above for
+    # why this is not plain `postgresql_17`.
+    postgresql-client
   ];
 
   # Deliberately excluded:
