@@ -228,6 +228,37 @@ in
       done
     '';
 
+  # Claude Code's user-scope MCP servers, merged INTO ~/.claude.json rather
+  # than symlinked over it.
+  #
+  # WHY NOT home.file: ~/.claude.json is not a config file, it is Claude
+  # Code's state file, and the app rewrites it on every startup. 120 KB of it
+  # is ~50 KB of cachedGrowthBookFeatures and ~38 KB of `projects` (every path
+  # ever opened, with per-project history), alongside userID, machineID and
+  # oauthAccount. A store symlink is read-only and the app could not write;
+  # an out-of-store writable symlink -- the .ssh/config trick used below --
+  # would work mechanically but drags all that churn and those identifiers
+  # into git, dirtying the repo after every session.
+  #
+  # So the repo owns ONLY the `mcpServers` object, in
+  # dotfiles/claude/mcp-servers.json, and this merges it in on each switch.
+  # The file stays machine-local; everything else in it is left alone.
+  #
+  # Declared servers WIN on every switch, so the tracked file is the source of
+  # truth for the ones it names. Servers added by hand with `claude mcp add`
+  # and not listed here are preserved, not pruned -- removing one means
+  # deleting it from the JSON *and* running `claude mcp remove <name>` once.
+  #
+  # Only the URL and transport live here. OAuth tokens never touch this file;
+  # they are in the macOS Keychain, which is why a fresh machine still needs
+  # one interactive `/mcp` login per server.
+  home.activation.claudeMcpServers =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      run ${pkgs.python3}/bin/python3 ${../../dotfiles/claude/merge-mcp-servers.py} \
+        "$HOME/.claude.json" ${../../dotfiles/claude/mcp-servers.json} ||
+        echo "claude: could not merge MCP servers into ~/.claude.json (continuing)"
+    '';
+
   # ---- Phase 8: git + ssh ------------------------------------------------
   home.file.".gitconfig".source = ../../dotfiles/.gitconfig;
   # core.excludesfile in that .gitconfig points here. Carries the ignore for
