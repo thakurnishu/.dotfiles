@@ -47,6 +47,18 @@ let
       done
     '';
 
+  # IaC auto-tagger. Linked out rather than installed whole, same shape as
+  # telnet below: pkgs.yor ships THREE binaries, and two of them are Go
+  # example plugins named `example` and `tag_group_example`. Those are about
+  # the most collision-prone names a bin/ could put on PATH -- `example`
+  # especially, which reads as a placeholder and would silently win over
+  # anything a project or a later package installs under that name. Only
+  # `yor` was wanted, so only `yor` is linked.
+  yor = pkgs.runCommand "yor-${pkgs.yor.version}" { } ''
+    mkdir -p $out/bin
+    ln -s ${pkgs.yor}/bin/yor $out/bin/yor
+  '';
+
   # nixpkgs has no standalone `telnet`; the binary lives in GNU inetutils.
   # Installing inetutils outright is not safe here -- it also ships hostname,
   # ping, ping6, ifconfig, logger, traceroute and whois, every one of which
@@ -63,13 +75,29 @@ in
   environment.systemPackages = with pkgs; [
 
     # --- language toolchains ---------------------------------------------
-    # Nix owns these outright; mise was dropped to avoid two systems
-    # managing the same runtimes.
+    # Nix owns these outright, and that has NOT changed now that mise is back
+    # below -- see the comment there for why the two can coexist.
     go
     bun
     uv
     nodejs
     rustup
+
+    # mise, re-added after having been dropped for "two systems managing the
+    # same runtimes". That reason was about ACTIVATION, not the binary: the
+    # clash is `mise activate zsh`, which prepends ~/.local/share/mise/shims
+    # to PATH, where a mise-managed node would shadow the nodejs above. That
+    # hook is deliberately NOT in dotfiles/.zshrc, so mise here is an inert
+    # CLI -- it manages nothing until asked.
+    #
+    # What it is good for in that state: `mise x node@18 -- ...` for a one-off
+    # version, and honouring a repo's .tool-versions / mise.toml on demand
+    # without that repo's pins leaking into every other shell.
+    #
+    # If the hook is ever added, decide FIRST which system owns node/go/bun/uv
+    # and drop the loser from this list. Having both silently fight is how the
+    # original removal happened.
+    mise
 
     # go install ... from language.yaml, packaged in nixpkgs instead
     grpcurl
@@ -170,7 +198,17 @@ in
     ansible
     terraform
     terragrunt
+    # Tags terraform/cloudformation/serverless resources with git provenance
+    # (yor_trace, git_repo, git_commit, ...). See the let-binding above for
+    # why this is a link-out of one binary and not the whole package.
+    yor
     awscli2
+    # Bulk S3 work, next to awscli2 rather than instead of it. `aws s3 cp/sync`
+    # is the general tool; s5cmd only does object storage, but does it with a
+    # worker pool, so large or many-object transfers finish in a fraction of
+    # the time. Reads the same ~/.aws/credentials and AWS_PROFILE, so there is
+    # no second thing to configure.
+    s5cmd
     azure-cli
     google-cloud-sdk
 
@@ -299,7 +337,6 @@ in
   ];
 
   # Deliberately excluded:
-  #   mise          — Nix owns the language toolchains now
   #   php/composer  — no Laravel work on this Mac
   #   displayplacer — not in nixpkgs; stays a Homebrew formula
   #

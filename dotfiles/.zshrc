@@ -3,7 +3,12 @@
 #
 # Dropped, because Nix now provides these on PATH:
 #   nvm, cargo env, gcloud path.bash.inc, opencode/bun PATH lines,
-#   /usr/local/go/bin, /usr/local/nvim/bin, mise, composer (no PHP here)
+#   /usr/local/go/bin, /usr/local/nvim/bin, composer (no PHP here)
+#
+# mise is installed again (modules/darwin/packages.nix) but its shell hook is
+# STILL dropped on purpose. `eval "$(mise activate zsh)"` would put mise's
+# shims ahead of the Nix toolchains on PATH and shadow node/go/bun/uv. Use
+# `mise x <tool>@<ver> -- cmd` for a one-off instead.
 # Dropped as Linux-only: dnf/apt aliases, `ls --color=auto` (GNU-only)
 #
 # Auto-tmux is NOT here: Ghostty launches tmux directly (see
