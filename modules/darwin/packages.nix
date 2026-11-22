@@ -176,11 +176,26 @@ in
 
     # --- AI CLIs ----------------------------------------------------------
     # ai.yaml installed these via curl|bash, npm and `uv tool`; all four
-    # are packaged, so they become declarative and pinned.
+    # are packaged, so they become declarative and pinned. (cursor-cli below
+    # was not in ai.yaml -- it arrived later, by the same route.)
     claude-code
     opencode
     codex
     graphify
+
+    # Cursor's agent CLI, the `curl https://cursor.com/install | bash`
+    # installer made declarative. Unfree (allowUnfree is already on in
+    # hosts/macbook/default.nix), aarch64-darwin is supported, and the
+    # derivation repackages the same upstream tarball -- so `cursor-agent
+    # update` must NOT be run: it would write into a read-only store path.
+    # `nix flake update` is the upgrade path.
+    #
+    # The ATTRIBUTE is cursor-cli but the BINARY is `cursor-agent`, which is
+    # also herdr's canonical kind `cursor` under a different name. That
+    # mismatch is why dotfiles/.local/bin/harness needs its exe_for mapping
+    # -- see the comment there. There is no `cursor` binary in this
+    # derivation, and nothing here installs the Cursor GUI app.
+    cursor-cli
 
     # Agent multiplexer: a background server that hosts the CLIs above, and
     # reports each one as working / blocked / idle in a sidebar.

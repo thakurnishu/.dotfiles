@@ -10,7 +10,8 @@
 # kinds, filtered to what is actually on PATH. Two consequences worth knowing:
 #
 #   * adding a harness to modules/darwin/packages.nix makes it appear here
-#     with no edit to this script, which is the point.
+#     with no edit to this script, which is the point -- UNLESS its binary is
+#     named differently from herdr's kind, which is what exe_for exists for.
 #   * the names are herdr's CANONICAL kinds, so the sidebar keeps detecting
 #     agent state (working/idle/blocked) for whichever one you pick.
 #
@@ -85,6 +86,28 @@ fi
 KINDS=(claude codex opencode pi gemini cursor amp droid copilot grok kimi kiro
        cline agy omp mastracode devin hermes kilo qodercli maki)
 
+# The EXECUTABLE for a kind, where the two differ.
+#
+# Everything above is both herdr's canonical kind and its own command name,
+# so the kind doubles as the thing to look for on PATH and the thing to exec.
+# `cursor` is the exception: herdr calls the kind `cursor` -- that is what the
+# sidebar detects and what `herdr agent start --kind` accepts -- but the CLI
+# installs as `cursor-agent`, and there is no `cursor` binary. herdr knows
+# this already; its detection manifest carries `aliases = ["cursor-agent"]`.
+# This script has to be told, because discovery is `command -v` and launch is
+# `exec`, both on the raw name.
+#
+# Keep using the KIND for everything herdr-facing (state keys, agent list
+# lookups, resume bookkeeping) and the EXECUTABLE only for PATH and exec --
+# herdr reports the session under `cursor`, not `cursor-agent`, so mixing the
+# two up means resume silently never fires.
+exe_for() {
+    case $1 in
+        cursor) printf 'cursor-agent' ;;
+        *)      printf '%s' "$1" ;;
+    esac
+}
+
 # One-line descriptions for the ones worth labelling; the rest show bare.
 describe() {
     case $1 in
@@ -92,6 +115,7 @@ describe() {
         codex)    printf 'OpenAI Codex' ;;
         opencode) printf 'OpenCode' ;;
         gemini)   printf 'Google Gemini' ;;
+        cursor)   printf 'Cursor Agent' ;;
         pi)       printf 'Pi' ;;
         *)        printf '' ;;
     esac
@@ -99,7 +123,7 @@ describe() {
 
 available=()
 for k in "${KINDS[@]}"; do
-    command -v "$k" >/dev/null 2>&1 && available+=("$k")
+    command -v "$(exe_for "$k")" >/dev/null 2>&1 && available+=("$k")
 done
 
 # --- session memory -------------------------------------------------------
@@ -214,13 +238,21 @@ fallback_id() {
 
 # How each harness is told to reopen a conversation. codex is the odd one --
 # a SUBCOMMAND rather than a flag, so it changes argv[1], not just the tail.
+#
+# argv[0] is the EXECUTABLE, not the kind, which is why every branch prints
+# $exe. cursor-agent also has a bare `resume` subcommand and a `--continue`,
+# both meaning "the latest chat"; neither is used, because latest is scoped to
+# the cwd and two panes on one repo would resume each other's conversation.
+# `--resume <chatId>` names the one we recorded.
 resume_argv() {
-    local k=$1 id=$2
+    local k=$1 id=$2 exe
+    exe=$(exe_for "$k")
     case $k in
-        claude)   printf '%s\n--resume\n%s\n' "$k" "$id" ;;
-        opencode) printf '%s\n--session\n%s\n' "$k" "$id" ;;
-        codex)    printf '%s\nresume\n%s\n' "$k" "$id" ;;
-        *)        printf '%s\n' "$k" ;;   # no known resume flag; start fresh
+        claude)   printf '%s\n--resume\n%s\n' "$exe" "$id" ;;
+        cursor)   printf '%s\n--resume\n%s\n' "$exe" "$id" ;;
+        opencode) printf '%s\n--session\n%s\n' "$exe" "$id" ;;
+        codex)    printf '%s\nresume\n%s\n' "$exe" "$id" ;;
+        *)        printf '%s\n' "$exe" ;;  # no known resume flag; start fresh
     esac
 }
 
@@ -302,7 +334,7 @@ argv=()
 if [[ -n ${sid:-} ]]; then
     while IFS= read -r a; do argv+=("$a"); done < <(resume_argv "$kind" "$sid")
 else
-    argv=("$kind")
+    argv=("$(exe_for "$kind")")
 fi
 
 exec "${argv[@]}" "$@"

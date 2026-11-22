@@ -120,15 +120,16 @@ if [[ -n ${hpane:-} ]]; then
         # caller had nothing to add -- an empty tail would read as a truncated
         # sentence to a model that has to act on it.
         ctx="You are working in the git worktree for branch $branch, checked out at $cwd.${source_repo:+ The main checkout is $source_repo.}${extra:+ $extra}"
-        # The SHAPE of the argument differs, which is the trap here: claude
-        # and codex take a POSITIONAL prompt, while opencode's positional is a
-        # project DIRECTORY and its prompt is a named flag. Passing a sentence
-        # positionally to opencode would be wrong in a way that looks right.
+        # The SHAPE of the argument differs, which is the trap here: claude,
+        # codex and cursor-agent take a POSITIONAL prompt, while opencode's
+        # positional is a project DIRECTORY and its prompt is a named flag.
+        # Passing a sentence positionally to opencode would be wrong in a way
+        # that looks right.
         start_args=()
         case $kind in
-            claude|codex) start_args=(-- "$ctx") ;;
-            opencode)     start_args=(-- --prompt "$ctx") ;;
-            *)            log "$kind: no known opening-prompt flag; starting bare" ;;
+            claude|codex|cursor) start_args=(-- "$ctx") ;;
+            opencode)            start_args=(-- --prompt "$ctx") ;;
+            *)                   log "$kind: no known opening-prompt flag; starting bare" ;;
         esac
 
         # Generous timeout: three harnesses starting at once contended badly

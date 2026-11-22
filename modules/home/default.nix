@@ -223,7 +223,7 @@ in
   # place. Failure is swallowed: a missing herdr must not abort activation.
   home.activation.herdrIntegrations =
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      for target in claude codex opencode; do
+      for target in claude codex opencode cursor; do
         run ${pkgs.herdr}/bin/herdr integration install "$target" ||           echo "herdr: could not install the $target integration (continuing)"
       done
     '';
