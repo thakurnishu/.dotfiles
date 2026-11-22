@@ -4,14 +4,15 @@
 # herdr-worktreeizer (per branch).
 #
 # It exists because those two grew the same tab-building loop twice, and it
-# drifted: hunk had to be added to each separately, the harness tab landed in
-# a different slot in each, and only one of them knew to skip lazygit in a
-# non-git directory. Anything about the SHAPE of a space belongs here now.
+# drifted: every new tab had to be added to each of them separately, the
+# harness tab landed in a different slot in each, and only one of them knew to
+# skip lazygit in a non-git directory. Anything about the SHAPE of a space
+# belongs here now.
 #
 #   herdr-space-layout --workspace ID --cwd PATH [OPTIONS]
 #
 #     --tab1 TAB_ID     the space's existing root tab; renamed to "terminal"
-#     --branch NAME     marks this a WORKTREE space -- see the two rules below
+#     --branch NAME     marks this a WORKTREE space -- see the focus rule below
 #     --source PATH     the main checkout, named in the agent's opening prompt
 #     --kind HARNESS    start this harness instead of leaving the picker, and
 #                       name the agent after --branch
@@ -19,15 +20,20 @@
 #                       worktree exists, in the caller's words. Without it the
 #                       agent knows where it is and nothing about what to do.
 #
-# Two rules differ between the two kinds of space, and both are deliberate:
+# One rule differs between the two kinds of space, and it is deliberate:
 #
-#   gh-dash    only on a REPO space. A worktree's PRs are the parent repo's
-#              PRs, so a second dashboard on the same query is noise.
 #   focus      a worktree space lands on HARNESS, because its agent is already
 #              running with the branch context typed in and making you go find
 #              it defeats the point. A repo space lands on TERMINAL, because
 #              its harness tab is only a picker and dropping you there would
 #              force a harness choice before you have done anything.
+#
+# The shape itself no longer differs. A space used to also get a gh-dash tab
+# (repo spaces only) and a `hunk diff --watch` tab (everywhere); both were
+# dropped -- four or five tool tabs per space meant most of them were never
+# looked at, and the two that earned their keep are the shell and lazygit.
+# gh-dash is still installed and `gh-dash-session` is still on PATH, so the
+# dashboard is one command away whenever it is actually wanted.
 
 set -uo pipefail
 
@@ -75,8 +81,8 @@ print(d)
 # The TRAILING NEWLINE is load-bearing. `read` returns 1 at EOF-without-
 # delimiter even though it has already assigned the variables, and the caller
 # below guards with `|| continue` -- so without it every tab was created and
-# then skipped before its command ran. lazygit, gh-dash and hunk came up as
-# bare shells. The harness tab survived only because it guards with `|| true`.
+# then skipped before its command ran. The tool tabs all came up as bare
+# shells. The harness tab survived only because it guards with `|| true`.
 make_tab() {
     local label=$1 tabj t p
     tabj=$(herdr tab create --workspace "$ws" --cwd "$cwd" \
@@ -165,17 +171,16 @@ fi
 # rather than closing the tab.
 #
 # A non-git directory is a legitimate space (~/.config/*, a notes dir), where
-# lazygit and hunk would just sit there erroring. `rev-parse` rather than a
-# `.git` test: it is also true in subdirectories and in worktree checkouts,
-# where `.git` is a file or absent entirely.
+# lazygit would just sit there erroring. `rev-parse` rather than a `.git`
+# test: it is also true in subdirectories and in worktree checkouts, where
+# `.git` is a file or absent entirely.
 #
-# hunk stays LAST so the tab numbers do not move: terminal, harness, lazygit,
-# gh-dash are already muscle memory at prefix+1..4.
+# Order is muscle memory, so treat it as fixed: terminal, harness, lazygit sit
+# at prefix+1..3 in every space. Anything added later goes on the END, after
+# lazygit, so those three numbers never move.
 specs=()
 if git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     specs+=("lazygit:lazygit")
-    [[ $is_worktree -eq 0 ]] && specs+=("gh-dash:gh-dash-session")
-    specs+=("hunk:hunk diff --watch")
 else
     log "not a git repo: $cwd -- harness only"
 fi

@@ -25,8 +25,9 @@ end
 
 --- Find the harness pane, creating the tab or starting the harness if needed.
 --- Three situations, three different right answers -- the third is not
---- hypothetical, since worktree spaces are laid out terminal/lazygit/hunk with
---- no harness tab at all.
+--- hypothetical: herdr-space-layout lays a space out as terminal/harness/
+--- lazygit, but nothing stops a space from being built by hand, or the harness
+--- tab from being closed, and then there is no harness tab to find.
 function M.pane(opts)
   opts = opts or {}
   if not herdr.available() then

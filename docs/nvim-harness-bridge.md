@@ -124,8 +124,9 @@ whose tab is labelled `harness`. Three cases, three different right answers:
 | tab exists, pane at a shell | `herdr pane run <pane> harness` first |
 | no harness tab | `herdr tab create --label harness`, then run it |
 
-The third is not hypothetical: **worktree spaces have no harness tab** — they are
-`terminal, lazygit, hunk`.
+The third is not hypothetical: a space built by hand, or one whose harness tab
+was closed, has no harness tab at all. herdr-space-layout's own layout is
+`terminal, harness, lazygit`.
 
 ### A3 — payloads
 

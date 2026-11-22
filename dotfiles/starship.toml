@@ -16,9 +16,9 @@ add_newline = false
 
 # custom.git_dirty below shells out to git three times per prompt. That takes
 # ~80ms in fcc-monorepo (4,289 files) -- comfortable against starship's 500ms
-# default, until a space first opens and the shell, lazygit, gh-dash and
-# `hunk diff --watch` all hit the same repo at once on a cold cache. Then it
-# blows the budget, starship kills it, and the prompt warns and drops the ✗.
+# default, until a space first opens and the shell and lazygit hit the same
+# repo at once on a cold cache. Then it blows the budget, starship kills it,
+# and the prompt warns and drops the ✗.
 #
 # 2s is far more than the module needs, so this now only trips when something
 # is genuinely stuck -- which is the case worth being told about. The cost is

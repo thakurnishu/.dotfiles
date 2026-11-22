@@ -350,8 +350,11 @@ in
     executable = true;
   };
 
-  # Launched by herdr-sessionizer as the gh-dash tab: picks the GitHub account
-  # from $HERDR_SESSION so work and personal dashboards stay separate.
+  # gh-dash wrapper: picks the GitHub account from $HERDR_SESSION so work and
+  # personal dashboards stay separate. No longer launched automatically -- the
+  # gh-dash tab was dropped from the space layout -- but kept on PATH because
+  # running `gh-dash-session` by hand is still the only way to get the right
+  # account's dashboard.
   home.file.".local/bin/gh-dash-session" = {
     source = ../../dotfiles/.local/bin/gh-dash-session;
     executable = true;

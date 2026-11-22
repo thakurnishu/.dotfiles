@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pick a project directory with fzf, then create-or-focus a herdr workspace
-# for it laid out as tabs: terminal and harness always, plus lazygit and
-# gh-dash when the directory is a git repo.
+# for it laid out as tabs: terminal and harness always, plus lazygit when the
+# directory is a git repo.
 #
 # The herdr counterpart to tmux-sessionizer, and deliberately the same shape:
 # same search roots, same fzf pick, same create-or-switch behaviour. Bound to

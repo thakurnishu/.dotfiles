@@ -1,6 +1,6 @@
 ---
 name: herdr-worktree
-description: Create or open a git-worktree-backed herdr workspace so an agent gets its own isolated checkout of a branch, laid out as terminal / harness / lazygit / hunk tabs, and bind your own session to that checkout with EnterWorktree. Use when the user asks to work on a branch in a separate workspace, to spin up an isolated checkout, to open an existing worktree as a space, when parallel work on two branches of one repo would otherwise collide in a single checkout, or when you need to reach the agent running in another herdr space. Requires running inside herdr (HERDR_ENV=1).
+description: Create or open a git-worktree-backed herdr workspace so an agent gets its own isolated checkout of a branch, laid out as terminal / harness / lazygit tabs, and bind your own session to that checkout with EnterWorktree. Use when the user asks to work on a branch in a separate workspace, to spin up an isolated checkout, to open an existing worktree as a space, when parallel work on two branches of one repo would otherwise collide in a single checkout, or when you need to reach the agent running in another herdr space. Requires running inside herdr (HERDR_ENV=1).
 ---
 
 # herdr worktree spaces
@@ -148,7 +148,7 @@ You want the pair:
 
 ```
 agent 'devsh-stale-api-image' (claude) started in w1T:p2
-laid out ws=w1T cwd=... worktree=1 kind='claude' context=yes tabs=3
+laid out ws=w1T cwd=... worktree=1 kind='claude' context=yes tabs=2
 ```
 
 `context=yes` alone is not success — it only means the string reached the layout
@@ -352,7 +352,7 @@ herdr-worktreeizer --open <branch>      # branch name, or the checkout's directo
 # --harness and --context apply here too; see the two sections above.
 ```
 
-Same two-tab layout as create, and it is a no-op-plus-focus when the worktree is
+Same tab layout as create, and it is a no-op-plus-focus when the worktree is
 already open as a space. With no branch argument it shows a picker.
 
 Raw equivalent:
@@ -397,7 +397,7 @@ like -- shared with `herdr-sessionizer` so the two cannot drift. A worktree
 space comes out as:
 
 ```
-1:terminal | 2:harness | 3:lazygit | 4:hunk
+1:terminal | 2:harness | 3:lazygit
 ```
 
 and lands on **harness**, whose agent is named after the branch's last segment
@@ -407,8 +407,11 @@ checkout already in its prompt, plus whatever `--context` added.
 question above; without a TTY the picker is skipped and the menu is left in the
 pane.
 
-No gh-dash tab: a worktree's PRs are the parent repo's PRs, so a second
-dashboard on the same query is noise.
+Three tabs, in every space, repo or worktree. A space used to also get a
+gh-dash tab and a `hunk diff --watch` tab; both were dropped, so do not add
+them back by hand and do not tell the user to expect them. `gh-dash-session`
+is still installed, so offer it as a command to run when PRs are the actual
+question.
 
 If you are building a space by hand anyway, `workspace create`, `tab create`
 and `worktree create` all return `result.root_pane.pane_id` and

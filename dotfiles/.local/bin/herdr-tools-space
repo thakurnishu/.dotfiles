@@ -151,7 +151,7 @@ fi
 
 # `pane run` types the command into the shell the tab already spawned, so
 # quitting k9s leaves a usable shell instead of closing the tab -- the same
-# arrangement herdr-space-layout uses for lazygit and gh-dash.
+# arrangement herdr-space-layout uses for its lazygit tab.
 #
 # k9s exits immediately when there is no reachable cluster. That is fine and
 # deliberate: you get the error and a prompt, not a dead tab.
