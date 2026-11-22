@@ -6,5 +6,13 @@
   "notion": {
     "type": "http",
     "url": "https://mcp.notion.com/mcp"
+  },
+  "blender": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-for-blender"
+    ],
+    "env": {}
   }
 }

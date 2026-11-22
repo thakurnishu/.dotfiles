@@ -83,6 +83,17 @@
       # false` above means we would not have moved it anyway.
       "vlc"
 
+      # Blender. nixpkgs has it for aarch64-darwin (5.2.0, not broken), but
+      # the cask wins for the usual reason in this file: it is a GUI .app that
+      # keeps its own preferences, and the addons directory under
+      # ~/Library/Application Support/Blender must be WRITABLE -- a read-only
+      # store path cannot take an installed addon at all. That matters here
+      # because the MCP integration is exactly such an addon; see
+      # docs/blender-mcp.md.
+      #
+      # The cask is also a version ahead (5.3.0 vs 5.2.0 in this nixpkgs).
+      "blender"
+
       # --- api client ---------------------------------------------------
       # Bruno. nixpkgs DOES have it for aarch64-darwin, but it is the same
       # Electron app either way and this repo keeps .app bundles in Homebrew
